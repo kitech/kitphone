@@ -1,0 +1,121 @@
+# kitphone.pro --- 
+# 
+# Author: liuguangzhao
+# Copyright (C) 2007-2010 liuguangzhao@users.sf.net
+# URL: 
+# Created: 2010-09-21 16:19:00 +0800
+# Version: $Id: kitphone.pro 846M 2011-04-23 12:49:15Z (本地) $
+# 
+
+QT       += core gui network declarative
+TARGET = kitphone
+TEMPLATE = app
+config += debug qaxcontainer link_pkgconfig
+UI_HEADERS_DIR = GeneratedFiles
+MOC_DIR = tmp
+UI_DIR = tmp
+OBJECTS_DIR = tmp
+
+QMAKE_CXXFLAGS += -g -std=c++0x
+
+QTSAPP_HEADERS = ./qtsingleapplication/qtsingleapplication.h ./qtsingleapplication/qtlocalpeer.h
+QTSAPP_SOURCES = ./qtsingleapplication/qtsingleapplication.cpp ./qtsingleapplication/qtlocalpeer.cpp
+
+SOURCES += main.cpp kitapplication.cpp metauri.cpp \
+        kitphone.cpp \
+        sipaccountswindow.cpp sipaccountpropertieswindow.cpp \
+        sipaccount.cpp \
+        skypetracer.cpp skypetunnel.cpp volctl.cpp \
+        PjCallback.cpp \
+
+HEADERS  += kitphone.h kitapplication.h metauri.h \
+         sipaccountswindow.h sipaccountpropertieswindow.h \
+         sipaccount.h \
+         skypetracer.h skypetunnel.h \
+         PjCallback.h
+
+FORMS    += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
+
+#######
+SOURCES += sipphone.cpp
+HEADERS += sipphone.h
+FORMS += sipphone.ui
+
+#######
+SOURCES += skypephone.cpp websocketclient.cpp
+HEADERS += skypephone.h websocketclient.h
+FORMS += skypephone.ui
+
+SOURCES += $$QTSAPP_SOURCES
+HEADERS += $$QTSAPP_HEADERS
+RESOURCES += kp.qrc
+
+# libwss
+DEFINES += DEBUG
+#QMAKE_CFLAGS += -include ./libwss/wss_config.h
+INCLUDEPATH += ./libwss
+win32 {
+INCLUDEPATH += ./libwss/win32helpers Z:/librarys/vc-zlib/include Z:/cross/boost_1_46_1
+} else {
+
+}
+
+SOURCES += ./libwss/base64-decode.c  \
+             ./libwss/extension.c     \
+            ./libwss/handshake.c     \
+            ./libwss/md5.c     \
+            ./libwss/sha-1.c         \
+            ./libwss/client-handshake.c  \
+            ./libwss/extension-deflate-stream.c  \
+            ./libwss/libwebsockets.c  \
+            ./libwss/parsers.c 
+win32 {
+    SOURCES +=  ./libwss/win32helpers/gettimeofday.c
+}
+
+## libskynet
+include(./skynet/libskynet.pri)
+
+INCLUDEPATH += ./qtsingleapplication ./skynet /serv/stow/pjsip/include
+LIBS += -L/serv/stow/pjsip/lib
+
+
+!win32 {
+   LIBS += -lssl
+   #PJSIP_LIBS=$$system("cat /serv/stow/pjsip/lib/pkgconfig/libpjproject.pc | grep Libs | awk -F} '{print $2}'")
+   #system("export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/serv/stow/pjsip/lib/pkgconfig")
+   #PKGCONFIG += libpjproject
+   PJSIP_LIBS=$$system("./pkg_config.sh")
+   message($$PJSIP_LIBS)
+   LIBS += $$PJSIP_LIBS -lg729codec-x86_64-unknown-linux-gnu -lsilkcodec-x86_64-unknown-linux-gnu
+}
+
+win32 {
+    CONFIG -= embed_manifest_exe
+    CONFIG -= embed_manifest_dll
+
+    INCLUDEPATH += . Z:/librarys/pjsip/include
+    LIBS += -LZ:/librarys/pjsip/lib
+
+    LIBS += -lws2_32 -lole32 -luser32
+    LIBS += -llibg7221codec-i386-win32-vc6-release \
+    -llibgsmcodec-i386-win32-vc6-release \
+    -llibilbccodec-i386-win32-vc6-release \
+    -llibmilenage-i386-win32-vc6-release \
+    -llibportaudio-i386-win32-vc6-release \
+    -llibresample-i386-win32-vc6-release \
+    -llibspeex-i386-win32-vc6-release \
+    -llibsrtp-i386-win32-vc6-release \
+    -lpjlib-i386-win32-vc6-release \
+    -lpjlib-util-i386-win32-vc6-release \
+    -lpjmedia-audiodev-i386-win32-vc6-release \
+    -lpjmedia-codec-i386-win32-vc6-release \
+    -lpjmedia-i386-win32-vc6-release \
+    -lpjnath-i386-win32-vc6-release \
+    -lpjsip-core-i386-win32-vc6-release \
+    -lpjsip-simple-i386-win32-vc6-release \
+    -lpjsip-ua-i386-win32-vc6-release \
+    -lpjsua-lib-i386-win32-vc6-release
+
+    LIBS += -lQAxContainer
+}

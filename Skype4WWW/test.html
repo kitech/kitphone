@@ -1,0 +1,67 @@
+<html>
+<head>
+  <title>hhhh plugin</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body>
+<script language="javascript">
+var skw = null;
+var ocall = null;
+
+    function abcd_l() {
+        // alert("loaddddddded");
+        skw = Skype4Web;
+        console.log(skw);
+        console.log("skype4www object:"+skw);
+            <!-- var amsg = skw.echo("aaaaaaaaaaaaahhhhhhhhhhhhhhaaaaaaaaaaaaaa"); -->
+            <!-- alert(amsg); -->
+            <!-- amsg = skw.testString; -->
+            <!-- alert(amsg); -->
+            <!-- skw.testString = "中国国"; -->
+            <!-- alert(skw.testString); -->
+            <!-- alert(skw.version); -->
+    }
+
+function attachit() {
+    var vret = skw.Attach(8, 0);
+    // alert(skw);
+    // alert(vret);
+    // console.log(vret);
+    vret = skw.Client;
+    console.log(vret);
+    // alert(skw.Client.isRunning); // xxxxxxxxxxx
+    console.log("Client running: " + vret.isRunning);
+    vret.Start();
+    // alert(skw.PlaceCall);
+    console.log("call func:" + skw.PlaceCall);
+    
+    skw.PlaceCall("abcd", "", "", "");
+    // console.log(ocall);
+}
+
+function hangup_call() {
+    console.log(ocall);
+    if (ocall != null) {
+        ocall.Finish();
+        ocall = null;
+    }
+}
+
+</script>
+  <object id=Skype4Web name=Skype4Web type="application/x-skype4www" height=100 width=100 border="0"
+          onload="abcd_l"
+          debug="on"
+          >
+
+  </object>
+
+<script language="javascript">
+  // alert(Skype4Web.valid);
+  // Skype4Web.echo("aaaaaaaaa");
+  // alert(Skype4Web);
+</script>
+
+<input type="button" value="attach......" onclick="attachit();" />
+<input type="button" value="hangup......" onclick="hangup_call();" />
+</body>
+</html>

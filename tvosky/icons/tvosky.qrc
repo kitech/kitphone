@@ -1,0 +1,29 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>tvosky.qrc</file>
+    <file>appointment-recurring.png</file>
+    <file>network-connect.png</file>
+    <file>network-disconnect.png</file>
+    <file>status/skypeme.png</file>
+    <file>status/available.png</file>
+    <file>status/away.png</file>
+    <file>status/content.png</file>
+    <file>status/enteredtext.png</file>
+    <file>status/idle.png</file>
+    <file>status/invisible.png</file>
+    <file>status/mobile.png</file>
+    <file>status/offline.png</file>
+    <file>status/tavailable.png</file>
+    <file>status/taway.png</file>
+    <file>status/tcontent.png</file>
+    <file>status/tenteredtext.png</file>
+    <file>status/tidle.png</file>
+    <file>status/tinvisible.png</file>
+    <file>status/tmobile.png</file>
+    <file>status/toffline.png</file>
+    <file>status/ttyping.png</file>
+    <file>status/tunknown.png</file>
+    <file>status/typing.png</file>
+    <file>status/unknown.png</file>
+  </qresource>
+</RCC>

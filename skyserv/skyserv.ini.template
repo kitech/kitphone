@@ -1,0 +1,35 @@
+[common]
+# note: all path are in $HOME
+storage_path_base=skype_cluster
+sk_path_base=skypekit/distro-skypekit-xxxxxxxxx
+sk_rt_name=
+sk_app_token=
+skype_20_path=xfsdev/skype_static-2.0.0.72/skype # multi call version skype executable path
+skype_21_path=xfsdev/skype_static-2.1.0.81/skype # single call version skype executable path
+
+[skyserv]
+log_dir=
+pid_dir=
+gateway_dir=
+sess_timeout=30
+router_ws_port=8060
+allowed_ws_hosts=ip1,ip2,ip3
+
+[database]
+host=ip
+db_name=
+user=
+passwd=
+port=5432
+
+[sip_server]
+ip1:port=1
+ip2:port=1
+ip3:port=1
+
+[ctrl_switcher]
+your_skype_id=xxxxx
+
+[audio_switcher]
+AUDIO_SWITCHER_USERS=place0 skype1 skype2
+AUDIO_SWITCHER_PASSWORDS=place0 pass1 pass2

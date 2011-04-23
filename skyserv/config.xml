@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config version="1.0" serial="434" timestamp="1289553322.15">
+    <Lib>
+    </Lib>
+    <UI>
+        <API>
+            <Authorizations>karia2</Authorizations>
+            <BlockedPrograms></BlockedPrograms>
+        </API>
+        <AutoUpdate>0</AutoUpdate>
+        <AutoPopupChatWindow>0</AutoPopupChatWindow>
+        <CaptureDevice>hw:0,0</CaptureDevice>
+        <RingDevice>hw:0,0</RingDevice>
+        <SoundDevice>hw:0,0</SoundDevice>
+	<TechCallInf>1</TechCallInf>
+    </UI>
+</config>

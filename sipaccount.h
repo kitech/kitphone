@@ -1,0 +1,64 @@
+// sipaccount.h --- 
+// 
+// Author: liuguangzhao
+// Copyright (C) 2007-2010 liuguangzhao@users.sf.net
+// URL: 
+// Created: 2010-11-21 16:55:53 +0800
+// Version: $Id: sipaccount.h 803 2011-03-29 03:46:13Z drswinghead $
+// 
+
+#ifndef _SIPACCOUNT_H_
+#define _SIPACCOUNT_H_
+
+#include <QtCore>
+
+#include "sipaccount.h"
+
+class SipAccount
+{
+public:
+    explicit SipAccount();
+    virtual ~SipAccount();
+
+    bool save(SipAccount &acc);
+    bool remove(QString key);
+    SipAccount getAccount(QString key);
+
+    QVector<SipAccount> listAccounts();
+
+    void dump();
+private:
+    QString _getAccountFile();
+
+public:
+    int    enabled;
+    QString userName;
+    QString password;
+    QString domain;
+
+private:
+    
+};
+
+class SipAccountList : public QObject
+{
+    Q_OBJECT;
+public:
+    static SipAccountList *instance();
+    virtual ~SipAccountList();
+    
+    QVector<SipAccount> loadAccounts();
+
+protected:
+    SipAccountList(QObject *parent = 0);
+
+private:
+    static SipAccountList *mInstance;
+
+private:
+    QHash<int, SipAccount> maccs;
+    QVector<SipAccount> maccs2;
+};
+
+
+#endif /* _SIPACCOUNT_H_ */

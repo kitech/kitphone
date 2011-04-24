@@ -53,6 +53,7 @@ FORMS += skypephone.ui
 SOURCES += $$QTSAPP_SOURCES
 HEADERS += $$QTSAPP_HEADERS
 RESOURCES += kp.qrc
+INCLUDEPATH += ../boost # for 
 
 # libwss
 DEFINES += DEBUG

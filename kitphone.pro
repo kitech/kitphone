@@ -16,7 +16,9 @@ MOC_DIR = tmp
 UI_DIR = tmp
 OBJECTS_DIR = tmp
 
+!win32 {
 QMAKE_CXXFLAGS += -g -std=c++0x
+}
 
 QTSAPP_HEADERS = ./qtsingleapplication/qtsingleapplication.h ./qtsingleapplication/qtlocalpeer.h
 QTSAPP_SOURCES = ./qtsingleapplication/qtsingleapplication.cpp ./qtsingleapplication/qtlocalpeer.cpp
@@ -53,7 +55,6 @@ FORMS += skypephone.ui
 SOURCES += $$QTSAPP_SOURCES
 HEADERS += $$QTSAPP_HEADERS
 RESOURCES += kp.qrc
-INCLUDEPATH += ../boost # for 
 
 # libwss
 DEFINES += DEBUG

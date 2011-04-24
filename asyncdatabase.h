@@ -9,7 +9,7 @@
 #ifndef _ASYNCDATABASE_H_
 #define _ASYNCDATABASE_H_
 
-#include <atomic>
+// #include <atomic>
 
 #include <QtSql>
 
@@ -44,7 +44,8 @@ private:
     DatabaseWorker *m_worker;
     static int m_reqno;
 
-    std::atomic<bool> m_connected;
+    // std::atomic<bool> m_connected;
+    bool m_connected;
 };
 
 #endif /* _ASYNCDATABASE_H_ */

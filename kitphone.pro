@@ -4,10 +4,10 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-09-21 16:19:00 +0800
-# Version: $Id: kitphone.pro 846M 2011-04-23 12:49:15Z (本地) $
+# Version: $Id: kitphone.pro 849 2011-04-23 14:03:48Z drswinghead $
 # 
 
-QT       += core gui network declarative
+QT       += core gui network declarative sql
 TARGET = kitphone
 TEMPLATE = app
 config += debug qaxcontainer link_pkgconfig
@@ -27,12 +27,16 @@ SOURCES += main.cpp kitapplication.cpp metauri.cpp \
         sipaccount.cpp \
         skypetracer.cpp skypetunnel.cpp volctl.cpp \
         PjCallback.cpp \
+        asyncdatabase.cpp \
+        databaseworker.cpp
 
 HEADERS  += kitphone.h kitapplication.h metauri.h \
          sipaccountswindow.h sipaccountpropertieswindow.h \
          sipaccount.h \
          skypetracer.h skypetunnel.h \
-         PjCallback.h
+         PjCallback.h \
+        asyncdatabase.h \
+        databaseworker.h
 
 FORMS    += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
 

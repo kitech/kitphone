@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 845M 2011-04-23 10:33:08Z (本地) $
+// Version: $Id: skypephone.cpp 849 2011-04-23 14:03:48Z drswinghead $
 // 
 
 #include <QtCore>
@@ -59,8 +59,8 @@ void SkypePhone::defaultPstnInit()
     // QObject::connect(this->uiw->checkBox_2, SIGNAL(stateChanged(int)),
     //                  this, SLOT(onInitPstnClient()));
 
-    // QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
-    //                  this, SLOT(onShowSkypeTracer()));
+    QObject::connect(this->uiw->pushButton, SIGNAL(clicked()),
+                     this, SLOT(onShowSkypeTracer()));
     QObject::connect(this->uiw->pushButton_3, SIGNAL(clicked()),
                      this, SLOT(onConnectSkype()));
     // QObject::connect(this->mainUI.pushButton_2, SIGNAL(clicked()),
@@ -70,6 +70,8 @@ void SkypePhone::defaultPstnInit()
     QObject::connect(this->uiw->toolButton_10, SIGNAL(clicked()),
                      this, SLOT(onHangupPstn()));
 
+    QObject::connect(this->uiw->toolButton_6, SIGNAL(clicked()),
+                     this, SLOT(onAddContact()));
 }
 
 // maybe called twice or more
@@ -226,6 +228,11 @@ void SkypePhone::onCallPstn()
 void SkypePhone::onHangupPstn()
 {
     this->mSkype->setCallHangup(QString::number(this->m_curr_skype_call_id));
+}
+
+void SkypePhone::onAddContact()
+{
+    
 }
 
 void SkypePhone::onWSConnected(QString path)

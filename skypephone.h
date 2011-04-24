@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:23:19 +0800
-// Version: $Id: skypephone.h 845M 2011-04-23 10:17:00Z (本地) $
+// Version: $Id: skypephone.h 849 2011-04-23 14:03:48Z drswinghead $
 // 
 
 #ifndef _SKYPEPHONE_H_
@@ -39,6 +39,8 @@ public slots:    // pstn
     void onCallPstn();
     void onHangupPstn();
     void onShowSkypeTracer();
+
+    void onAddContact();
 
     void onConnectSkype();
     void onConnectApp2App();

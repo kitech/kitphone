@@ -42,7 +42,7 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
         return;
     }
 
-    static std::vector<QString> tbls = {TABLE_OPTIONS, TABLE_CONTACTS, TABLE_HISTORIES};
+    // static std::vector<QString> tbls = {TABLE_OPTIONS, TABLE_CONTACTS, TABLE_HISTORIES};
     
     bool bok;
     QSqlQuery q;
@@ -55,9 +55,9 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
 
     emit this->connected();
 
-    std::for_each(tbls.begin(), tbls.end(),
-                  [&tbls,&m_database] (const QString &tbl) {
-                  });
+    // std::for_each(tbls.begin(), tbls.end(),
+    //               [&tbls,&m_database] (const QString &tbl) {
+    //               });
     // initialize db
     // if (!m_database.tables().contains( "item" ) )
     // {

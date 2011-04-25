@@ -14,8 +14,8 @@
 #include <QtCore>
 #include "skypecommon.h"
 
-// #ifdef Q_WS_WIN
-#ifdef Q_WS_WIN_RAW_API
+#ifdef Q_WS_WIN
+//#ifdef Q_WS_WIN_RAW_API
 
 enum {
   SKYPE_ATTACH_SUCCESS=0,
@@ -101,6 +101,7 @@ bool SkypeCommon::attachToSkype() {
 
 void SkypeCommon::timeOut()
 {
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<(this->TimeOut/1000);
     if ( waitingForConnect ) localEventLoop.exit(1);
 }
 

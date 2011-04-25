@@ -107,6 +107,7 @@ bool regsvr32_install()
 
     QStringList args;
     // args << "/s" << "/i" << path;
+    // args << "/s" << path;
     args << path;
 
     QProcess proc;
@@ -136,7 +137,9 @@ bool SkypeCommon::attachToSkype() {
     
     int retry_times = 5;
     do {
-        axo = new QAxObject("Skype4COM.Skype", 0);
+        // axo = new QAxObject("Skype4COM.Skype", 0);
+        // 830690FC-BF2F-47A6-AC2D-330BCB402664
+        axo = new QAxObject("{830690FC-BF2F-47A6-AC2D-330BCB402664}", 0);
         if (axo->isNull()) {
             regsvr32_install();
         }

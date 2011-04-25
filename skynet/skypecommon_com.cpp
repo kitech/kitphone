@@ -141,6 +141,8 @@ bool SkypeCommon::attachToSkype() {
         // 830690FC-BF2F-47A6-AC2D-330BCB402664
         // axo = new QAxObject("{830690FC-BF2F-47A6-AC2D-330BCB402664}", 0);
         axo = new QAxObject();
+        QObject::connect(axo, SIGNAL(exception(int , const QString & , const QString & , const QString &)), 
+                         this, SLOT(onComException(int , const QString & , const QString & , const QString &)));
         axo->setControl("{830690FC-BF2F-47A6-AC2D-330BCB402664}");
         if (axo->isNull()) {
             regsvr32_install();
@@ -269,6 +271,11 @@ void SkypeCommon::onComSignal(const QString & name, int argc, void * argv)
         str_val = getIDispatchStringValue(pdisp, L"Command");
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Get repl val:"<<str_val;        
     }
+}
+
+void SkypeCommon::onComException(int code, const QString & source, const QString & desc, const QString & help)
+{
+    qDebug()<<code<<source<<desc<<help;
 }
 
 void SkypeCommon::timeOut()

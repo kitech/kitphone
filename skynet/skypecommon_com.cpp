@@ -200,7 +200,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
                            &dispparamsNoArgs, pVarResult, NULL, NULL);
     // qDebug()<<pVarResult<<hresult<<pVarResult->vt<<pVarResult->bstrVal;
 
-    char    *strOut;
+    void    *strOut;
     BSTR strIn = pVarResult->bstrVal;
     // ANSI
     size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, 0, 0, 0, 0);
@@ -208,7 +208,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
         WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
     }
 
-    qDebug()<<(char*)(strOut)<<QString(strOut); // ok
+    qDebug()<<(char*)(strOut)<<QString((char*)strOut); // ok
     
     str_val = QString((char*)(strOut));
 

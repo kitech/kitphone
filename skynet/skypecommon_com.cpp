@@ -106,7 +106,8 @@ bool regsvr32_install()
     QString path = com_dll_path();
 
     QStringList args;
-    args << "/s" << "/i" << path;
+    // args << "/s" << "/i" << path;
+    args << "/i" << path;
 
     QProcess proc;
     proc.start("regsvr32", args);

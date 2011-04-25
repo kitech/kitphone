@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 849 2011-04-23 14:03:48Z drswinghead $
+// Version: $Id: skypephone.cpp 850 2011-04-24 15:07:53Z drswinghead $
 // 
 
 #include <QtCore>
@@ -19,6 +19,7 @@
 #include "skypetracer.h"
 
 #include "websocketclient.h"
+#include "asyncdatabase.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -27,10 +28,16 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->uiw->setupUi(this);
 
     this->defaultPstnInit();
+    this->m_adb = new AsyncDatabase();
+    this->m_adb->start();
 }
 
 SkypePhone::~SkypePhone()
 {
+    this->m_adb->quit();
+    this->m_adb->wait();
+    delete this->m_adb;
+
     delete uiw;
 }
 

@@ -32,7 +32,7 @@ public slots:
 signals:
     void progress(const QString &msg);
     void ready(bool);
-    void results(const QList<QSqlRecord> & records);
+    void results(const QList<QSqlRecord> & records, int);
 
 protected:
     void run();

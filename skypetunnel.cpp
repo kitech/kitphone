@@ -10,6 +10,11 @@
 #include <QtCore>
 #include <QtGui>
 
+#include <QFutureWatcher>
+#include <QFuture>
+
+#include <boost/signals2.hpp>
+
 #include "metauri.h"
 #include "skype.h"
 
@@ -37,7 +42,11 @@ void SkypeTunnel::setSkype(Skype *skype)
     Q_ASSERT(skype != NULL);
 
     if (this->mSkype == skype) {
-        this->mSkype->connectToSkype();
+        // this->mSkype->connectToSkype();
+        QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
+        QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
+        future_watcher->setFuture(future);
+        QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
     } else {
         this->mSkype = skype;
         QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString, QString)),
@@ -49,7 +58,13 @@ void SkypeTunnel::setSkype(Skype *skype)
         QObject::connect(this->mSkype, SIGNAL(streamClosed()),
                          this, SLOT(onStreamClosed()));
 
-        this->mSkype->connectToSkype();
+        // this->mSkype->connectToSkype();
+        // QFuture<bool> future = QtConcurrent::run(&Skype::connectToSkype);
+        QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
+        QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
+        future_watcher->setFuture(future);
+        QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
+
         QObject::connect(this->mSkype, SIGNAL(packageArrived(QString, int, QString)),
                          this, SLOT(onSkypePackageArrived(QString, int, QString)));
         QObject::connect(this->mSkype, SIGNAL(newForwardCallArrived(QString, QString, int)),
@@ -70,6 +85,18 @@ void SkypeTunnel::setStreamPeer(QString streamPeerName)
 void SkypeTunnel::setPhoneNumber(QString phoneNumber)
 {
     this->mPhoneNumber = phoneNumber;
+}
+
+void SkypeTunnel::onSkypeAsyncConnectFinished()
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    QFutureWatcher<bool> *future_watcher = static_cast<QFutureWatcher<bool>*>(sender());
+    QFuture<bool> future = future_watcher->future();
+
+    bool connected = this->mSkype->isConnected();
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<connected<<future.results();
+
+    future_watcher->deleteLater();
 }
 
 void SkypeTunnel::onSkypeError(int errNo, QString msg, QString cmd)

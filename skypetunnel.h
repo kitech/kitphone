@@ -29,6 +29,7 @@ public:
     void setPhoneNumber(QString phoneNumber);
 
 public slots:
+    void onSkypeAsyncConnectFinished();
     void onSkypeError(int errNo, QString msg, QString cmd);
     void onSkypeConnected(QString skypeName);
     void onSkypeDisconnected(QString skypeName);

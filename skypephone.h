@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:23:19 +0800
-// Version: $Id: skypephone.h 849 2011-04-23 14:03:48Z drswinghead $
+// Version: $Id: skypephone.h 850 2011-04-24 15:07:53Z drswinghead $
 // 
 
 #ifndef _SKYPEPHONE_H_
@@ -21,6 +21,7 @@ class SkypeTunnel;
 class SkypeTracer;
 
 class WebSocketClient;
+class AsyncDatabase;
 
 namespace Ui {
     class SkypePhone;
@@ -66,6 +67,7 @@ private: // pstn
     SkypeTunnel *mtun;
     SkypeTracer *mSkypeTracer;
 
+    AsyncDatabase *m_adb;
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;

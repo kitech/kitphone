@@ -60,6 +60,8 @@ private:
     int TimeOut;
     SkypeResponse response;
 
+    bool run_as_server;
+
 protected:
     void readIncomingData(QString contact, int stream);
     bool doCommand(QString cmd, bool blocking = false);
@@ -112,6 +114,9 @@ public:
     QStringList mRouters;
     void setSpecifiedRouters(QStringList routers) {
         this->mRouters = routers;
+    }
+    void setRunAsClient() {
+        this->run_as_server = false;
     }
 public slots:
     void onCommandRequest(QString cmd);

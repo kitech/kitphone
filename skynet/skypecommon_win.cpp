@@ -33,8 +33,12 @@ SkypeCommon::SkypeCommon() {
     if ( attachMSG == 0 || discoverMSG == 0 ) { 
         // attachMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIDiscover");
+
+        // 这种写法在unicode模式的win下可用，到中文cp936编码的系统上就不行了。
         // attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
+
+        // 还是得这种方法，应该什么编码的系统都行。
         wchar_t *sa = L"SkypeControlAPIAttach";
         wchar_t *sb = L"SkypeControlAPIDiscover";
         attachMSG = ::RegisterWindowMessage(sa);

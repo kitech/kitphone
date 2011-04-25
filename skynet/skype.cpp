@@ -26,6 +26,7 @@ Skype::Skype(QString AppName)
     this->mNamePublished = false;
     this->mConnected = false;
     this->waitingForResponse = false;
+    this->run_as_server = true; // 默认是服务器模式
 
     TimeOut = 10000;
     pingTimer = new QTimer(this);
@@ -184,16 +185,19 @@ void Skype::processMessage(const QString &message) {
         return;
     }
 
-    if (cmd.type() == SK_CHAT) {
-        this->doCommand(SkypeCommand::ALTER_CHAT_PROP(cmd.chat.NAME, "LEAVE", ""));
-        return;
-    }
-
-    if (cmd.type() == SK_CHATMESSAGE) {
-        if (cmd.chatMessage.STATUS == CMS_RECEIVED) {
-            this->doCommand(SkypeCommand::SET_CHATMESSAGE_PROP(cmd.chatMessage.ID, "SEEN", ""));
+    if (this->run_as_server) {
+        // 在桌面上作为客户端使用时不能这么用，否则用户无法聊天发信息了。
+        if (cmd.type() == SK_CHAT) {
+            this->doCommand(SkypeCommand::ALTER_CHAT_PROP(cmd.chat.NAME, "LEAVE", ""));
+            return;
         }
-        return;
+
+        if (cmd.type() == SK_CHATMESSAGE) {
+            if (cmd.chatMessage.STATUS == CMS_RECEIVED) {
+                this->doCommand(SkypeCommand::SET_CHATMESSAGE_PROP(cmd.chatMessage.ID, "SEEN", ""));
+            }
+            return;
+        }
     }
 
     if ( cmd.type() == SK_READY_TO_READ ) {

@@ -94,6 +94,7 @@ void SkypePhone::onInitPstnClient()
         this->mSkype = NULL;
     }
     this->mSkype = new Skype("karia2");
+    this->mSkype->setRunAsClient();
     // this->mSkype->connectToSkype();
     // QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString)),
     //                  this, SLOT(onSkypeError(int, QString)));

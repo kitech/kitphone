@@ -42,7 +42,15 @@ void SkypeTunnel::setSkype(Skype *skype)
     Q_ASSERT(skype != NULL);
 
     if (this->mSkype == skype) {
+
+#ifdef WIN32
+        aconn = new SkypeAsyncConnector();
+        aconn->mSkype = this->mSkype;
+        aconn->start();
+#else
         this->mSkype->connectToSkype();
+#endif
+
         // QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
         // QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
         // future_watcher->setFuture(future);
@@ -58,7 +66,13 @@ void SkypeTunnel::setSkype(Skype *skype)
         QObject::connect(this->mSkype, SIGNAL(streamClosed()),
                          this, SLOT(onStreamClosed()));
 
-        // this->mSkype->connectToSkype();
+#ifdef WIN32
+        aconn = new SkypeAsyncConnector();
+        aconn->mSkype = this->mSkype;
+        aconn->start();
+#else
+        this->mSkype->connectToSkype();
+#endif
 
         // 在线程中处理skype连接有问题，linux下是程序崩溃，win下同程序不能完全退出。
         // QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
@@ -66,9 +80,6 @@ void SkypeTunnel::setSkype(Skype *skype)
         // future_watcher->setFuture(future);
         // QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
 
-        aconn = new SkypeAsyncConnector();
-        aconn->mSkype = this->mSkype;
-        aconn->start();
 
         QObject::connect(this->mSkype, SIGNAL(packageArrived(QString, int, QString)),
                          this, SLOT(onSkypePackageArrived(QString, int, QString)));

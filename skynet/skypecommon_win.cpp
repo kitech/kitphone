@@ -37,15 +37,15 @@ SkypeCommon::SkypeCommon() {
         // discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
         wchar_t *sa = L"SkypeControlAPIAttach";
         wchar_t *sb = L"SkypeControlAPIDiscover";
-        attachMSG = RegisterWindowMessage(sa);
-        discoverMSG = RegisterWindowMessage(sb);
+        attachMSG = ::RegisterWindowMessage(sa);
+        discoverMSG = ::RegisterWindowMessage(sb);
     }
     if ( mainWin == NULL ) {
         mainWin = new QWidget();
         main_window = mainWin->winId();
     }
 
-    connect( qApp, SIGNAL( winMessage( MSG *) ), this, SLOT( processWINMessage( MSG *) ) );
+    QObject::connect( qApp, SIGNAL( winMessage( MSG *) ), this, SLOT( processWINMessage( MSG *) ) );
     skype_win=0;
     connected = false;
     refused = false;

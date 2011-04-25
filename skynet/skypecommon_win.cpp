@@ -35,8 +35,8 @@ SkypeCommon::SkypeCommon() {
         // discoverMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIDiscover");
         // attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
-        wchar_t *sa = "SkypeControlAPIAttach";
-        wchar_t *sb = "SkypeControlAPIDiscover";
+        wchar_t *sa = L"SkypeControlAPIAttach";
+        wchar_t *sb = L"SkypeControlAPIDiscover";
         attachMSG = RegisterWindowMessage(sa);
         discoverMSG = RegisterWindowMessage(sb);
     }

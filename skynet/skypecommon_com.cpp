@@ -258,7 +258,7 @@ void SkypeCommon::onComCommand(IDispatch *pcmd)
 
 void SkypeCommon::onComSignal(const QString & name, int argc, void * argv)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<name;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<name;
     IDispatch *pdisp = NULL;
     VARIANTARG *params = (VARIANTARG*)argv;
     QString str_val;
@@ -267,12 +267,14 @@ void SkypeCommon::onComSignal(const QString & name, int argc, void * argv)
         Q_ASSERT(argc == 1);
         pdisp = params[argc-1].pdispVal;
         str_val = getIDispatchStringValue(pdisp, L"Command");
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Get cmd val:"<<str_val;        
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Get cmd val:"<<str_val;        
     } else if (name.startsWith("Reply(")) {
         Q_ASSERT(argc == 1);
         pdisp = params[argc-1].pdispVal;
         str_val = getIDispatchStringValue(pdisp, L"Command");
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Get repl val:"<<str_val;        
+        if (str_val.length() > 0) {
+            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Get repl val:"<<str_val;        
+        }
     }
 }
 

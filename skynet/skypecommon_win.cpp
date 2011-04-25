@@ -33,9 +33,12 @@ SkypeCommon::SkypeCommon() {
     if ( attachMSG == 0 || discoverMSG == 0 ) { 
         // attachMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIDiscover");
-        attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
-        discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
-
+        // attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
+        // discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
+        wchar_t *sa = "SkypeControlAPIAttach";
+        wchar_t *sb = "SkypeControlAPIDiscover";
+        attachMSG = RegisterWindowMessage(sa);
+        discoverMSG = RegisterWindowMessage(sb);
     }
     if ( mainWin == NULL ) {
         mainWin = new QWidget();

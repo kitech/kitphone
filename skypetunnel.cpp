@@ -67,9 +67,10 @@ void SkypeTunnel::setSkype(Skype *skype)
                          this, SLOT(onStreamClosed()));
 
 #ifdef WIN32
-        aconn = new SkypeAsyncConnector();
-        aconn->mSkype = this->mSkype;
-        aconn->start();
+        this->mSkype->connectToSkype();
+        // aconn = new SkypeAsyncConnector();
+        // aconn->mSkype = this->mSkype;
+        // aconn->start();
 #else
         this->mSkype->connectToSkype();
 #endif

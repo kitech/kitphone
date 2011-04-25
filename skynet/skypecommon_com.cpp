@@ -14,7 +14,8 @@
 #include <QtCore>
 #include "skypecommon.h"
 
-#ifdef Q_WS_WIN_COM
+//#ifdef Q_WS_WIN_COM
+#ifdef Q_WS_WIN
 
 #include <QAxObject>
 
@@ -37,9 +38,14 @@ SkypeCommon::SkypeCommon() {
     if ( attachMSG == 0 || discoverMSG == 0 ) { 
         // attachMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIDiscover");
-        attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
-        discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
+        // attachMSG = RegisterWindowMessageA("SkypeControlAPIAttach");
+        // discoverMSG = RegisterWindowMessageA("SkypeControlAPIDiscover");
 
+        // 还是得这种方法，应该什么编码的系统都行。
+        wchar_t *sa = L"SkypeControlAPIAttach";
+        wchar_t *sb = L"SkypeControlAPIDiscover";
+        attachMSG = ::RegisterWindowMessage(sa);
+        discoverMSG = ::RegisterWindowMessage(sb);
     }
     if ( mainWin == NULL ) {
         mainWin = new QWidget();
@@ -183,7 +189,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
     OLECHAR FAR* szMember = pname;
 
     long hresult = pdisp->GetIDsOfNames(IID_NULL, &szMember, 1, LOCALE_USER_DEFAULT, &dispid);
-    qDebug()<<hresult<<dispid;
+    // qDebug()<<hresult<<dispid;
 
     DISPPARAMS dispparamsNoArgs = {NULL, NULL, 0, 0};
     VARIANT varReault;
@@ -192,10 +198,9 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
                            LOCALE_USER_DEFAULT,
                            DISPATCH_PROPERTYGET,
                            &dispparamsNoArgs, pVarResult, NULL, NULL);
-    qDebug()<<pVarResult<<hresult<<pVarResult->vt<<pVarResult->bstrVal;
+    // qDebug()<<pVarResult<<hresult<<pVarResult->vt<<pVarResult->bstrVal;
 
-
-    void    *strOut;
+    char    *strOut;
     BSTR strIn = pVarResult->bstrVal;
     // ANSI
     size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, 0, 0, 0, 0);
@@ -203,7 +208,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
         WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
     }
 
-    qDebug()<<(char*)(strOut); // ok
+    qDebug()<<(char*)(strOut)<<QString(strOut); // ok
     
     str_val = QString((char*)(strOut));
 
@@ -233,8 +238,9 @@ void SkypeCommon::onComCommand(IDispatch *pcmd)
     BSTR strIn = pVarResult->bstrVal;
     // ANSI
     size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, 0, 0, 0, 0);
-    if ((strOut = GlobalAlloc(GMEM_FIXED, size)))
+    if ((strOut = GlobalAlloc(GMEM_FIXED, size))) {
         WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
+    }
 
     qDebug()<<(char*)(strOut); // ok
 }

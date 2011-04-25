@@ -60,8 +60,10 @@ public:
     bool is_skype_running();
 
 private slots:
-    //    void onComCommand(IDispatch *pcmd);
-    // void onComSignal(const QString & name, int argc, void * argv);
+#ifdef Q_OS_WIN
+    void onComCommand(IDispatch *pcmd);
+    void onComSignal(const QString & name, int argc, void * argv);
+#endif
 
 signals:
     void newMsgFromSkype(const QString &message);

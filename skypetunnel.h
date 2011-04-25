@@ -17,6 +17,22 @@
 
 class SkypePackage;
 class Skype;
+
+class SkypeAsyncConnector : public QThread
+{
+    Q_OBJECT;
+public:
+    explicit SkypeAsyncConnector(QObject *parent = 0);
+    virtual ~SkypeAsyncConnector();
+
+    void run();
+
+private slots:
+    
+public:
+    Skype *mSkype;
+};
+
 class SkypeTunnel : public QObject
 {
     Q_OBJECT;

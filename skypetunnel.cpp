@@ -36,17 +36,17 @@ SkypeTunnel::~SkypeTunnel()
 {
 
 }
-
+SkypeAsyncConnector *aconn = nullptr;
 void SkypeTunnel::setSkype(Skype *skype)
 {
     Q_ASSERT(skype != NULL);
 
     if (this->mSkype == skype) {
         // this->mSkype->connectToSkype();
-        QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
-        QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
-        future_watcher->setFuture(future);
-        QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
+        // QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
+        // QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
+        // future_watcher->setFuture(future);
+        // QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
     } else {
         this->mSkype = skype;
         QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString, QString)),
@@ -58,12 +58,16 @@ void SkypeTunnel::setSkype(Skype *skype)
         QObject::connect(this->mSkype, SIGNAL(streamClosed()),
                          this, SLOT(onStreamClosed()));
 
-        // this->mSkype->connectToSkype();
-        // QFuture<bool> future = QtConcurrent::run(&Skype::connectToSkype);
-        QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
-        QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
-        future_watcher->setFuture(future);
-        QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
+        this->mSkype->connectToSkype();
+
+        // QFuture<bool> future = QtConcurrent::run(boost::bind(&Skype::connectToSkype, this->mSkype));
+        // QFutureWatcher<bool> *future_watcher = new QFutureWatcher<bool>();
+        // future_watcher->setFuture(future);
+        // QObject::connect(future_watcher, SIGNAL(finished()), this, SLOT(onSkypeAsyncConnectFinished()));
+
+        // aconn = new SkypeAsyncConnector();
+        // aconn->mSkype = this->mSkype;
+        // aconn->start();
 
         QObject::connect(this->mSkype, SIGNAL(packageArrived(QString, int, QString)),
                          this, SLOT(onSkypePackageArrived(QString, int, QString)));
@@ -106,7 +110,7 @@ void SkypeTunnel::onSkypeError(int errNo, QString msg, QString cmd)
 
 void SkypeTunnel::onSkypeConnected(QString skypeName)
 {
-
+    
 }
 
 void SkypeTunnel::onSkypeDisconnected(QString skypeName)
@@ -370,4 +374,21 @@ void SkypeTunnel::onPresendReadyRead()
     this->mPresendResult[rep] += ba;
 }
 
+/////////////////////
+SkypeAsyncConnector::SkypeAsyncConnector(QObject *parent)
+    : QThread(parent) 
+{
+    this->mSkype = nullptr;
+}
 
+SkypeAsyncConnector::~SkypeAsyncConnector()
+{
+
+}
+
+void SkypeAsyncConnector::run()
+{
+    bool bok = this->mSkype->connectToSkype();
+    
+    this->exec();
+}

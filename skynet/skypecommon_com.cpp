@@ -139,7 +139,9 @@ bool SkypeCommon::attachToSkype() {
     do {
         // axo = new QAxObject("Skype4COM.Skype", 0);
         // 830690FC-BF2F-47A6-AC2D-330BCB402664
-        axo = new QAxObject("{830690FC-BF2F-47A6-AC2D-330BCB402664}", 0);
+        // axo = new QAxObject("{830690FC-BF2F-47A6-AC2D-330BCB402664}", 0);
+        axo = new QAxObject();
+        axo->setControl("{830690FC-BF2F-47A6-AC2D-330BCB402664}");
         if (axo->isNull()) {
             regsvr32_install();
         }

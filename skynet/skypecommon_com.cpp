@@ -136,6 +136,7 @@ bool regsvr32_uninstall()
 bool SkypeCommon::attachToSkype() {
     
     int retry_times = 5;
+    // 这种方式竟然又不能在线程中调用。在调用时界面直接没有响应了。
     do {
         // axo = new QAxObject("Skype4COM.Skype", 0);
         // 830690FC-BF2F-47A6-AC2D-330BCB402664
@@ -216,7 +217,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
         WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
     }
 
-    qDebug()<<(char*)(strOut)<<QString((char*)strOut); // ok
+    qDebug()<<(char*)(strOut)<<QString((char*)strOut)<<size; // ok
     
     str_val = QString((char*)(strOut));
 

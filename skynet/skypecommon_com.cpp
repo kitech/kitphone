@@ -213,13 +213,14 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
     BSTR strIn = pVarResult->bstrVal;
     // ANSI
     size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, 0, 0, 0, 0);
-    if ((strOut = GlobalAlloc(GMEM_FIXED, size))) {
-        WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
-    }
+    if (size > 1) {
+        if ((strOut = GlobalAlloc(GMEM_FIXED, size))) {
+            WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
+        }
 
-    qDebug()<<(char*)(strOut)<<QString((char*)strOut)<<size<<strlen((char*)strIn)
-            <<hresult<<(pVarResult->vt == VT_BSTR)<<(pVarResult->vt == VT_EMPTY); // ok
-    
+        qDebug()<<(char*)(strOut)<<QString((char*)strOut)<<size<<strlen((char*)strIn)
+                <<hresult<<(pVarResult->vt == VT_BSTR)<<(pVarResult->vt == VT_EMPTY); // ok
+    }
     str_val = QString((char*)(strOut));
 
     return str_val;

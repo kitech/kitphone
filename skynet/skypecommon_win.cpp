@@ -56,7 +56,7 @@ SkypeCommon::SkypeCommon() {
     refused = false;
     tryLater = false;
     // TimeOut = 10000;
-    TimeOut = 1000 * 5;
+    TimeOut = 1000 * 120;
 }
 SkypeCommon::~SkypeCommon()
 {

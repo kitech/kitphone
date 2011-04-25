@@ -217,7 +217,7 @@ QString getIDispatchStringValue(IDispatch *pdisp, OLECHAR FAR* pname)
         WideCharToMultiByte(CP_ACP, 0, (WCHAR *)((char *)strIn), -1, (char *)strOut, size, 0, 0);
     }
 
-    qDebug()<<(char*)(strOut)<<QString((char*)strOut)<<size; // ok
+    qDebug()<<(char*)(strOut)<<QString((char*)strOut)<<size<<strlen((char*)strIn); // ok
     
     str_val = QString((char*)(strOut));
 

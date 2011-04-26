@@ -174,7 +174,8 @@ static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
 
 bool Initialize_CreateWindowClass(void)
 	{
-	unsigned char *paucUUIDString;
+        // unsigned char *paucUUIDString;
+        wchar_t *paucUUIDString;
 	RPC_STATUS lUUIDResult;
 	bool fReturnStatus;
 	UUID oUUID;

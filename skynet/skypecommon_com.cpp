@@ -14,9 +14,9 @@
 #include <QtCore>
 #include "skypecommon.h"
 
-// #ifdef Q_WS_WIN_COM
-#ifdef Q_WS_WIN
-  
+#ifdef Q_WS_WIN_COM
+// #ifdef Q_WS_WIN
+
 #include <QAxObject>
 
 enum {

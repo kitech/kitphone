@@ -14,8 +14,8 @@
 #include <QtCore>
 #include "skypecommon.h"
 
-//#ifdef Q_WS_WIN
-#ifdef Q_WS_WIN_RAW_API
+#ifdef Q_WS_WIN
+//#ifdef Q_WS_WIN_RAW_API
 
 enum {
   SKYPE_ATTACH_SUCCESS=0,
@@ -56,7 +56,7 @@ SkypeCommon::SkypeCommon() {
     refused = false;
     tryLater = false;
     // TimeOut = 10000;
-    TimeOut = 1000 * 600;
+    TimeOut = 1000 * 120;
 }
 SkypeCommon::~SkypeCommon()
 {

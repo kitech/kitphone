@@ -18,7 +18,29 @@ UINT SkypeCommon::discoverMSG = 0;
 QWidget *SkypeCommon::mainWin = NULL;
 WId SkypeCommon::main_window = 0;
 
+bool quit_win_raw_event_loop = false;
+EventLoopThread *win_raw_event_loop_thread = NULL;
+SkypeCommon *win_skype_common_handle = NULL;
 
+// #undef UNICODE
+// Added the pragma line below to work with Microsoft Visual Studio C++ 2005 Express edition
+// Skype:TheUberOverLord
+#pragma comment(lib, "Rpcrt4.lib")
+// tab size: 2
+// following special commands are recognized and handled by this client
+//   #quit
+//   #exit
+//     terminate client
+//   #dbgon
+//     turn on debug printing of windows messages
+//   #dbgoff
+//     turn off debug printing of windows messages
+//   #connect
+//     discover skype api
+//   #disconnect
+//     terminate connection to skype api
+// all other commands are sent "as is" directly to Skype
+// (no UTF-8 translation is done at present)
 
 #include <conio.h>
 #include <stdio.h>
@@ -31,7 +53,7 @@ WId SkypeCommon::main_window = 0;
 HWND hInit_MainWindowHandle;
 HINSTANCE hInit_ProcessHandle;
 // char acInit_WindowClassName[128];
-wchar_h acInit_WindowClassName[128];
+wchar_t acInit_WindowClassName[128];
 HANDLE hGlobal_ThreadShutdownEvent;
 bool volatile fGlobal_ThreadRunning=true;
 UINT uiGlobal_MsgID_SkypeControlAPIAttach;
@@ -56,68 +78,13 @@ enum {
 	SKYPECONTROLAPI_ATTACH_API_AVAILABLE=0x8001
 };
 
-bool Global_Console_ReadRow( char *pacPromptBuffer, unsigned int uiMaxLength)
-{
-	HANDLE hConsoleHandle, hDuplicatedConsoleHandle;
-	DWORD ulCharactersRead, ulConsoleMode;
-	unsigned int uiNewLength;
-	BOOL fReadConsoleResult;
-	bool fReturnStatus;
-	char cCharacter;
-
-	fReturnStatus=false;
-	while((hConsoleHandle=GetStdHandle(STD_INPUT_HANDLE))!=INVALID_HANDLE_VALUE)
-		{
-            if( DuplicateHandle( GetCurrentProcess(), hConsoleHandle,
-                                 GetCurrentProcess(), &hDuplicatedConsoleHandle, 0, FALSE,
-                                 DUPLICATE_SAME_ACCESS)==FALSE )
-                break;
-            GetConsoleMode( hDuplicatedConsoleHandle, &ulConsoleMode);
-            SetConsoleMode( hDuplicatedConsoleHandle, ENABLE_LINE_INPUT|ENABLE_PROCESSED_INPUT|ENABLE_ECHO_INPUT);
-            hGlobal_PromptConsoleHandle=hDuplicatedConsoleHandle;
-            ulGlobal_PromptConsoleMode=ulConsoleMode;
-            fReadConsoleResult=ReadConsole( hGlobal_PromptConsoleHandle,
-                                            (LPVOID)pacPromptBuffer, uiMaxLength, &ulCharactersRead, NULL);
-            if( hGlobal_PromptConsoleHandle==(HANDLE)0 )
-                break;
-            hGlobal_PromptConsoleHandle=(HANDLE)0;
-            SetConsoleMode( hDuplicatedConsoleHandle, ulConsoleMode);
-            CloseHandle(hDuplicatedConsoleHandle);
-            if( fReadConsoleResult==FALSE || ulCharactersRead>uiMaxLength )
-                break;
-            pacPromptBuffer[ulCharactersRead]=0;
-            uiNewLength=ulCharactersRead;
-            while(uiNewLength!=0)
-                {
-                    cCharacter=pacPromptBuffer[uiNewLength-1];
-                    if( cCharacter!='\r' && cCharacter!='\n' )
-                        break;
-                    uiNewLength--;
-                }
-            pacPromptBuffer[uiNewLength]=0;
-            fReturnStatus=true;
-            break;
-		}
-	if( fReturnStatus==false )
-		pacPromptBuffer[0]=0;
-	return(fReturnStatus);
-}
-
-void Global_Console_CancelReadRow(void)
-{
-	if( hGlobal_PromptConsoleHandle!=(HANDLE)0 )
-		{
-            SetConsoleMode( hGlobal_PromptConsoleHandle, ulGlobal_PromptConsoleMode);
-            CloseHandle(hGlobal_PromptConsoleHandle);
-            hGlobal_PromptConsoleHandle=(HANDLE)0;
-		}
-}
-
 static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
                                                         HWND hWindow, UINT uiMessage, WPARAM uiParam, LPARAM ulParam)
 {
 	LRESULT lReturnCode;
 	bool fIssueDefProc;
+    char* data;
+    QByteArray tmp;
 
 	lReturnCode=0;
 	fIssueDefProc=false;
@@ -133,6 +100,16 @@ static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
                     PCOPYDATASTRUCT poCopyData=(PCOPYDATASTRUCT)ulParam;
                     printf( "Message from Skype(%u): %.*s\n", poCopyData->dwData, poCopyData->cbData, poCopyData->lpData);
                     lReturnCode=1;
+
+                    data = new char[ poCopyData->cbData ];
+                    data = qstrncpy( data, (char *) poCopyData->lpData, poCopyData->cbData);
+                    tmp.append(data);
+                    Q_ASSERT( data != NULL );
+                    delete data;
+                    // qDebug() << "WM_COPYDATA:" << tmp;
+                    // emit newMsgFromSkype( tmp );
+
+                    ::win_raw_event_loop_thread->fireMessage(tmp);
 				}
 			break;
 		default:
@@ -141,6 +118,14 @@ static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
                     switch(ulParam)
                         {
                         case SKYPECONTROLAPI_ATTACH_SUCCESS:
+                            ::win_skype_common_handle->connected=true;
+                            ::win_skype_common_handle->tryLater=false;
+                            ::win_skype_common_handle->skype_win = (HWND) uiParam;
+                            qDebug() << "Attached to "<<::win_skype_common_handle->skype_win;
+                            if ( ::win_skype_common_handle->waitingForConnect ) {
+                                ::win_skype_common_handle->localEventLoop.quit();
+                            }
+
                             printf("!!! Connected; to terminate issue #disconnect\n");
                             hGlobal_SkypeAPIWindowHandle=(HWND)uiParam;
                             break;
@@ -148,13 +133,22 @@ static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
                             printf("!!! Pending authorization\n");
                             break;
                         case SKYPECONTROLAPI_ATTACH_REFUSED:
+                            ::win_skype_common_handle->refused=true;
                             printf("!!! Connection refused\n");
                             break;
                         case SKYPECONTROLAPI_ATTACH_NOT_AVAILABLE:
+                            ::win_skype_common_handle->tryLater=true;
+                            if ( ::win_skype_common_handle->waitingForConnect ) {
+                                ::win_skype_common_handle->localEventLoop.quit();
+                            }
                             printf("!!! Skype API not available\n");
                             break;
                         case SKYPECONTROLAPI_ATTACH_API_AVAILABLE:
                             printf("!!! Try connect now (API available); issue #connect\n");
+
+                            ::win_skype_common_handle->tryLater=false;
+                            ::win_skype_common_handle->attachToSkype();
+
                             break;
                         }
                     lReturnCode=1;
@@ -190,8 +184,10 @@ bool Initialize_CreateWindowClass(void)
                 {
                     WNDCLASS oWindowClass;
 
-                    strcpy_s( acInit_WindowClassName, "Skype-API-Test-");
-                    strcat_s( acInit_WindowClassName, (char *)paucUUIDString);
+                    // strcpy_s( acInit_WindowClassName, "Skype-API-Test-");
+                    // strcat_s( acInit_WindowClassName, (char *)paucUUIDString);
+                    wcscpy_s( acInit_WindowClassName, L"Skype-API-Test-");
+                    wcscat_s( acInit_WindowClassName, paucUUIDString);
 
                     oWindowClass.style=CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
                     oWindowClass.lpfnWndProc=(WNDPROC)&SkypeAPITest_Windows_WindowProc;
@@ -224,7 +220,7 @@ void DeInitialize_DestroyWindowClass(void)
 bool Initialize_CreateMainWindow(void)
 {
 	hInit_MainWindowHandle=CreateWindowEx(WS_EX_APPWINDOW|WS_EX_WINDOWEDGE,
-                                          acInit_WindowClassName, "", WS_BORDER|WS_SYSMENU|WS_MINIMIZEBOX,
+                                          acInit_WindowClassName, L"", WS_BORDER|WS_SYSMENU|WS_MINIMIZEBOX,
                                           CW_USEDEFAULT, CW_USEDEFAULT, 128, 128, NULL, 0, hInit_ProcessHandle, 0);
 	
 	return(hInit_MainWindowHandle!=NULL? true:false);
@@ -236,75 +232,37 @@ void DeInitialize_DestroyMainWindow(void)
 		DestroyWindow(hInit_MainWindowHandle),hInit_MainWindowHandle=NULL;
 }
 
-void Global_MessageLoop(void)
+//////////////////////////////////
+
+EventLoopThread::EventLoopThread(QObject *parent)
+    : QThread(parent)
+{
+}
+
+EventLoopThread::~EventLoopThread()
+{
+}
+
+void EventLoopThread::run() 
 {
 	MSG oMessage;
 
-	while(GetMessage( &oMessage, 0, 0, 0)!=FALSE)
-		{
-            TranslateMessage(&oMessage);
-            DispatchMessage(&oMessage);
-		}
+	while(GetMessage( &oMessage, 0, 0, 0)!=FALSE && !quit_win_raw_event_loop) {
+        TranslateMessage(&oMessage);
+        DispatchMessage(&oMessage);
+    }
 }
 
-void __cdecl Global_InputProcessingThread(void *)
+void EventLoopThread::fireMessage(const QString &message)
 {
-	static char acInputRow[1024];
-	bool fProcessed;
-
-    if( SendMessageTimeout( HWND_BROADCAST, uiGlobal_MsgID_SkypeControlAPIDiscover, (WPARAM)hInit_MainWindowHandle, 0, SMTO_ABORTIFHUNG, 1000, NULL)!=0 )
-		{
-            while(Global_Console_ReadRow( acInputRow, sizeof(acInputRow)-1))
-                {
-                    if( _stricmp( acInputRow, "#quit")==0 ||
-                        _stricmp( acInputRow, "#exit")==0 )
-                        break;
-                    fProcessed=false;
-                    if( _stricmp( acInputRow, "#dbgon")==0 )
-                        {
-                            printf( "SkypeControlAPIAttach=%u, SkypeControlAPIDiscover=%u, hInit_MainWindowHandle=0x%08lX\n",
-                                    uiGlobal_MsgID_SkypeControlAPIAttach, uiGlobal_MsgID_SkypeControlAPIDiscover, hInit_MainWindowHandle);
-                            fGlobal_DumpWindowsMessages=true,fProcessed=true;
-                        }
-                    if( _stricmp( acInputRow, "#dbgoff")==0 )
-                        fGlobal_DumpWindowsMessages=false,fProcessed=true;
-                    if( _stricmp( acInputRow, "#connect")==0 )
-                        {
-                            SendMessageTimeout( HWND_BROADCAST, uiGlobal_MsgID_SkypeControlAPIDiscover, (WPARAM)hInit_MainWindowHandle, 0, SMTO_ABORTIFHUNG, 1000, NULL);
-                            fProcessed=true;
-                        }
-                    if( _stricmp( acInputRow, "#disconnect")==0 )
-                        {
-                            hGlobal_SkypeAPIWindowHandle=NULL;
-                            printf("!!! Disconnected\n");
-                            fProcessed=true;
-                        }
-                    if( fProcessed==false && hGlobal_SkypeAPIWindowHandle!=NULL )
-                        {
-                            COPYDATASTRUCT oCopyData;
-
-                            // send command to skype
-                            oCopyData.dwData=0;
-                            oCopyData.lpData=acInputRow;
-                            oCopyData.cbData=strlen(acInputRow)+1;
-                            if( oCopyData.cbData!=1 )
-                                {
-                                    if( SendMessage( hGlobal_SkypeAPIWindowHandle, WM_COPYDATA, (WPARAM)hInit_MainWindowHandle, (LPARAM)&oCopyData)==FALSE )
-                                        {
-                                            hGlobal_SkypeAPIWindowHandle=NULL;
-                                            printf("!!! Disconnected\n");
-                                        }
-                                }
-                        }
-                }
-		}
-	SendMessage( hInit_MainWindowHandle, WM_CLOSE, 0, 0);
-	SetEvent(hGlobal_ThreadShutdownEvent);
-	fGlobal_ThreadRunning=false;
+    emit this->newMessageFromSkype(message);
 }
 
+/////////////////////////////////
 
 SkypeCommon::SkypeCommon() { 
+    ::win_skype_common_handle = this;
+
     if ( attachMSG == 0 || discoverMSG == 0 ) { 
         // attachMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIAttach");
         // discoverMSG = RegisterWindowMessage((LPCWSTR)"SkypeControlAPIDiscover");
@@ -316,15 +274,24 @@ SkypeCommon::SkypeCommon() {
         // 还是得这种方法，应该什么编码的系统都行。
         wchar_t *sa = L"SkypeControlAPIAttach";
         wchar_t *sb = L"SkypeControlAPIDiscover";
-        attachMSG = ::RegisterWindowMessage(sa);
-        discoverMSG = ::RegisterWindowMessage(sb);
+        uiGlobal_MsgID_SkypeControlAPIAttach = attachMSG = ::RegisterWindowMessage(sa);
+        uiGlobal_MsgID_SkypeControlAPIDiscover = discoverMSG = ::RegisterWindowMessage(sb);
     }
-    if ( mainWin == NULL ) {
-        mainWin = new QWidget();
-        main_window = mainWin->winId();
+    // if ( mainWin == NULL ) {
+    //     mainWin = new QWidget();
+    //     main_window = mainWin->winId();
+    // }
+    if (Initialize_CreateWindowClass()) {
+        if (Initialize_CreateMainWindow()) {
+            hGlobal_ThreadShutdownEvent = CreateEvent( NULL, TRUE, FALSE, NULL);
+        }
     }
 
-    QObject::connect( qApp, SIGNAL( winMessage( MSG *) ), this, SLOT( processWINMessage( MSG *) ) );
+    ::win_raw_event_loop_thread = new EventLoopThread();
+    QObject::connect(::win_raw_event_loop_thread, SIGNAL(newMessageFromSkype(const QString &)),
+                     this, SIGNAL(newMsgFromSkype(const QString &)));
+
+    // QObject::connect( qApp, SIGNAL( winMessage( MSG *) ), this, SLOT( processWINMessage( MSG *) ) );
     skype_win=0;
     connected = false;
     refused = false;
@@ -354,8 +321,17 @@ bool SkypeCommon::sendMsgToSkype(const QString &message) {
     copyData.lpData=tmp.data();
     copyData.cbData=tmp.size()+1;
 
-    SendMessage( skype_win, WM_COPYDATA, (WPARAM) main_window, (LPARAM) &copyData );
+    // SendMessage( skype_win, WM_COPYDATA, (WPARAM) main_window, (LPARAM) &copyData );
     // qDebug()<<"MESSAGE SENT:"<<message<<" to"<<skype_win;
+
+    if( copyData.cbData!=1 ) {
+        if(SendMessage( hGlobal_SkypeAPIWindowHandle, WM_COPYDATA, (WPARAM)hInit_MainWindowHandle,
+                        (LPARAM)&copyData) == FALSE) {
+            hGlobal_SkypeAPIWindowHandle=NULL;
+            printf("!!! Disconnected\n");
+            return false;
+        }
+    }
 
     return true;
 }
@@ -364,7 +340,11 @@ bool SkypeCommon::attachToSkype() {
     if ( connected ) return true;
     if ( refused || tryLater ) return false;
     waitingForConnect = true;
-    SendMessage( HWND_BROADCAST, discoverMSG, (WPARAM) main_window, 0 );
+    // SendMessage( HWND_BROADCAST, discoverMSG, (WPARAM) main_window, 0 );
+    ::win_raw_event_loop_thread->start();
+    if(SendMessageTimeout( HWND_BROADCAST, uiGlobal_MsgID_SkypeControlAPIDiscover, (WPARAM)hInit_MainWindowHandle, 0, SMTO_ABORTIFHUNG, 1000, NULL)!=0 ) {
+        qDebug()<<"Discover msg sent:";
+    }
 
     QTimer::singleShot(TimeOut, this, SLOT(timeOut()));
     

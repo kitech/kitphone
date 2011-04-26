@@ -15,6 +15,7 @@
  ***************************************************************/
 
 #include <QtCore/QString>
+#include <QtCore/QThread>
 #include <QtGui/QWidget>
 
 #ifdef Q_WS_X11
@@ -25,11 +26,29 @@
 #ifdef Q_WS_WIN
 #include <QtCore/QEventLoop>
 #include <windows.h>
+
+class EventLoopThread : public QThread
+{
+    Q_OBJECT;
+public:
+    explicit EventLoopThread(QObject *parent = 0);
+    virtual ~EventLoopThread();
+
+    void run();
+
+    void fireMessage(const QString &message);
+
+signals:
+    void newMessageFromSkype(const QString &message);
+
+};
+
 #endif
 
 class SkypeCommon : public QObject {
     Q_OBJECT;
-private:
+    //private:
+public:
     WId skype_win;
 
 #ifdef Q_WS_X11

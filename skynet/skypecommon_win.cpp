@@ -56,7 +56,7 @@ SkypeCommon::SkypeCommon() {
     refused = false;
     tryLater = false;
     // TimeOut = 10000;
-    TimeOut = 1000 * 120;
+    TimeOut = 1000 * 600;
 }
 SkypeCommon::~SkypeCommon()
 {
@@ -91,8 +91,9 @@ bool SkypeCommon::attachToSkype() {
     if ( refused || tryLater ) return false;
     waitingForConnect = true;
     SendMessage( HWND_BROADCAST, discoverMSG, (WPARAM) main_window, 0 );
-    QTimer *timer = new QTimer(this);
+
     QTimer::singleShot(TimeOut, this, SLOT(timeOut()));
+    
     int result = localEventLoop.exec();
     waitingForConnect = false;
     return connected;
@@ -101,7 +102,7 @@ bool SkypeCommon::attachToSkype() {
 
 void SkypeCommon::timeOut()
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<(this->TimeOut/1000);
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<(this->TimeOut/1000);
     if ( waitingForConnect ) localEventLoop.exit(1);
 }
 
@@ -148,7 +149,7 @@ void SkypeCommon::processWINMessage( MSG *msg )
                 tryLater=false;
                 skype_win = (WId) msg->wParam;
                 qDebug() << "Attached to "<<skype_win;
-                if ( waitingForConnect ) localEventLoop.quit();
+                if ( waitingForConnect )  localEventLoop.quit();
                 return;
             case SKYPE_TRY_NOW:
                 qDebug() << "Try to attach now";

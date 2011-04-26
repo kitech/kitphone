@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-09-08 14:12:07 +0800
-// Version: $Id: skypetunnel.cpp 686 2011-01-13 10:41:07Z drswinghead $
+// Version: $Id: skypetunnel.cpp 851 2011-04-25 12:05:48Z drswinghead $
 // 
 
 #include <QtCore>
@@ -67,10 +67,10 @@ void SkypeTunnel::setSkype(Skype *skype)
                          this, SLOT(onStreamClosed()));
 
 #ifdef WIN32
-        this->mSkype->connectToSkype();
-        // aconn = new SkypeAsyncConnector();
-        // aconn->mSkype = this->mSkype;
-        // aconn->start();
+        // this->mSkype->connectToSkype();
+        aconn = new SkypeAsyncConnector();
+        aconn->mSkype = this->mSkype;
+        aconn->start();
 #else
         this->mSkype->connectToSkype();
 #endif

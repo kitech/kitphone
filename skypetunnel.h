@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-09-08 14:11:53 +0800
-// Version: $Id: skypetunnel.h 587 2010-11-25 06:24:58Z drswinghead $
+// Version: $Id: skypetunnel.h 851 2011-04-25 12:05:48Z drswinghead $
 // 
 
 #ifndef _SKYPETUNNEL_H_

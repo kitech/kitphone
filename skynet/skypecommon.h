@@ -80,6 +80,7 @@ protected slots:
     void processWINMessage( MSG *msg );
 #endif
 
+
 };
 
 

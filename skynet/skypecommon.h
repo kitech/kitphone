@@ -61,9 +61,9 @@ public:
 
 private slots:
 #ifdef Q_OS_WIN
-    // void onComCommand(IDispatch *pcmd);
-    // void onComSignal(const QString & name, int argc, void * argv);
-    // void onComException(int code, const QString & source, const QString & desc, const QString & help);
+    void onComCommand(IDispatch *pcmd);
+    void onComSignal(const QString & name, int argc, void * argv);
+    void onComException(int code, const QString & source, const QString & desc, const QString & help);
 #endif
 
 signals:

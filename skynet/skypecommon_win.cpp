@@ -14,8 +14,8 @@
 #include <QtCore>
 #include "skypecommon.h"
 
-#ifdef Q_WS_WIN
-//#ifdef Q_WS_WIN_RAW_API
+//#ifdef Q_WS_WIN
+#ifdef Q_WS_WIN_RAW_API
 
 enum {
   SKYPE_ATTACH_SUCCESS=0,

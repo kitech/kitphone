@@ -13,6 +13,7 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <QtGui>
+#include <QtSql>
 
 #include "boost/shared_ptr.hpp"
 
@@ -22,6 +23,7 @@ class SkypeTracer;
 
 class WebSocketClient;
 class AsyncDatabase;
+class SqlRequest;
 
 namespace Ui {
     class SkypePhone;
@@ -58,6 +60,11 @@ public slots:    // pstn
     void onWSMessage(QByteArray msg);
 
     void onCalcWSServByNetworkType(QHostInfo hi);
+    void onNoticeUserStartup();
+
+    // database exec callbacks
+    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno);
+    void onAddContactDone(boost::shared_ptr<SqlRequest> req);
 
     void log_output(int type, const QString &log);
 
@@ -81,14 +88,13 @@ private: // pstn
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;
-    
-    #ifdef WIN32
-    static const int m_conn_ws_max_retry_times = 3;
-    #else
-    static constexpr int m_conn_ws_max_retry_times = 3;
-    #endif
+
+    static const int m_conn_ws_max_retry_times = 3;    
     int m_conn_ws_retry_times;
     QString m_ws_serv_ipaddr;
+
+    //// sql reqno <---> sql reqclass
+    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
 
 private:
     Ui::SkypePhone *uiw;

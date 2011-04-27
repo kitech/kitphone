@@ -10,6 +10,8 @@
 #define _ASYNCDATABASE_H_
 
 // #include <atomic>
+#include "boost/signals2.hpp"
+#include "boost/function.hpp"
 
 #include <QtSql>
 
@@ -33,6 +35,7 @@ signals:
     void progress(const QString &msg);
     void ready(bool);
     void results(const QList<QSqlRecord> & records, int);
+    void connected();
 
 protected:
     void run();
@@ -46,6 +49,30 @@ private:
 
     // std::atomic<bool> m_connected;
     bool m_connected;
+};
+
+//// sql request object
+
+class SqlRequest : public QObject
+{
+    Q_OBJECT;
+public:
+    explicit SqlRequest(){}
+    virtual ~SqlRequest(){}
+    
+    int mReqno;
+    QString mSql;
+
+    bool mRet;
+    QString mErrorString;
+    QList<QSqlRecord> mResults;
+    
+    // functor, boost type
+    boost::function<bool(boost::shared_ptr<SqlRequest>)> mCbFunctor;
+
+    // call back of qt slot
+    QObject *mCbObject;
+    const char *mCbSlot;
 };
 
 #endif /* _ASYNCDATABASE_H_ */

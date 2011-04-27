@@ -20,6 +20,7 @@
 
 #include "websocketclient.h"
 #include "asyncdatabase.h"
+#include "phonecontact.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -30,6 +31,9 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->defaultPstnInit();
     this->m_adb = new AsyncDatabase();
     this->m_adb->start();
+    
+    QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int)),
+                     this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int)));
 
     //////
     QHostInfo::lookupHost("gw.skype.tom.com", this, SLOT(onCalcWSServByNetworkType(QHostInfo)));
@@ -258,7 +262,14 @@ void SkypePhone::onHangupPstn()
 
 void SkypePhone::onAddContact()
 {
+
+    PhoneContact pc;
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
     
+    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (12345, '23456789043')";
+    int reqno = this->m_adb->execute(req->mSql);
+
+    this->mRequests.insert(reqno, req);
 }
 
 void SkypePhone::onWSConnected(QString path)
@@ -361,6 +372,20 @@ void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
     qDebug()<<"All in all, the notice server is:"<<this->m_ws_serv_ipaddr;
 }
 
+void SkypePhone::onNoticeUserStartup()
+{
+    
+}
+
+void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno)
+{
+    
+}
+
+void SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
+{
+    
+}
 
 void SkypePhone::log_output(int type, const QString &log)
 {

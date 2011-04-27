@@ -82,7 +82,11 @@ private: // pstn
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;
     
+    #ifdef WIN32
+    static int m_conn_ws_max_retry_times = 3;
+    #else
     static constexpr int m_conn_ws_max_retry_times = 3;
+    #endif
     int m_conn_ws_retry_times;
     QString m_ws_serv_ipaddr;
 

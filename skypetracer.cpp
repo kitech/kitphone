@@ -38,7 +38,7 @@ void SkypeTracer::onCommandRequest(QString cmd)
     this->uiw->textBrowser->append("<P><FONT COLOR=blue>" + cmd.trimmed() + "</FONT></P>");
 }
 
-void SkypeTracer::onCommandResponse(QString cmd)
+void SkypeTracer::onCommandResponse(QString skype_name, QString cmd)
 {
     qDebug()<<__FILE__<<__LINE__<<cmd;
     this->uiw->textBrowser->append("<P> -) " + cmd.trimmed() + "</P>");

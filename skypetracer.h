@@ -27,7 +27,7 @@ public:
 
 public slots:
     void onCommandRequest(QString cmd);
-    void onCommandResponse(QString cmd);
+    void onCommandResponse(QString skype_name, QString cmd);
 
 signals:
     void commandRequest(QString cmd);

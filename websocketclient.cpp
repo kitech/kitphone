@@ -18,6 +18,7 @@
 
 ///////////////////////////////////////
 ///////
+// TODO 更多的错误状态返回功能。
 ///////////////////////////////////////
 WebSocketClient::WebSocketClient(QString uri)
     :QObject(0)
@@ -69,9 +70,16 @@ bool WebSocketClient::disconnectFromServer()
     return true;
 }
 
+void WebSocketClient::on_ws_sock_error(QAbstractSocket::SocketError socketError)
+{
+    int error = socketError;
+    QString errmsg = this->m_sock->errorString();
+    emit this->onError(error, errmsg);
+}
+
 bool WebSocketClient::sendMessage(QByteArray msg)
 {
-
+ 
     int wlen = 0;
     bool ok;
 
@@ -147,7 +155,8 @@ void WebSocketClient::on_connected_ws_server()
 
 void WebSocketClient::on_disconnected_ws_server()
 {
-
+    // 如果出现服务器端发起的关闭，则有问题。
+    
 }
 
 void WebSocketClient::on_backend_handshake_ready_read()
@@ -179,6 +188,7 @@ void WebSocketClient::on_backend_handshake_ready_read()
         // qDebug()<<"digest doesn't match:'"
         //         << reply_digest << "'!='" << this->expected_digest << "'";
         this->m_sock->close();
+        emit this->onError(this->EWS_HANDSHAKE, QString(tr("Handshake with server faild.")));
     }
 }
 
@@ -211,7 +221,7 @@ void WebSocketClient::on_backend_ready_read()
     } else if(ba.length() == 2 && 
 	      (unsigned char)(srcbuf[0]) == 0xff &&
 	      (unsigned char)(srcbuf[1]) == 0x00) {
-      qDebug()<<"websocket recieve close request.";
+        qDebug()<<"websocket recieve close request.";
     } else {
         qDebug()<<"Invalid/Uknown ws data frame, omited";
     }

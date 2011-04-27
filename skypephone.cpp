@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 851 2011-04-25 12:05:48Z drswinghead $
+// Version: $Id: skypephone.cpp 854 2011-04-26 15:08:58Z drswinghead $
 // 
 
 #include <QtCore>
@@ -30,6 +30,9 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->defaultPstnInit();
     this->m_adb = new AsyncDatabase();
     this->m_adb->start();
+
+    //////
+    QHostInfo::lookupHost("gw.skype.tom.com", this, SLOT(onCalcWSServByNetworkType(QHostInfo)));
 }
 
 SkypePhone::~SkypePhone()
@@ -119,8 +122,8 @@ void SkypePhone::onShowSkypeTracer()
         this->mSkypeTracer = new SkypeTracer(this);
         QObject::connect(this->mSkype, SIGNAL(commandRequest(QString)),
                          this->mSkypeTracer, SLOT(onCommandRequest(QString)));
-        QObject::connect(this->mSkype, SIGNAL(commandResponse(QString)),
-                         this->mSkypeTracer, SLOT(onCommandResponse(QString)));
+        QObject::connect(this->mSkype, SIGNAL(commandResponse(QString, QString)),
+                         this->mSkypeTracer, SLOT(onCommandResponse(QString, QString)));
         QObject::connect(this->mSkypeTracer, SIGNAL(commandRequest(QString)),
                          this->mSkype, SLOT(onCommandRequest(QString)));
     }
@@ -198,18 +201,33 @@ void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int 
 
 void SkypePhone::onCallPstn()
 {
-
+    if (sender() != NULL) {
+        // init call by user
+        this->m_conn_ws_retry_times = this->m_conn_ws_max_retry_times;
+    } else {
+        // retry call by robot
+        if (--this->m_conn_ws_retry_times >= 0) {
+            qDebug()<<"retry conn ws: "<< (this->m_conn_ws_max_retry_times-this->m_conn_ws_retry_times);
+        } else {
+            qDebug()<<"retry conn ws exceed max retry:"<<this->m_conn_ws_max_retry_times;
+            return;
+        }
+    }
     // 检测号码有效性
     
     // 设置呼叫状态
     // this->uiw->pushButton_4->setEnabled(false);
     this->uiw->label_5->setText(this->uiw->comboBox_3->currentText());
 
-    QString wsuri = "ws://202.108.12.212:80/" + this->mSkype->handlerName() + "/";
+    Q_ASSERT(!this->m_ws_serv_ipaddr.isEmpty());
+    // QString wsuri = "ws://202.108.12.212:80/" + this->mSkype->handlerName() + "/";
+    QString wsuri = QString("ws://%1:80/%2/").arg(this->m_ws_serv_ipaddr).arg(this->mSkype->handlerName());
     this->wscli = boost::shared_ptr<WebSocketClient>(new WebSocketClient(wsuri));
     QObject::connect(this->wscli.get(), SIGNAL(onConnected(QString)), this, SLOT(onWSConnected(QString)));
     QObject::connect(this->wscli.get(), SIGNAL(onDisconnected(QString)), this, SLOT(onWSDisconnected(QString)));
     QObject::connect(this->wscli.get(), SIGNAL(onWSMessage(QByteArray)), this, SLOT(onWSMessage(QByteArray)));
+    QObject::connect(this->wscli.get(), SIGNAL(onEror(int, const QString&)), 
+                     this, SLOT(onEror(int, const QString&)));
     bool ok = this->wscli->connectToServer();
     Q_ASSERT(ok);
 
@@ -253,9 +271,9 @@ void SkypePhone::onWSConnected(QString path)
     this->wscli->sendMessage(cmd.toAscii());
 }
 
-void SkypePhone::onWSError()
+void SkypePhone::onWSError(int error, const QString &errmsg)
 {
-
+    qDebug()<<error<<errmsg;
 }
 
 void SkypePhone::onWSDisconnected()
@@ -271,11 +289,9 @@ void SkypePhone::onWSMessage(QByteArray msg)
     QStringList tmps;
     QStringList fields = QString(msg).split("$");
     QString log_msg;
-    QListWidgetItem *witem = nullptr;
 
     QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
-    QString log_time = QDateTime::currentDateTime().toString("hh:mm:ss");
-    
+
     switch (fields.at(0).toInt()) {
     case 102:
         Q_ASSERT(fields.at(1) == this->mSkype->handlerName());
@@ -292,22 +308,75 @@ void SkypePhone::onWSMessage(QByteArray msg)
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
-        log_msg = log_time + " " + log_msg;
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_msg);
-        this->uiw->listWidget->addItem(witem);
+        this->log_output(LT_USER, log_msg);
         break;
     case 118:
         log_msg = u8codec->toUnicode(QString("对方已挂机，代码:%1").arg(fields.at(5)).toAscii());
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
-        log_msg = log_time + " " + log_msg;
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_msg);
-        this->uiw->listWidget->addItem(witem);
+        this->log_output(LT_USER, log_msg);
         break;
     default:
         qDebug()<<"Unknwon ws msg:"<<msg;
         break;
+    }
+
+}
+
+
+void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<hi.addresses();
+
+    QString ws_serv_ipaddr;
+    QList<QHostAddress> addrs = hi.addresses();
+    
+    if (addrs.count() > 0) {
+        if (addrs.at(0).toString() == "202.108.15.80") {
+            ws_serv_ipaddr = "202.108.15.81";
+        } else if (addrs.at(0).toString() == "211.100.41.6") {
+            ws_serv_ipaddr = "211.100.41.7";
+        } else {
+            qDebug()<<"You network is strange enought.";
+            Q_ASSERT(1==2);
+        }
+        this->m_ws_serv_ipaddr = ws_serv_ipaddr;
+    } else {
+        qDebug()<<"Can not resolve IP for :" << hi.hostName();
+    }
+
+    // for test
+    QFile fp(QApplication::applicationDirPath() + "/kitphone.ini");
+    if (fp.exists()) {
+        fp.open(QIODevice::ReadOnly);
+        QByteArray ba = fp.readAll();
+        fp.close();
+
+        if (ba.startsWith("2")) {
+            this->m_ws_serv_ipaddr = ba.trimmed();
+        }
+    }
+
+    qDebug()<<"All in all, the notice server is:"<<this->m_ws_serv_ipaddr;
+}
+
+
+void SkypePhone::log_output(int type, const QString &log)
+{
+    QListWidgetItem *witem = nullptr;
+    QString log_time = QDateTime::currentDateTime().toString("hh:mm:ss");
+
+    int debug = 1;
+
+    if (type == LT_USER) {
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_time + " " + log);
+        this->uiw->listWidget->addItem(witem);
+    } else if (type == LT_DEBUG && debug) {
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_time + " DBG " + log);
+        this->uiw->listWidget->addItem(witem);
+    } else {
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<type<<log;
     }
 
     // 清除多余日志
@@ -320,5 +389,3 @@ void SkypePhone::onWSMessage(QByteArray msg)
         }
     }
 }
-
-

@@ -26,7 +26,7 @@ class WebSocketClient : public QObject, public boost::enable_shared_from_this<We
 {
     Q_OBJECT;
 public:
-    WebSocketClient(QString uri);
+    explicit WebSocketClient(QString uri);
     virtual ~WebSocketClient();
     boost::shared_ptr<WebSocketClient> refit() {
         return this->shared_from_this();
@@ -36,9 +36,14 @@ public:
     bool disconnectFromServer();
     bool sendMessage(QByteArray msg);
 
+public:
+    enum EWebSocket {
+        EWS_HANDSHAKE = 30,
+    };
 private slots:
     void on_connected_ws_server();
     void on_disconnected_ws_server();
+    void on_ws_sock_error(QAbstractSocket::SocketError socketError);
 
     void on_backend_handshake_ready_read();
     void on_backend_ready_read();
@@ -52,7 +57,6 @@ private:
 
 private:
     QString m_uri;
-    // QTcpSocket *m_sock;
     boost::shared_ptr<QTcpSocket> m_sock;
     QString m_rpath;
     char noise_chars[128];
@@ -71,13 +75,13 @@ public: // boost::signals2
         boost::signals2::connection conn;
 
         // xxxxxxx
-        if (strcmp(SIGNAL(onError()), sig) == 0) {
+        // if (strcmp(SIGNAL(onError(int, const QString &)), sig) == 0) {
 
-        } else if (strcmp(SIGNAL(onDisconnected()), sig) == 0) {
+        // } else if (strcmp(SIGNAL(onDisconnected()), sig) == 0) {
 
-        } else {
+        // } else {
 
-        }
+        // }
 
         return conn;
     }
@@ -89,10 +93,9 @@ private:
     boost::signals2::signal<void(boost::shared_ptr<WebSocketClient>, QByteArray)> sig_onWSMessage;
 
 
-
 signals:
     void onConnected(QString rpath);
-    void onError();
+    void onError(int error, const QString &errmsg);
     void onDisconnected();
     void onWSMessage(QByteArray msg);
 };

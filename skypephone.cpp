@@ -37,6 +37,7 @@ SkypePhone::SkypePhone(QWidget *parent)
 
     //////
     QHostInfo::lookupHost("gw.skype.tom.com", this, SLOT(onCalcWSServByNetworkType(QHostInfo)));
+
 }
 
 SkypePhone::~SkypePhone()
@@ -265,11 +266,15 @@ void SkypePhone::onAddContact()
 
     PhoneContact pc;
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
-    
-    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (12345, '23456789043')";
-    int reqno = this->m_adb->execute(req->mSql);
 
-    this->mRequests.insert(reqno, req);
+    req->mCbFunctor = boost::bind(&SkypePhone::onAddContactDone, this, _1);
+    req->mCbObject = this;
+    req->mCbSlot = SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>));
+    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (1q332345, '234中中56789043')";
+    req->mReqno = this->m_adb->execute(req->mSql);
+    this->mRequests.insert(req->mReqno, req);
+    
+    
 }
 
 void SkypePhone::onWSConnected(QString path)
@@ -379,12 +384,55 @@ void SkypePhone::onNoticeUserStartup()
 
 void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno)
 {
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
     
+    QObject *cb_obj = NULL;
+    const char *cb_slot = NULL;
+    boost::function<bool(boost::shared_ptr<SqlRequest>)> cb_functor;
+    boost::shared_ptr<SqlRequest> req;
+    bool bret = false;
+    // QGenericReturnArgument qret;
+    bool qret;
+    QMetaMethod qmethod;
+    char raw_method_name[32] = {0};
+
+    if (this->mRequests.contains(reqno)) {
+        req = this->mRequests[reqno];
+
+        cb_functor = req->mCbFunctor;
+        bret = cb_functor(req);
+
+        cb_obj = req->mCbObject;
+        cb_slot = req->mCbSlot;
+        
+        qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
+        // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
+        for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
+            if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
+                continue;
+            }
+            if (cb_slot[i] == '(') break;
+            Q_ASSERT(j < sizeof(raw_method_name));
+            raw_method_name[j++] = cb_slot[i];
+        }
+        bret = QMetaObject::invokeMethod(cb_obj, raw_method_name,
+                                         Q_RETURN_ARG(bool, qret),
+                                         Q_ARG(boost::shared_ptr<SqlRequest>, req));
+        // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>))));
+        // bret = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
+        //                        Q_ARG(boost::shared_ptr<SqlRequest>, req));
+        // qDebug()<<cb_obj->metaObject()->indexOfSlot(cb_slot);
+        
+    }
 }
 
-void SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
+bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
 {
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
+
     
+
+    return true;
 }
 
 void SkypePhone::log_output(int type, const QString &log)

@@ -64,7 +64,7 @@ public slots:    // pstn
 
     // database exec callbacks
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno);
-    void onAddContactDone(boost::shared_ptr<SqlRequest> req);
+    bool onAddContactDone(boost::shared_ptr<SqlRequest> req);
 
     void log_output(int type, const QString &log);
 

@@ -83,7 +83,7 @@ private: // pstn
     boost::shared_ptr<WebSocketClient> wscli;
     
     #ifdef WIN32
-    static const int m_conn_ws_max_retry_times;
+    static const int m_conn_ws_max_retry_times = 3;
     #else
     static constexpr int m_conn_ws_max_retry_times = 3;
     #endif

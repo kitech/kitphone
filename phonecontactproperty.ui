@@ -38,7 +38,7 @@
         <item row="0" column="0">
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>Display Name:</string>
+           <string>联系人姓名:</string>
           </property>
          </widget>
         </item>
@@ -52,28 +52,28 @@
         <item row="0" column="2">
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>TextLabel</string>
+           <string>联系人组：</string>
           </property>
          </widget>
         </item>
         <item row="0" column="3" rowspan="2">
          <widget class="QComboBox" name="comboBox_3">
           <property name="editable">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <item>
            <property name="text">
-            <string>G1</string>
+            <string>Family</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>G2</string>
+            <string>Friends</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>G3</string>
+            <string>Others</string>
            </property>
           </item>
          </widget>
@@ -125,7 +125,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Phone Number:</string>
+         <string>电话号码：</string>
         </property>
        </widget>
       </item>

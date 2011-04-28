@@ -64,7 +64,9 @@ public:
         this->mCbObject = nullptr;
         this->mCbSlot = nullptr;
     }
-    virtual ~SqlRequest() {}
+    virtual ~SqlRequest() {
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    }
     
     int mReqno;
     QString mSql;

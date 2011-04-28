@@ -327,23 +327,27 @@ void SkypePhone::onShowDialPanel()
 
 void SkypePhone::onAddContact()
 {
-
-    PhoneContact pc;
-    PhoneContactProperty *pcp = new PhoneContactProperty();
+    boost::shared_ptr<PhoneContact> pc;
+    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty());
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
 
     if (pcp->exec() == QDialog::Accepted) {
-        
-    }
+        pc = pcp->contactInfo();
 
-    req->mCbFunctor = boost::bind(&SkypePhone::onAddContactDone, this, _1);
-    req->mCbObject = this;
-    req->mCbSlot = SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>));
-    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (1332332345, '234中中56789043')";
-    req->mReqno = this->m_adb->execute(req->mSql);
-    this->mRequests.insert(req->mReqno, req);
-    
-    
+        req->mCbFunctor = boost::bind(&SkypePhone::onAddContactDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>));
+        // req->mSql = QString("INSERT INTO kp_contacts (group_id,phone_number) VALUES (%1, '%2')")
+        //     .arg(pc->mGroupId).arg(pc->mPhoneNumber);
+        req->mSql = QString("INSERT INTO kp_contacts (group_id,display_name,phone_number) VALUES (IFNULL((SELECT gid FROM kp_groups  WHERE group_name='%1'),3), '%2', '%3')")
+            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+
+        qDebug()<<req->mSql;
+    } else {
+
+    }
 }
 
 void SkypePhone::onWSConnected(QString path)
@@ -518,7 +522,13 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
 
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mExtraValue<<req->mErrorString<<req->mRet; 
+
+    if (!req->mRet) {
+        this->log_output(LT_USER, "添加联系人出错：" + req->mErrorString);
+    }
     
+    this->mRequests.remove(req->mReqno);
 
     return true;
 }

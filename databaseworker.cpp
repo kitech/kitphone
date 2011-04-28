@@ -70,12 +70,12 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
     /*
       CREATE TABLE TABLE_GROUPS (
       gid INTERGER PRIMARY KEY AUTOINCREMENT,
-      group_name VARCHAR(100)
+      group_name VARCHAR(100) UNIQUE
       );
      */
     if (!m_database.tables().contains(TABLE_GROUPS)) {
         // some data
-        QString sql = QString("CREATE TABLE %1 (gid INTEGER PRIMARY KEY AUTOINCREMENT, group_name VARCHAR(100));").arg(TABLE_GROUPS);
+        QString sql = QString("CREATE TABLE %1 (gid INTEGER PRIMARY KEY AUTOINCREMENT, group_name VARCHAR(100) UNIQUE);").arg(TABLE_GROUPS);
         // m_database.exec( "create table item(id int, name varchar);" );
         q = m_database.exec(sql);
         qDebug()<<TABLE_GROUPS<<q.lastQuery()<<q.lastError();
@@ -106,13 +106,13 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
       CREATE TABLE TABLE_CONTACTS (
       cid INTEGER PRIMARY KEY ,
       group_id INTEGER NOT NULL,
-      display_name VARCHAR(100),
-      phone_number VARCHAR(100)
+      display_name VARCHAR(100) UNIQUE,
+      phone_number VARCHAR(100) UNIQUE
       );
      */
     if (!m_database.tables().contains(TABLE_CONTACTS)) {
         // some data
-        QString sql = QString("CREATE TABLE %1 (cid INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTERGER NOT NULL, display_name VARCHAR(100), phone_number VARCHAR(100));").arg(TABLE_CONTACTS);
+        QString sql = QString("CREATE TABLE %1 (cid INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTERGER NOT NULL, display_name VARCHAR(100) UNIQUE, phone_number VARCHAR(100) UNIQUE);").arg(TABLE_CONTACTS);
         // m_database.exec( "create table item(id int, name varchar);" );
         q = m_database.exec(sql);
         qDebug()<<TABLE_CONTACTS<<q.lastQuery()<<q.lastError();

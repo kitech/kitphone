@@ -7,6 +7,8 @@
 // Version: $Id$
 // 
 
+#include "phonecontact.h"
+
 #include "ui_phonecontactproperty.h"
 #include "phonecontactproperty.h"
 
@@ -19,5 +21,16 @@ PhoneContactProperty::PhoneContactProperty(QWidget *parent)
 
 PhoneContactProperty::~PhoneContactProperty()
 {
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
 }
 
+boost::shared_ptr<PhoneContact> PhoneContactProperty::contactInfo()
+{
+    boost::shared_ptr<PhoneContact> ci(new PhoneContact());
+
+    ci->mUserName = ci->mDispName = this->uiw->comboBox->currentText();
+    ci->mPhoneNumber = this->uiw->comboBox_4->currentText();
+    ci->mGroupName = this->uiw->comboBox_3->currentText();
+
+    return ci;
+}

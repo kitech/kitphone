@@ -13,6 +13,10 @@
 #include <QtCore>
 #include <QtGui>
 
+#include "boost/smart_ptr.hpp"
+
+class PhoneContact;
+
 namespace Ui {
     class PhoneContactProperty;
 };
@@ -23,6 +27,8 @@ class PhoneContactProperty : public QDialog
 public:
     explicit PhoneContactProperty(QWidget *parent = 0);
     virtual ~PhoneContactProperty();
+
+    boost::shared_ptr<PhoneContact> contactInfo();
 
 private:
     Ui::PhoneContactProperty *uiw;

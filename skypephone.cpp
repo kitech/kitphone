@@ -502,6 +502,39 @@ void SkypePhone::onDatabaseConnected()
 {
     // 加载联系人信息，加载呼叫历史记录信息
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    boost::shared_ptr<SqlRequest> req1(new SqlRequest());
+    boost::shared_ptr<SqlRequest> req2(new SqlRequest());
+    boost::shared_ptr<SqlRequest> req3(new SqlRequest());
+
+    {
+        // get contacts list
+        req1->mCbFunctor = boost::bind(&SkypePhone::onGetAllContactsDone, this, _1);
+        req1->mCbObject = this;
+        req1->mCbSlot = SLOT(onGetAllContactsDone(boost::shared_ptr<SqlRequest>));
+        req1->mSql = QString("SELECT * FROM kp_groups,kp_contacts WHERE kp_contacts.group_id=kp_groups.gid");
+        req1->mReqno = this->m_adb->execute(req1->mSql);
+        this->mRequests.insert(req1->mReqno, req1);
+    }
+
+    {
+        // get groups list
+        req2->mCbFunctor = boost::bind(&SkypePhone::onGetAllGroupsDone, this, _1);
+        req2->mCbObject = this;
+        req2->mCbSlot = SLOT(onGetAllGroupsDone(boost::shared_ptr<SqlRequest>));
+        req2->mSql = QString("SELECT * FROM kp_groups");
+        req2->mReqno = this->m_adb->execute(req2->mSql);
+        this->mRequests.insert(req2->mReqno, req2);
+    }
+
+    {
+        // get groups list
+        req3->mCbFunctor = boost::bind(&SkypePhone::onGetAllGroupsDone, this, _1);
+        req3->mCbObject = this;
+        req3->mCbSlot = SLOT(onGetAllGroupsDone(boost::shared_ptr<SqlRequest>));
+        req3->mSql = QString("SELECT * FROM kp_histories ORDER BY call_ctime DESC");
+        req3->mReqno = this->m_adb->execute(req3->mSql);
+        this->mRequests.insert(req3->mReqno, req3);
+    }
 }
 
 void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
@@ -570,6 +603,26 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
 
     return true;
 }
+
+bool SkypePhone::onGetAllContactsDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;        
+    return true;
+}
+
+bool SkypePhone::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
+    return true;
+}
+
+bool SkypePhone::onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
+    
+    return true;
+}
+
 
 // log is utf8 codec
 void SkypePhone::log_output(int type, const QString &log)

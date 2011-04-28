@@ -46,6 +46,7 @@ public slots:    // pstn
     void onShowSkypeTracer();
 
     void onShowDialPanel();
+    void onShowLogPanel();
     void onAddContact();
 
     void onConnectSkype();
@@ -65,6 +66,7 @@ public slots:    // pstn
     void onCalcWSServByNetworkType(QHostInfo hi);
     void onNoticeUserStartup();
 
+    void onDatabaseConnected();
     // database exec callbacks
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
                   const QString &estr, const QVariant &eval);
@@ -83,6 +85,8 @@ protected:
     virtual void 	paintEvent ( QPaintEvent * event );
     virtual void 	showEvent ( QShowEvent * event );
 
+    bool eventFilter(QObject *obj, QEvent *evt);
+
 private:
     void customAddContactButtonMenu();
 
@@ -96,6 +100,8 @@ private: // pstn
     QLayoutItem *m_dialpanel_layout_item;
     int m_call_state_layout_index;
     QLayoutItem *m_call_state_layout_item;
+    int m_log_list_layout_index;
+    QLayoutItem *m_log_list_layout_item;
 
     AsyncDatabase *m_adb;
     int m_curr_skype_call_id;

@@ -35,6 +35,10 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->m_call_state_layout_index = 3;
     this->m_call_state_layout_item = this->layout()->itemAt(this->m_call_state_layout_index);
     // this->m_call_state_layout_item->widget()->setVisible(false);
+    this->m_log_list_layout_index = 6;
+    this->m_log_list_layout_item = this->layout()->itemAt(this->m_log_list_layout_index);
+    // this->m_log_list_layout_item->widget()->setVisible(false);
+
     this->m_status_bar = nullptr;
 
     this->m_call_button_disable_count = 1;
@@ -45,6 +49,7 @@ SkypePhone::SkypePhone(QWidget *parent)
     
     QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
                      this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
+
 
 
     //////
@@ -77,6 +82,23 @@ void SkypePhone::showEvent ( QShowEvent * event )
     // qDebug()<<"showwwwwwwwwwwww"<<event<<event->type();
 }
 
+// 实现label的click事件
+bool SkypePhone::eventFilter(QObject *obj, QEvent *evt)
+{
+     if (obj == this->uiw->label_11) {
+         // QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+         // qDebug("Ate key press %d", keyEvent->key());
+         if (evt->type() == QEvent::MouseButtonRelease) {
+             QMouseEvent *mevt = static_cast<QMouseEvent*>(evt);
+             this->uiw->toolButton->click();
+             return true;
+         }
+     }
+
+     // standard event processing
+     return QObject::eventFilter(obj, evt);
+}
+
 void SkypePhone::init_status_bar(QStatusBar *bar)
 {
     this->m_status_bar = bar;
@@ -94,6 +116,8 @@ void SkypePhone::defaultPstnInit()
 
     QObject::connect(this->uiw->toolButton_2, SIGNAL(clicked()),
                      this, SLOT(onShowDialPanel()));
+    QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
+                     this, SLOT(onShowLogPanel()));
 
     QObject::connect(this->uiw->pushButton, SIGNAL(clicked()),
                      this, SLOT(onShowSkypeTracer()));
@@ -110,6 +134,8 @@ void SkypePhone::defaultPstnInit()
     //                  this, SLOT(onAddContact()));
 
     this->customAddContactButtonMenu();
+
+    this->uiw->label_11->installEventFilter(this);
 }
 
 void SkypePhone::customAddContactButtonMenu()
@@ -325,6 +351,11 @@ void SkypePhone::onShowDialPanel()
     this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
 }
 
+void SkypePhone::onShowLogPanel()
+{
+    this->m_log_list_layout_item->widget()->setVisible(!this->m_log_list_layout_item->widget()->isVisible());
+}
+
 void SkypePhone::onAddContact()
 {
     boost::shared_ptr<PhoneContact> pc;
@@ -466,6 +497,11 @@ void SkypePhone::onNoticeUserStartup()
     
 }
 
+void SkypePhone::onDatabaseConnected()
+{
+    // 加载联系人信息，加载呼叫历史记录信息
+}
+
 void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
@@ -545,6 +581,8 @@ void SkypePhone::log_output(int type, const QString &log)
     QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
 
     if (type == LT_USER) {
+        // TODO 怎么确定是属于呼叫日志呢。恐怕还是得在相应的地方执行才行。
+        this->uiw->label_11->setText(u16_log);
         witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
         this->uiw->listWidget->addItem(witem);
     } else if (type == LT_DEBUG && debug) {

@@ -36,6 +36,8 @@ public:
     explicit SkypePhone(QWidget *parent = 0);
     virtual ~SkypePhone();
 
+    void init_status_bar(QStatusBar *bar);                         
+
 public slots:    // pstn
     void defaultPstnInit();
     void onInitPstnClient();
@@ -89,6 +91,7 @@ private: // pstn
     SkypeTunnel *mtun;
     SkypeTracer *mSkypeTracer;
 
+    QStatusBar *m_status_bar;
     int m_dialpanel_layout_index;
     QLayoutItem *m_dialpanel_layout_item;
     int m_call_state_layout_index;

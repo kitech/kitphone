@@ -35,6 +35,7 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->m_call_state_layout_index = 3;
     this->m_call_state_layout_item = this->layout()->itemAt(this->m_call_state_layout_index);
     // this->m_call_state_layout_item->widget()->setVisible(false);
+    this->m_status_bar = nullptr;
 
     this->m_call_button_disable_count = 1;
 
@@ -74,6 +75,11 @@ void SkypePhone::showEvent ( QShowEvent * event )
 {
     QWidget::showEvent(event);
     // qDebug()<<"showwwwwwwwwwwww"<<event<<event->type();
+}
+
+void SkypePhone::init_status_bar(QStatusBar *bar)
+{
+    this->m_status_bar = bar;
 }
 
 // call only once

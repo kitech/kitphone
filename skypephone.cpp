@@ -45,6 +45,7 @@ SkypePhone::SkypePhone(QWidget *parent)
 
     this->defaultPstnInit();
     this->m_adb = new AsyncDatabase();
+    QObject::connect(this->m_adb, SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
     this->m_adb->start();
     
     QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
@@ -500,6 +501,7 @@ void SkypePhone::onNoticeUserStartup()
 void SkypePhone::onDatabaseConnected()
 {
     // 加载联系人信息，加载呼叫历史记录信息
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
 }
 
 void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)

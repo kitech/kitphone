@@ -39,6 +39,11 @@ AsyncDatabase::~AsyncDatabase()
     delete m_worker;
 }
 
+void AsyncDatabase::onConnected() { 
+    this->m_connected = true; 
+    emit this->connected();
+}
+
 int AsyncDatabase::execute(const QString& query)
 {
     // int reqno = this->m_reqno++;
@@ -54,9 +59,12 @@ void AsyncDatabase::run()
 
     // Create worker object within the context of the new thread
     m_worker = new DatabaseWorker();
-
-    connect(this, SIGNAL(executefwd(const QString&, int)),
+    QObject::connect(this, SIGNAL(executefwd(const QString&, int)),
             m_worker, SLOT(slotExecute(const QString&,int)));
+    QObject::connect(m_worker, SIGNAL(connected()),
+                     this, SLOT(onConnected()));
+    
+    m_worker->connectDatabase();
 
     // Critical: register new type so that this signal can be
     // dispatched across thread boundaries by Qt using the event

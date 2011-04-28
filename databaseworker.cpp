@@ -31,6 +31,11 @@
 DatabaseWorker::DatabaseWorker( QObject* parent )
     : QObject( parent )
 {
+
+}
+
+bool DatabaseWorker::connectDatabase()
+{
     // thread-specific connection, see db.h
 #ifdef WIN32
     QString db_file_path = qApp->applicationDirPath() + "/" + DATABASE_NAME;
@@ -52,7 +57,7 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
     if ( !m_database.open() ) {
         qWarning() << "Unable to connect to database, giving up:" << m_database.lastError().text();
         emit this->connect_error();
-        return;
+        return false;
     }
 
     // static std::vector<QString> tbls = {TABLE_OPTIONS, TABLE_CONTACTS, TABLE_HISTORIES};
@@ -161,6 +166,7 @@ DatabaseWorker::DatabaseWorker( QObject* parent )
 
     emit this->connected();
 
+    return true;
     // std::for_each(tbls.begin(), tbls.end(),
     //               [&tbls,&m_database] (const QString &tbl) {
     //               });

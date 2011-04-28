@@ -21,6 +21,8 @@ public:
     explicit DatabaseWorker( QObject* parent = 0);
     virtual ~DatabaseWorker();
 
+    bool connectDatabase();                             
+
 public slots:
     void slotExecute( const QString& query, int reqno);
  

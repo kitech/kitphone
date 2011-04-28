@@ -28,7 +28,7 @@ public:
     int execute(const QString &query); // 返回一个执行号码
 
 public slots:
-    void onConnected() { this->m_connected = true; }
+    void onConnected();
     void onConnectError() { this->m_connected = false; }
 
 signals:

@@ -48,6 +48,7 @@ public slots:    // pstn
     void onShowDialPanel();
     void onShowLogPanel();
     void onAddContact();
+    void onAddGroup();
 
     void onConnectSkype();
     void onConnectApp2App();
@@ -71,6 +72,8 @@ public slots:    // pstn
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
                   const QString &estr, const QVariant &eval);
     bool onAddContactDone(boost::shared_ptr<SqlRequest> req);
+    bool onAddGroupDone(boost::shared_ptr<SqlRequest> req);
+    bool onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllContactsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req);

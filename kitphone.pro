@@ -50,10 +50,12 @@ FORMS += sipphone.ui
 
 #######
 SOURCES += skypephone.cpp websocketclient.cpp phonecontact.cpp phonecontactproperty.cpp \
+        groupinfodialog.cpp \
         networkdetect.cpp
 HEADERS += skypephone.h websocketclient.h phonecontact.h phonecontactproperty.h \
+        groupinfodialog.h \
         networkdetect.h
-FORMS += skypephone.ui phonecontactproperty.ui
+FORMS += skypephone.ui phonecontactproperty.ui groupinfodialog.ui
 
 SOURCES += $$QTSAPP_SOURCES
 HEADERS += $$QTSAPP_HEADERS

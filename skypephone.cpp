@@ -22,6 +22,7 @@
 #include "asyncdatabase.h"
 #include "phonecontact.h"
 #include "phonecontactproperty.h"
+#include "groupinfodialog.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -158,6 +159,12 @@ void SkypePhone::customAddContactButtonMenu()
 
     action = new QAction(tr("Export Contacts"), this);
     add_contact_menu->addAction(action);
+
+    add_contact_menu->addSeparator();
+
+    action = new QAction(tr("New Group"), this);
+    add_contact_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onAddGroup()));
 
     this->uiw->toolButton_3->setMenu(add_contact_menu);
     this->uiw->toolButton_3->setDefaultAction(daction);
@@ -359,9 +366,9 @@ void SkypePhone::onShowLogPanel()
 
 void SkypePhone::onAddContact()
 {
-    boost::shared_ptr<PhoneContact> pc;
-    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty());
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    boost::shared_ptr<PhoneContact> pc;
+    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
 
     if (pcp->exec() == QDialog::Accepted) {
         pc = pcp->contactInfo();
@@ -379,6 +386,25 @@ void SkypePhone::onAddContact()
         qDebug()<<req->mSql;
     } else {
 
+    }
+}
+
+void SkypePhone::onAddGroup() 
+{
+    QString group_name;
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    boost::scoped_ptr<GroupInfoDialog> gidlg(new GroupInfoDialog(this));
+
+    if (gidlg->exec() == QDialog::Accepted) {
+        group_name = gidlg->groupName();
+
+        req->mCbFunctor = boost::bind(&SkypePhone::onAddGroupDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onAddGroupDone(boost::shared_ptr<SqlRequest>));
+        req->mSql = QString("INSERT INTO kp_groups (group_name) VALUES ('%1')")
+            .arg(group_name);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
     }
 }
 
@@ -604,15 +630,37 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
+bool SkypePhone::onAddGroupDone(boost::shared_ptr<SqlRequest> req)
+{
+    if (!req->mRet) {
+        this->log_output(LT_USER, "添加联系人组失败：" + req->mErrorString);
+    }
+
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
+bool SkypePhone::onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+    
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
 bool SkypePhone::onGetAllContactsDone(boost::shared_ptr<SqlRequest> req)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;        
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->mRequests.remove(req->mReqno);
     return true;
 }
 
 bool SkypePhone::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->mRequests.remove(req->mReqno);
     return true;
 }
 

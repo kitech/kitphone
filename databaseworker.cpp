@@ -75,7 +75,7 @@ bool DatabaseWorker::connectDatabase()
     /*
       CREATE TABLE TABLE_GROUPS (
       gid INTERGER PRIMARY KEY AUTOINCREMENT,
-      group_name VARCHAR(100) UNIQUE
+      group_name VARCHAR(100) UNIQUE NOT NULL
       );
      */
     if (!m_database.tables().contains(TABLE_GROUPS)) {

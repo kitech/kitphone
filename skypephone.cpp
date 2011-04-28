@@ -23,6 +23,7 @@
 #include "phonecontact.h"
 #include "phonecontactproperty.h"
 #include "groupinfodialog.h"
+#include "contactmodel.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -45,14 +46,17 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->m_call_button_disable_count = 1;
 
     this->defaultPstnInit();
-    this->m_adb = new AsyncDatabase();
-    QObject::connect(this->m_adb, SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
+    // this->m_adb = new AsyncDatabase();
+    this->m_adb = boost::shared_ptr<AsyncDatabase>(new AsyncDatabase());
+    QObject::connect(this->m_adb.get(), SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
     this->m_adb->start();
     
-    QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
+    QObject::connect(this->m_adb.get(), SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
                      this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
 
 
+    this->m_contact_model = new ContactModel(this->m_adb);
+    this->uiw->treeView->setModel(this->m_contact_model);
 
     //////
     this->m_call_button_disable_count.ref();
@@ -64,7 +68,10 @@ SkypePhone::~SkypePhone()
 {
     this->m_adb->quit();
     this->m_adb->wait();
-    delete this->m_adb;
+    // delete this->m_adb;
+    this->m_adb = boost::shared_ptr<AsyncDatabase>();
+    this->uiw->treeView->setModel(0);
+    delete this->m_contact_model;
 
     delete uiw;
 }

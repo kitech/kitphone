@@ -24,6 +24,7 @@ class SkypeTracer;
 class WebSocketClient;
 class AsyncDatabase;
 class SqlRequest;
+class ContactModel;
 
 namespace Ui {
     class SkypePhone;
@@ -109,7 +110,9 @@ private: // pstn
     int m_log_list_layout_index;
     QLayoutItem *m_log_list_layout_item;
 
-    AsyncDatabase *m_adb;
+    // AsyncDatabase *m_adb;
+    boost::shared_ptr<AsyncDatabase> m_adb;
+    ContactModel *m_contact_model;
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;

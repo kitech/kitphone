@@ -43,6 +43,7 @@ public slots:    // pstn
     void onHangupPstn();
     void onShowSkypeTracer();
 
+    void onShowDialPanel();
     void onAddContact();
 
     void onConnectSkype();
@@ -63,7 +64,8 @@ public slots:    // pstn
     void onNoticeUserStartup();
 
     // database exec callbacks
-    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno);
+    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
+                  const QString &estr, const QVariant &eval);
     bool onAddContactDone(boost::shared_ptr<SqlRequest> req);
 
     void log_output(int type, const QString &log);
@@ -79,16 +81,25 @@ protected:
     virtual void 	paintEvent ( QPaintEvent * event );
     virtual void 	showEvent ( QShowEvent * event );
 
+private:
+    void customAddContactButtonMenu();
+
 private: // pstn
     Skype *mSkype;
     SkypeTunnel *mtun;
     SkypeTracer *mSkypeTracer;
 
+    int m_dialpanel_layout_index;
+    QLayoutItem *m_dialpanel_layout_item;
+    int m_call_state_layout_index;
+    QLayoutItem *m_call_state_layout_item;
+
     AsyncDatabase *m_adb;
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;
-
+    
+    QAtomicInt m_call_button_disable_count; // 由于默认的按钮初始化状态是disabled
     static const int m_conn_ws_max_retry_times = 3;    
     int m_conn_ws_retry_times;
     QString m_ws_serv_ipaddr;

@@ -21,6 +21,7 @@
 #include "websocketclient.h"
 #include "asyncdatabase.h"
 #include "phonecontact.h"
+#include "phonecontactproperty.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -28,16 +29,27 @@ SkypePhone::SkypePhone(QWidget *parent)
 {
     this->uiw->setupUi(this);
 
+    this->m_dialpanel_layout_index = 2;
+    this->m_dialpanel_layout_item = this->layout()->itemAt(this->m_dialpanel_layout_index);
+    // this->m_dialpanel_layout_item->widget()->setVisible(false);
+    this->m_call_state_layout_index = 3;
+    this->m_call_state_layout_item = this->layout()->itemAt(this->m_call_state_layout_index);
+    // this->m_call_state_layout_item->widget()->setVisible(false);
+
+    this->m_call_button_disable_count = 1;
+
     this->defaultPstnInit();
     this->m_adb = new AsyncDatabase();
     this->m_adb->start();
     
-    QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int)),
-                     this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int)));
+    QObject::connect(this->m_adb, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
+                     this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
+
 
     //////
+    this->m_call_button_disable_count.ref();
     QHostInfo::lookupHost("gw.skype.tom.com", this, SLOT(onCalcWSServByNetworkType(QHostInfo)));
-
+    this->log_output(LT_USER, "检测网络类型...");
 }
 
 SkypePhone::~SkypePhone()
@@ -74,6 +86,9 @@ void SkypePhone::defaultPstnInit()
     // QObject::connect(this->uiw->checkBox_2, SIGNAL(stateChanged(int)),
     //                  this, SLOT(onInitPstnClient()));
 
+    QObject::connect(this->uiw->toolButton_2, SIGNAL(clicked()),
+                     this, SLOT(onShowDialPanel()));
+
     QObject::connect(this->uiw->pushButton, SIGNAL(clicked()),
                      this, SLOT(onShowSkypeTracer()));
     QObject::connect(this->uiw->pushButton_3, SIGNAL(clicked()),
@@ -85,8 +100,34 @@ void SkypePhone::defaultPstnInit()
     QObject::connect(this->uiw->toolButton_10, SIGNAL(clicked()),
                      this, SLOT(onHangupPstn()));
 
-    QObject::connect(this->uiw->toolButton_6, SIGNAL(clicked()),
+    // QObject::connect(this->uiw->toolButton_6, SIGNAL(clicked()),
+    //                  this, SLOT(onAddContact()));
+
+    this->customAddContactButtonMenu();
+}
+
+void SkypePhone::customAddContactButtonMenu()
+{
+    QAction *action;
+    QAction *daction;
+    QMenu *add_contact_menu = new QMenu(this);
+
+    daction = new QAction(QIcon(":/skins/default/addcontact.png"), tr("Add Contact"), this);
+    add_contact_menu->addAction(daction);
+    // add_contact_menu->setDefaultAction(action);
+
+    QObject::connect(daction, SIGNAL(triggered()),
                      this, SLOT(onAddContact()));
+
+
+    action = new QAction(tr("Import Contacts"), this);
+    add_contact_menu->addAction(action);
+
+    action = new QAction(tr("Export Contacts"), this);
+    add_contact_menu->addAction(action);
+
+    this->uiw->toolButton_3->setMenu(add_contact_menu);
+    this->uiw->toolButton_3->setDefaultAction(daction);
 }
 
 // maybe called twice or more
@@ -138,6 +179,8 @@ void SkypePhone::onShowSkypeTracer()
 
 void SkypePhone::onConnectSkype()
 {
+    this->log_output(LT_USER, "正在连接Skype API。。。，");
+    this->log_output(LT_USER, "请注意Skype客户端弹出的认证提示。");
     this->uiw->pushButton_3->setEnabled(false);
     this->onInitPstnClient();
 
@@ -165,7 +208,13 @@ void SkypePhone::onSkypeRealConnected(QString user_name)
 {
     qDebug()<<"Got handler name:"<<user_name;
     this->uiw->label_3->setText(user_name);
-    this->uiw->pushButton_4->setEnabled(true);
+
+    // count == 0
+    if (this->m_call_button_disable_count.deref() == false) {
+        this->uiw->pushButton_4->setEnabled(true);
+    }
+
+    this->log_output(LT_USER, "连接Skype API成功，用户名：" + user_name);
 }
 
 void SkypePhone::onSkypeUserStatus(QString str_status, int int_status)
@@ -261,16 +310,30 @@ void SkypePhone::onHangupPstn()
     this->mSkype->setCallHangup(QString::number(this->m_curr_skype_call_id));
 }
 
+void SkypePhone::onShowDialPanel()
+{
+    // this->m_dialpanel_layout_item->widget()->setVisible(false);
+    if (this->m_dialpanel_layout_item->widget()->isVisible()) {
+        
+    }
+    this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
+}
+
 void SkypePhone::onAddContact()
 {
 
     PhoneContact pc;
+    PhoneContactProperty *pcp = new PhoneContactProperty();
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
+
+    if (pcp->exec() == QDialog::Accepted) {
+        
+    }
 
     req->mCbFunctor = boost::bind(&SkypePhone::onAddContactDone, this, _1);
     req->mCbObject = this;
     req->mCbSlot = SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>));
-    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (1q332345, '234中中56789043')";
+    req->mSql = "INSERT INTO kp_contacts (group_id,phone_number) VALUES (1332332345, '234中中56789043')";
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
     
@@ -306,8 +369,6 @@ void SkypePhone::onWSMessage(QByteArray msg)
     QStringList fields = QString(msg).split("$");
     QString log_msg;
 
-    QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
-
     switch (fields.at(0).toInt()) {
     case 102:
         Q_ASSERT(fields.at(1) == this->mSkype->handlerName());
@@ -320,14 +381,14 @@ void SkypePhone::onWSMessage(QByteArray msg)
         }
         break;
     case 108:
-        log_msg = u8codec->toUnicode("通话结束。");
+        log_msg = "通话结束。";
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
         this->log_output(LT_USER, log_msg);
         break;
     case 118:
-        log_msg = u8codec->toUnicode(QString("对方已挂机，代码:%1").arg(fields.at(5)).toAscii());
+        log_msg = QString("对方已挂机，代码:%1").arg(fields.at(5));
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
@@ -340,26 +401,33 @@ void SkypePhone::onWSMessage(QByteArray msg)
 
 }
 
-
+// TODO 在网络情况不好的情况下，确实有可能好3,5秒之后这个才返回
+// 所以有必要在呼叫的时候检测这个值是否已经取到，要是没有取到，还需要等待操作完成。
+// 需要两个值还控制呼叫按钮是否可用，有有点复杂了。
 void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<hi.addresses();
 
+    QString log = "网络类型：";
     QString ws_serv_ipaddr;
     QList<QHostAddress> addrs = hi.addresses();
     
     if (addrs.count() > 0) {
         if (addrs.at(0).toString() == "202.108.15.80") {
             ws_serv_ipaddr = "202.108.15.81";
+            log += "网通";
         } else if (addrs.at(0).toString() == "211.100.41.6") {
             ws_serv_ipaddr = "211.100.41.7";
+            log += "电信";
         } else {
             qDebug()<<"You network is strange enought.";
+            log += "网络异常，检测结果不准确";
             Q_ASSERT(1==2);
         }
         this->m_ws_serv_ipaddr = ws_serv_ipaddr;
     } else {
         qDebug()<<"Can not resolve IP for :" << hi.hostName();
+        log += "网络异常，无法检测到网络类型";
     }
 
     // for test
@@ -371,10 +439,16 @@ void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
 
         if (ba.startsWith("2")) {
             this->m_ws_serv_ipaddr = ba.trimmed();
+            log += "(测试)";            
         }
     }
 
+    // count == 0
+    if (this->m_call_button_disable_count.deref() == false) {
+        this->uiw->pushButton_4->setEnabled(true);
+    }
     qDebug()<<"All in all, the notice server is:"<<this->m_ws_serv_ipaddr;
+    this->log_output(LT_USER, log);
 }
 
 void SkypePhone::onNoticeUserStartup()
@@ -382,7 +456,7 @@ void SkypePhone::onNoticeUserStartup()
     
 }
 
-void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno)
+void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
     
@@ -392,37 +466,45 @@ void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno)
     boost::shared_ptr<SqlRequest> req;
     bool bret = false;
     // QGenericReturnArgument qret;
+    // QGenericArgument qarg;
     bool qret;
     QMetaMethod qmethod;
     char raw_method_name[32] = {0};
 
     if (this->mRequests.contains(reqno)) {
         req = this->mRequests[reqno];
+        req->mRet = eret;
+        req->mErrorString = estr;
+        req->mExtraValue = eval;
 
-        cb_functor = req->mCbFunctor;
-        bret = cb_functor(req);
+        // 实现方法太多，还要随机使用一种方法，找麻烦
+        if (qrand() % 2 == 1) {
+            cb_functor = req->mCbFunctor;
+            bret = cb_functor(req);
+        } else {
+            cb_obj = req->mCbObject;
+            cb_slot = req->mCbSlot;
 
-        cb_obj = req->mCbObject;
-        cb_slot = req->mCbSlot;
-        
-        qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
-        // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
-        for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
-            if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
-                continue;
+            qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
+            // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
+            for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
+                if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
+                    continue;
+                }
+                if (cb_slot[i] == '(') break;
+                Q_ASSERT(j < sizeof(raw_method_name));
+                raw_method_name[j++] = cb_slot[i];
             }
-            if (cb_slot[i] == '(') break;
-            Q_ASSERT(j < sizeof(raw_method_name));
-            raw_method_name[j++] = cb_slot[i];
+            Q_ASSERT(strlen(raw_method_name) > 0);
+            Q_ASSERT(cb_obj->metaObject()->indexOfSlot(raw_method_name) != -1);
+            bret = QMetaObject::invokeMethod(cb_obj, raw_method_name,
+                                             Q_RETURN_ARG(bool, qret),
+                                             Q_ARG(boost::shared_ptr<SqlRequest>, req));
+            // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>))));
+            // bret = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
+            //                        Q_ARG(boost::shared_ptr<SqlRequest>, req));
+            // qDebug()<<cb_obj->metaObject()->indexOfSlot(cb_slot);
         }
-        bret = QMetaObject::invokeMethod(cb_obj, raw_method_name,
-                                         Q_RETURN_ARG(bool, qret),
-                                         Q_ARG(boost::shared_ptr<SqlRequest>, req));
-        // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>))));
-        // bret = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
-        //                        Q_ARG(boost::shared_ptr<SqlRequest>, req));
-        // qDebug()<<cb_obj->metaObject()->indexOfSlot(cb_slot);
-        
     }
 }
 
@@ -435,6 +517,7 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
+// log is utf8 codec
 void SkypePhone::log_output(int type, const QString &log)
 {
     QListWidgetItem *witem = nullptr;
@@ -442,23 +525,35 @@ void SkypePhone::log_output(int type, const QString &log)
 
     int debug = 1;
 
+    QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
+    QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
+
     if (type == LT_USER) {
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_time + " " + log);
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
         this->uiw->listWidget->addItem(witem);
     } else if (type == LT_DEBUG && debug) {
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), log_time + " DBG " + log);
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
         this->uiw->listWidget->addItem(witem);
     } else {
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<type<<log;
     }
 
     // 清除多余日志
-    static int max_log_count = 2;
+    static int max_log_count = 30;
+    if (debug == 1) {
+        max_log_count += 200;
+    }
     if (this->uiw->listWidget->count() > max_log_count) {
         int rm_count = this->uiw->listWidget->count() - max_log_count;
-        for (int i = rm_count - 1; i >= 0; i--) {
-            witem = this->uiw->listWidget->takeItem(max_log_count+i);
+        // 从最老的日志开始删除
+        for (int i = 0; i < rm_count; i++) {
+            witem = this->uiw->listWidget->takeItem(i);
             delete witem;
         }
+        // 从最新的开始
+        // for (int i = rm_count - 1; i >= 0; i--) {
+        //     witem = this->uiw->listWidget->takeItem(max_log_count+i);
+        //     delete witem;
+        // }
     }
 }

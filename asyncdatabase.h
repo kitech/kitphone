@@ -34,7 +34,7 @@ public slots:
 signals:
     void progress(const QString &msg);
     void ready(bool);
-    void results(const QList<QSqlRecord> & records, int);
+    void results(const QList<QSqlRecord> & records, int seqno, bool eret, const QString &estr, const QVariant &eval);
     void connected();
 
 protected:
@@ -45,7 +45,8 @@ signals:
 
 private:
     DatabaseWorker *m_worker;
-    static int m_reqno;
+    // static int m_reqno;
+    static QAtomicInt m_reqno;
 
     // std::atomic<bool> m_connected;
     bool m_connected;
@@ -57,14 +58,20 @@ class SqlRequest : public QObject
 {
     Q_OBJECT;
 public:
-    explicit SqlRequest(){}
-    virtual ~SqlRequest(){}
+    explicit SqlRequest() {
+        this->mReqno = -1;
+        this->mRet = false;
+        this->mCbObject = nullptr;
+        this->mCbSlot = nullptr;
+    }
+    virtual ~SqlRequest() {}
     
     int mReqno;
     QString mSql;
 
     bool mRet;
     QString mErrorString;
+    QVariant mExtraValue;
     QList<QSqlRecord> mResults;
     
     // functor, boost type

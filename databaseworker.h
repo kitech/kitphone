@@ -27,7 +27,9 @@ public slots:
 signals:
     void connected();
     void connect_error();
-    void results( const QList<QSqlRecord>& records, int reqno);
+    // eval is lastInsertId
+    void results( const QList<QSqlRecord>& records, int reqno, bool eret, 
+                  const QString &estr, const QVariant &eval);
 
 private:
     QSqlDatabase m_database;

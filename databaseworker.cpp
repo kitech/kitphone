@@ -196,11 +196,23 @@ DatabaseWorker::~DatabaseWorker()
 
 void DatabaseWorker::slotExecute(const QString& query, int reqno)
 {
+    bool eret = false;
+    QString estr;
+    QVariant eval;
+    QSqlError edb;
     QList<QSqlRecord> recs;
-    QSqlQuery sql( query, m_database );
-    while ( sql.next() ) {
-        recs.push_back( sql.record() );
+    QSqlQuery dbq(m_database);
+
+    eret = dbq.exec(query);
+    if (!eret) {
+        edb = dbq.lastError();
+        estr = QString("ENO:%1, %2").arg(edb.type()).arg(edb.text());
+    } else {
+        eval = dbq.lastInsertId();
+        while ( dbq.next() ) {
+            recs.push_back(dbq.record() );
+        }
     }
-    emit results(recs, reqno);
+    emit results(recs, reqno, eret, estr, eval);
 }
 

@@ -26,7 +26,7 @@
 // 因为不同的返回结果需要不同的处理方式。
 ////
 
-int AsyncDatabase::m_reqno = 1;
+QAtomicInt AsyncDatabase::m_reqno = 1;
 AsyncDatabase::AsyncDatabase(QObject *parent)
     : QThread(parent)
 {
@@ -41,7 +41,8 @@ AsyncDatabase::~AsyncDatabase()
 
 int AsyncDatabase::execute(const QString& query)
 {
-    int reqno = this->m_reqno++;
+    // int reqno = this->m_reqno++;
+    int reqno = this->m_reqno.fetchAndAddOrdered(1);
     emit executefwd(query, reqno); // forwards to the worker
     return reqno;
 }
@@ -63,8 +64,8 @@ void AsyncDatabase::run()
     qRegisterMetaType< QList<QSqlRecord> >( "QList<QSqlRecord>" );
 
     // forward final signal
-    QObject::connect(m_worker, SIGNAL(results(const QList<QSqlRecord>&, int)),
-                     this, SIGNAL(results(const QList<QSqlRecord>&, int)));
+    QObject::connect(m_worker, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
+                     this, SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
 
     emit progress( "Press 'Go' to run a query." );
     emit ready(true);

@@ -34,10 +34,11 @@ public:
 public slots:
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval);
     bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetContactsByIdDone(boost::shared_ptr<SqlRequest> req);
 
 signals:
     void groupsRetrived(const QList<QSqlRecord> & results);
-    void contactsRetrived(int id, const QList<QSqlRecord> & results);
+    void contactsRetrived(int gid, const QList<QSqlRecord> & results);
 
 private:
     boost::shared_ptr<AsyncDatabase> m_adb;

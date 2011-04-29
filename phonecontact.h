@@ -20,6 +20,7 @@ public:
     virtual ~PhoneContact();
 
 public:
+    int mContactId;
     QString mDispName;
     QString mUserName;
     QString mPhoneNumber;

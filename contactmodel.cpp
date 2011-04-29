@@ -19,6 +19,8 @@ ContactModel::ContactModel(boost::shared_ptr<AsyncDatabase> adb, QObject *parent
     this->m_dretr = new ContactDataRetriver(adb);
     QObject::connect(this->m_dretr, SIGNAL(groupsRetrived(const QList<QSqlRecord> &)),
                      this, SLOT(onGroupsRetrived(const QList<QSqlRecord> &)));
+    QObject::connect(this->m_dretr, SIGNAL(contactsRetrived(int, const QList<QSqlRecord> &)),
+                     this, SLOT(onContactsRetrived(int, const QList<QSqlRecord> &)));
 
 }
 
@@ -43,6 +45,13 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
         cnode = static_cast<ContactInfoNode*>(index.internalPointer());
         if (cnode->ntype != 0) {
             // contact leaf
+            if (index.column() == 0) {
+                v = cnode->pc->mDispName;
+            } else if (index.column() == 1) {
+                v = cnode->pc->mPhoneNumber;
+            } else if (index.column() == 2) {
+                v = cnode->pc->mContactId;
+            }
         } else {
             // group name
             cnode = this->mContacts.at(index.row());
@@ -54,7 +63,7 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
         }
     }
     // qDebug()<<v<<cnode;
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<index<<role<<v;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<index<<role<<v;
 
     return v;
 }
@@ -123,7 +132,7 @@ QModelIndex ContactModel::parent(const QModelIndex &child) const
 
 int ContactModel::rowCount(const QModelIndex &parent) const
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent;
     int cnt = 0;
     int row;
     int gid;
@@ -140,18 +149,20 @@ int ContactModel::rowCount(const QModelIndex &parent) const
     } else {
         row = parent.row();
         pnode = static_cast<ContactInfoNode*>(parent.internalPointer());
-        if (pnode == NULL) {
+        if (pnode->ntype == 0) {
             // pnode = this->mContacts.at(row);
             cnt = pnode->childs.count();
 
             //////////
-            if (pnode->lazy_flag == 0) {
+            if (cnt == 0 && pnode->lazy_flag == 0) {
+                pnode->lazy_flag = 1;
+                this->m_dretr->getContactsByGroupId(pnode->gid);
             }
         } else {
             cnt = 0;
         }
     }
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
     return cnt;
 }
 
@@ -165,14 +176,23 @@ int ContactModel::columnCount(const QModelIndex &parent) const
         cnt = 4;
     }
 
+    cnt = 3;
     return cnt;
 }
 
 bool ContactModel::hasChildren(const QModelIndex &parent) const
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent;
+    ContactInfoNode *pnode = NULL;
+    ContactInfoNode *cnode = NULL;
+
     if (parent.isValid()) {
-        return false;
+        pnode = static_cast<ContactInfoNode*>(parent.internalPointer());
+        if (pnode->ntype == 0) {
+            return true;
+        } else {
+            return false;
+        }
     } else {
         return true;
     }
@@ -189,6 +209,7 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
 
     // qDebug()<<results;
 
+    this->m_dretr->lazy_flag = 2;
     for (int i = 0; i < results.count(); i++) {
         rec = results.at(i);
 
@@ -201,6 +222,7 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
         cin->group_name = gname;
         cin->pnode = NULL;
         cin->mrow = this->mContacts.count();
+        cin->lazy_flag = 0;
 
         this->beginInsertRows(idx,  this->mContacts.count(), this->mContacts.count()+1);
         this->mContacts.append(cin);
@@ -210,9 +232,37 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->mContacts.count();    
 }
 
-void ContactModel::onContactsRetrived(int id, const QList<QSqlRecord> & results)
+void ContactModel::onContactsRetrived(int gid, const QList<QSqlRecord> & results)
 {
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<gid<<results.count();
 
+    QSqlRecord rec;
+    QString gname;
+    ContactInfoNode *cin = NULL;
+    ContactInfoNode *nin = NULL;
+    QModelIndex idx;
+
+    for (int i = this->mContacts.count()-1; i >= 0; i--) {
+        cin = this->mContacts.at(i);
+        if (cin->gid == gid) {
+
+            for (int j = 0; j < results.count(); j++) {
+                rec = results.at(j);
+                nin = new ContactInfoNode();
+                nin->gid = gid;
+                nin->pnode = cin;
+                nin->pc = boost::shared_ptr<PhoneContact>(new PhoneContact());
+                nin->pc->mContactId = rec.value("cid").toInt();
+                nin->pc->mUserName = nin->pc->mDispName = rec.value("display_name").toString();
+                nin->pc->mPhoneNumber = rec.value("phone_number").toString();
+
+                idx = this->index(i, 0, QModelIndex());
+                this->beginInsertRows(idx, cin->childs.count(), cin->childs.count()+1);
+                cin->childs.append(nin);
+                this->endInsertRows();
+            }
+        }
+    }
 }
 
 ///////////////////////////
@@ -295,6 +345,16 @@ bool ContactDataRetriver::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
+bool ContactDataRetriver::onGetContactsByIdDone(boost::shared_ptr<SqlRequest> req)
+{
+
+    this->mRequests.remove(req->mReqno);
+
+    emit this->contactsRetrived(req->mCbId, req->mResults);
+    
+    return true;
+}
+
 bool ContactDataRetriver::getGroupList()
 {
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
@@ -309,8 +369,20 @@ bool ContactDataRetriver::getGroupList()
     return true;
 }
 
-bool ContactDataRetriver::getContactsByGroupId(int id)
+bool ContactDataRetriver::getContactsByGroupId(int gid)
 {
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    // get groups list
+    req->mCbId = gid;
+    req->mCbFunctor = boost::bind(&ContactDataRetriver::onGetContactsByIdDone, this, _1);
+    req->mCbObject = this;
+    req->mCbSlot = SLOT(onGetContactsByIdDone(boost::shared_ptr<SqlRequest>));
+    req->mSql = QString("SELECT * FROM kp_contacts WHERE group_id=%1").arg(gid);
+    req->mReqno = this->m_adb->execute(req->mSql);
+    this->mRequests.insert(req->mReqno, req);
+
+    qDebug()<<req->mSql;
+
     return true;
 }
 

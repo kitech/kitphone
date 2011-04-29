@@ -538,6 +538,7 @@ void SkypePhone::onDatabaseConnected()
     boost::shared_ptr<SqlRequest> req2(new SqlRequest());
     boost::shared_ptr<SqlRequest> req3(new SqlRequest());
 
+    this->uiw->treeView->setHeaderHidden(true);
     this->uiw->treeView->setModel(this->m_contact_model);
 
     {

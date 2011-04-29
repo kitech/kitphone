@@ -46,6 +46,8 @@ public:
     // call back of qt slot
     QObject *mCbObject;
     const char *mCbSlot;
+
+    int mCbId;
 };
 
 ///////////////////////////

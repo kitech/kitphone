@@ -314,7 +314,8 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
         }
         rmrow = cnode->mrow;
         pnode = cnode->pnode;
-        idx = this->index(pnode->mrow, 0, QModelIndex());
+        // idx = this->index(pnode->mrow, 0, QModelIndex());
+        idx = this->createIndex(pnode->mrow, 0, pnode);
         this->beginRemoveRows(idx, cnode->mrow, cnode->mrow);
         pnode->childs.remove(rmrow);
         for (int i = rmrow; i < pnode->childs.count(); i++) {
@@ -324,6 +325,7 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
         this->endRemoveRows();
     }
 
+    // no problem this line
     this->onContactsRetrived(gid, results);
 }
 

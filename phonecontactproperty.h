@@ -29,9 +29,12 @@ public:
     virtual ~PhoneContactProperty();
 
     boost::shared_ptr<PhoneContact> contactInfo();
+    bool setContactInfo(boost::shared_ptr<PhoneContact> ci);
 
 private:
     Ui::PhoneContactProperty *uiw;
+    int cid;
+    bool modify_mode;
 };
 
 #endif /* _PHONECONTACTPROPERTY_H_ */

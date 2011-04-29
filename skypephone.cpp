@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 855 2011-04-28 10:12:42Z drswinghead $
+// Version: $Id: skypephone.cpp 856 2011-04-29 03:39:20Z drswinghead $
 // 
 
 #include <QtCore>
@@ -142,6 +142,7 @@ void SkypePhone::defaultPstnInit()
     //                  this, SLOT(onAddContact()));
 
     this->customAddContactButtonMenu();
+    this->initContactViewContextMenu();
 
     this->uiw->label_11->installEventFilter(this);
 }
@@ -174,6 +175,33 @@ void SkypePhone::customAddContactButtonMenu()
 
     this->uiw->toolButton_3->setMenu(add_contact_menu);
     this->uiw->toolButton_3->setDefaultAction(daction);
+}
+
+void SkypePhone::initContactViewContextMenu()
+{
+    QAction *action;
+
+    this->m_contact_view_ctx_menu = new QMenu(this);
+
+    action = new QAction(tr("&Call..."), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+    
+    this->m_contact_view_ctx_menu->addSeparator();
+
+    action = new QAction(tr("&Edit Contact"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onModifyContact()));
+
+    action = new QAction(tr("&Delete Contact"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+
+    this->m_contact_view_ctx_menu->addSeparator();
+
+    action = new QAction(tr("&Delete Group"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+
+    QObject::connect(this->uiw->treeView, SIGNAL(customContextMenuRequested(const QPoint &)),
+                     this, SLOT(onShowContactViewMenu(const QPoint &)));
 }
 
 // maybe called twice or more
@@ -395,6 +423,47 @@ void SkypePhone::onAddContact()
     }
 }
 
+void SkypePhone::onModifyContact()
+{
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    boost::shared_ptr<PhoneContact> pc;
+    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
+    QItemSelectionModel *ism = this->uiw->treeView->selectionModel();
+
+    if (!ism->hasSelection()) {
+        return;
+    }
+
+    QModelIndex cidx, idx;
+    cidx = ism->currentIndex();
+    idx = ism->model()->index(cidx.row(), 0, cidx.parent());
+
+    if (this->m_contact_model->hasChildren(idx)) {
+        // group node
+        return ;
+    }
+    
+    ContactInfoNode *cnode = static_cast<ContactInfoNode*>(idx.internalPointer());
+    pcp->setContactInfo(cnode->pc);
+
+    if (pcp->exec() == QDialog::Accepted) {
+        pc = pcp->contactInfo();
+
+        req->mCbId = pc->mContactId;
+        req->mCbFunctor = boost::bind(&SkypePhone::onModifyContactDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onModifyContactDone(boost::shared_ptr<SqlRequest>));
+        req->mSql = QString("UPDATE kp_contacts SET group_id = (SELECT gid FROM kp_groups WHERE group_name='%1'), display_name='%2', phone_number='%3' WHERE cid='%1'")
+            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+
+        qDebug()<<req->mSql;
+    } else {
+
+    }
+}
+
 void SkypePhone::onAddGroup() 
 {
     QString group_name;
@@ -412,6 +481,11 @@ void SkypePhone::onAddGroup()
         req->mReqno = this->m_adb->execute(req->mSql);
         this->mRequests.insert(req->mReqno, req);
     }
+}
+
+void SkypePhone::onShowContactViewMenu(const QPoint &pos)
+{
+    this->m_contact_view_ctx_menu->popup(this->uiw->treeView->mapToGlobal(pos));
 }
 
 void SkypePhone::onWSConnected(QString path)
@@ -629,10 +703,18 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
 
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mExtraValue<<req->mErrorString<<req->mRet; 
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mExtraValue<<req->mErrorString<<req->mRet; 
+
+    QList<QSqlRecord> recs;
+    int ncid;
 
     if (!req->mRet) {
         this->log_output(LT_USER, "添加联系人出错：" + req->mErrorString);
+    } else {
+        ncid = req->mExtraValue.toInt();
+        recs = req->mResults;
+
+        this->m_contact_model->onContactsRetrived(recs.at(0).value("group_id").toInt(), recs);
     }
     
     this->mRequests.remove(req->mReqno);
@@ -640,11 +722,27 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
+bool SkypePhone::onModifyContactDone(boost::shared_ptr<SqlRequest> req)
+{
+    
+    return true;
+}
+
 bool SkypePhone::onAddGroupDone(boost::shared_ptr<SqlRequest> req)
 {
+    QList<QSqlRecord> recs;
+    int ngid;
+
     if (!req->mRet) {
         this->log_output(LT_USER, "添加联系人组失败：" + req->mErrorString);
+    } else {
+        ngid = req->mExtraValue.toInt();
+        recs = req->mResults;
+
+        this->m_contact_model->onGroupsRetrived(recs);
     }
+
+    qDebug()<<recs<<req->mExtraValue;
 
     this->mRequests.remove(req->mReqno);
     return true;
@@ -681,7 +779,7 @@ bool SkypePhone::onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
-
+// TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
 // log is utf8 codec
 void SkypePhone::log_output(int type, const QString &log)
 {

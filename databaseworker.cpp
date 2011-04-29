@@ -208,6 +208,8 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
     QSqlError edb;
     QList<QSqlRecord> recs;
     QSqlQuery dbq(m_database);
+    QStringList qelms;
+    QString sql;
 
     eret = dbq.exec(query);
     if (!eret) {
@@ -215,8 +217,29 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
         estr = QString("ENO:%1, %2").arg(edb.type()).arg(edb.text());
     } else {
         eval = dbq.lastInsertId();
-        while(dbq.next()) {
-            recs.push_back(dbq.record());
+        if (!eval.isValid()) {
+            // not insert query
+            while(dbq.next()) {
+                recs.push_back(dbq.record());
+            }
+        } else {
+            // insert query;
+            qelms = query.trimmed().split(" ");
+            if (qelms.at(2) == TABLE_GROUPS) {
+                sql = QString("SELECT * FROM %1 WHERE gid=%2").arg(TABLE_GROUPS).arg(eval.toInt());
+                eret = dbq.exec(sql);
+                Q_ASSERT(eret);
+                while(dbq.next()) {
+                    recs.push_back(dbq.record());                    
+                }
+            } else if (qelms.at(2) == TABLE_CONTACTS) {
+                sql = QString("SELECT * FROM %1 WHERE cid=%2").arg(TABLE_CONTACTS).arg(eval.toInt());
+                eret = dbq.exec(sql);
+                Q_ASSERT(eret);
+                while(dbq.next()) {
+                    recs.push_back(dbq.record());                    
+                }
+            }
         }
     }
     // qDebug()<<"QQQQ: "<<query<<recs.count();

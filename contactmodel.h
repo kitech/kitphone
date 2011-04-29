@@ -29,16 +29,19 @@ public:
 
     QAtomicInt lazy_flag;
     bool getGroupList();
-    bool getContactsByGroupId(int id);
+    bool getContactsByGroupId(int gid);
+    bool getContactById(int cid);
 
 public slots:
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval);
     bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetContactsByIdDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetModifiedContactDone(boost::shared_ptr<SqlRequest> req);
 
 signals:
     void groupsRetrived(const QList<QSqlRecord> & results);
     void contactsRetrived(int gid, const QList<QSqlRecord> & results);
+    void modifiedContactRetrived(const QList<QSqlRecord> & results);
 
 private:
     boost::shared_ptr<AsyncDatabase> m_adb;
@@ -88,7 +91,9 @@ public:
 
 public slots:
     void onGroupsRetrived(const QList<QSqlRecord> & results);
-    void onContactsRetrived(int id, const QList<QSqlRecord> & results);
+    void onContactsRetrived(int gid, const QList<QSqlRecord> & results);
+    void onContactModified(int cid);
+    void onModifiedContactRetrived(const QList<QSqlRecord> & results);
 
 signals:
     void retriveGroups();

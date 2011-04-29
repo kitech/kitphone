@@ -49,7 +49,9 @@ public slots:    // pstn
     void onShowDialPanel();
     void onShowLogPanel();
     void onAddContact();
+    void onModifyContact();
     void onAddGroup();
+    void onShowContactViewMenu(const QPoint &pos);
 
     void onConnectSkype();
     void onConnectApp2App();
@@ -73,6 +75,7 @@ public slots:    // pstn
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
                   const QString &estr, const QVariant &eval);
     bool onAddContactDone(boost::shared_ptr<SqlRequest> req);
+    bool onModifyContactDone(boost::shared_ptr<SqlRequest> req);
     bool onAddGroupDone(boost::shared_ptr<SqlRequest> req);
     bool onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllContactsDone(boost::shared_ptr<SqlRequest> req);
@@ -96,6 +99,7 @@ protected:
 
 private:
     void customAddContactButtonMenu();
+    void initContactViewContextMenu();
 
 private: // pstn
     Skype *mSkype;
@@ -109,6 +113,8 @@ private: // pstn
     QLayoutItem *m_call_state_layout_item;
     int m_log_list_layout_index;
     QLayoutItem *m_log_list_layout_item;
+
+    QMenu *m_contact_view_ctx_menu;
 
     // AsyncDatabase *m_adb;
     boost::shared_ptr<AsyncDatabase> m_adb;

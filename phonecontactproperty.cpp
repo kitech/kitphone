@@ -17,6 +17,9 @@ PhoneContactProperty::PhoneContactProperty(QWidget *parent)
     ,uiw(new Ui::PhoneContactProperty())
 {
     this->uiw->setupUi(this);
+
+    this->cid = 0;
+    this->modify_mode = false;
 }
 
 PhoneContactProperty::~PhoneContactProperty()
@@ -32,5 +35,22 @@ boost::shared_ptr<PhoneContact> PhoneContactProperty::contactInfo()
     ci->mPhoneNumber = this->uiw->comboBox_4->currentText();
     ci->mGroupName = this->uiw->comboBox_3->currentText();
 
+    if (this->modify_mode) {
+        ci->mContactId = this->cid;
+    }
+
     return ci;
 }
+
+bool PhoneContactProperty::setContactInfo(boost::shared_ptr<PhoneContact> ci)
+{
+    this->uiw->comboBox->setEditText(ci->mDispName);
+    this->uiw->comboBox_4->setEditText(ci->mPhoneNumber);
+    this->uiw->comboBox_3->setEditText(ci->mGroupName);
+
+    this->modify_mode = true;
+    this->cid = ci->mContactId;
+
+    return true;
+}
+

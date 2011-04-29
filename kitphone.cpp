@@ -28,6 +28,8 @@ KitPhone::KitPhone(QWidget *parent)
     QLayout *lout = this->centralWidget()->layout();
     QVBoxLayout *vlout = static_cast<QVBoxLayout*>(lout);
     vlout->addWidget(this->uiw_skype);
+
+    this->uiw_skype->init_status_bar(this->statusBar());
 }
 
 KitPhone::~KitPhone()

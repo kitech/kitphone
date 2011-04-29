@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 854 2011-04-26 15:08:58Z drswinghead $
+// Version: $Id: skypephone.cpp 855 2011-04-28 10:12:42Z drswinghead $
 // 
 
 #include <QtCore>
@@ -56,7 +56,6 @@ SkypePhone::SkypePhone(QWidget *parent)
 
 
     this->m_contact_model = new ContactModel(this->m_adb);
-    this->uiw->treeView->setModel(this->m_contact_model);
 
     //////
     this->m_call_button_disable_count.ref();
@@ -539,6 +538,8 @@ void SkypePhone::onDatabaseConnected()
     boost::shared_ptr<SqlRequest> req2(new SqlRequest());
     boost::shared_ptr<SqlRequest> req3(new SqlRequest());
 
+    this->uiw->treeView->setModel(this->m_contact_model);
+
     {
         // get contacts list
         req1->mCbFunctor = boost::bind(&SkypePhone::onGetAllContactsDone, this, _1);
@@ -560,7 +561,7 @@ void SkypePhone::onDatabaseConnected()
     }
 
     {
-        // get groups list
+        // get history list
         req3->mCbFunctor = boost::bind(&SkypePhone::onGetAllGroupsDone, this, _1);
         req3->mCbObject = this;
         req3->mCbSlot = SLOT(onGetAllGroupsDone(boost::shared_ptr<SqlRequest>));
@@ -590,6 +591,7 @@ void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, 
         req->mRet = eret;
         req->mErrorString = estr;
         req->mExtraValue = eval;
+        req->mResults = results;
 
         // 实现方法太多，还要随机使用一种方法，找麻烦
         if (qrand() % 2 == 1) {

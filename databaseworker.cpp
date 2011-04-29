@@ -215,10 +215,11 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
         estr = QString("ENO:%1, %2").arg(edb.type()).arg(edb.text());
     } else {
         eval = dbq.lastInsertId();
-        while ( dbq.next() ) {
-            recs.push_back(dbq.record() );
+        while(dbq.next()) {
+            recs.push_back(dbq.record());
         }
     }
+    // qDebug()<<"QQQQ: "<<query<<recs.count();
     emit results(recs, reqno, eret, estr, eval);
 }
 

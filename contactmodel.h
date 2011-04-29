@@ -11,27 +11,57 @@
 #define _CONTACTMODEL_H_
 
 #include <QtCore>
+#include <QtSql>
 
 #include "boost/smart_ptr.hpp"
+#include "boost/function.hpp"
 
 class PhoneContact;
 class AsyncDatabase;
+class SqlRequest;
 
-
-struct ContactGroupNode;
-struct ContactInfoNode
+class ContactDataRetriver : public QObject
 {
-    boost::shared_ptr<PhoneContact> pc;
-    ContactGroupNode *gn;
+    Q_OBJECT;
+public:
+    explicit ContactDataRetriver(boost::shared_ptr<AsyncDatabase> adb);
+    virtual ~ContactDataRetriver();
+
+    QAtomicInt lazy_flag;
+    bool getGroupList();
+    bool getContactsByGroupId(int id);
+
+public slots:
+    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval);
+    bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
+
+signals:
+    void groupsRetrived(const QList<QSqlRecord> & results);
+    void contactsRetrived(int id, const QList<QSqlRecord> & results);
+
+private:
+    boost::shared_ptr<AsyncDatabase> m_adb;
+    //// sql reqno <---> sql reqclass
+    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
 };
 
-struct ContactGroupNode
+class ContactInfoNode
 {
+public:
+    explicit ContactInfoNode() {}
+    ~ContactInfoNode() {};
+
+    int mrow;
+    int mcol;
+    int ntype; // 0 is cat, 1 is contact
     int gid;
     QString group_name;
-    int lazy_flag;
+    int lazy_flag; // 0,1,2 
 
-    QVector<boost::shared_ptr<ContactInfoNode> > childs;
+    QVector<ContactInfoNode*> childs;
+
+    ContactInfoNode *pnode;
+    boost::shared_ptr<PhoneContact> pc;
 };
 
 class ContactModel : public QAbstractItemModel
@@ -56,12 +86,18 @@ public:
     virtual bool hasChildren(const QModelIndex &parent = QModelIndex()) const;
 
 public slots:
-    
-private:
-    boost::shared_ptr<AsyncDatabase> m_adb;
-    QVector<boost::shared_ptr<ContactGroupNode> > mGroups;
+    void onGroupsRetrived(const QList<QSqlRecord> & results);
+    void onContactsRetrived(int id, const QList<QSqlRecord> & results);
 
-    QHash<int, QVector<boost::shared_ptr<PhoneContact> > > mContacts;
+signals:
+    void retriveGroups();
+    void retriveContacts(int gid);
+
+private:
+    // friend class ContactDataRetriver;
+    boost::shared_ptr<AsyncDatabase> m_adb;
+    ContactDataRetriver *m_dretr;
+    QVector<ContactInfoNode*> mContacts;
 };
 
 #endif /* _CONTACTMODEL_H_ */

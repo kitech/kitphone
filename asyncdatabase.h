@@ -17,6 +17,38 @@
 
 class DatabaseWorker;
 
+//// sql request object
+class SqlRequest : public QObject
+{
+    Q_OBJECT;
+public:
+    explicit SqlRequest() {
+        this->mReqno = -1;
+        this->mRet = false;
+        this->mCbObject = nullptr;
+        this->mCbSlot = nullptr;
+    }
+    virtual ~SqlRequest() {
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    }
+    
+    int mReqno;
+    QString mSql;
+
+    bool mRet;
+    QString mErrorString;
+    QVariant mExtraValue;
+    QList<QSqlRecord> mResults;
+    
+    // functor, boost type
+    boost::function<bool(boost::shared_ptr<SqlRequest>)> mCbFunctor;
+
+    // call back of qt slot
+    QObject *mCbObject;
+    const char *mCbSlot;
+};
+
+///////////////////////////
 class AsyncDatabase : public QThread
 {
     Q_OBJECT;
@@ -50,38 +82,8 @@ private:
 
     // std::atomic<bool> m_connected;
     bool m_connected;
+
 };
 
-//// sql request object
-
-class SqlRequest : public QObject
-{
-    Q_OBJECT;
-public:
-    explicit SqlRequest() {
-        this->mReqno = -1;
-        this->mRet = false;
-        this->mCbObject = nullptr;
-        this->mCbSlot = nullptr;
-    }
-    virtual ~SqlRequest() {
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
-    }
-    
-    int mReqno;
-    QString mSql;
-
-    bool mRet;
-    QString mErrorString;
-    QVariant mExtraValue;
-    QList<QSqlRecord> mResults;
-    
-    // functor, boost type
-    boost::function<bool(boost::shared_ptr<SqlRequest>)> mCbFunctor;
-
-    // call back of qt slot
-    QObject *mCbObject;
-    const char *mCbSlot;
-};
 
 #endif /* _ASYNCDATABASE_H_ */

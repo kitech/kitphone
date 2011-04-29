@@ -46,7 +46,15 @@ bool PhoneContactProperty::setContactInfo(boost::shared_ptr<PhoneContact> ci)
 {
     this->uiw->comboBox->setEditText(ci->mDispName);
     this->uiw->comboBox_4->setEditText(ci->mPhoneNumber);
-    this->uiw->comboBox_3->setEditText(ci->mGroupName);
+    // this->uiw->comboBox_3->setEditText(ci->mGroupName);
+    int index = this->uiw->comboBox_3->findText(ci->mGroupName);
+
+    qDebug()<<ci->mGroupName<<index;
+    if (index == -1) {
+        Q_ASSERT(index != -1);
+    } else {
+        this->uiw->comboBox_3->setCurrentIndex(index);
+    }
 
     this->modify_mode = true;
     this->cid = ci->mContactId;

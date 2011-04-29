@@ -21,8 +21,8 @@ ContactModel::ContactModel(boost::shared_ptr<AsyncDatabase> adb, QObject *parent
                      this, SLOT(onGroupsRetrived(const QList<QSqlRecord> &)));
     QObject::connect(this->m_dretr, SIGNAL(contactsRetrived(int, const QList<QSqlRecord> &)),
                      this, SLOT(onContactsRetrived(int, const QList<QSqlRecord> &)));
-    QObject::connect(this->m_dretr, SIGNAL(modifiedContactRetrived(int, const QList<QSqlRecord> &)),
-                     this, SLOT(onModifiedContactRetrived(int, const QList<QSqlRecord> &)));
+    QObject::connect(this->m_dretr, SIGNAL(modifiedContactRetrived(const QList<QSqlRecord> &)),
+                     this, SLOT(onModifiedContactRetrived(const QList<QSqlRecord> &)));
 }
 
 ContactModel::~ContactModel()
@@ -225,7 +225,7 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
         cin->mrow = this->mContacts.count();
         cin->lazy_flag = 0;
 
-        this->beginInsertRows(idx,  this->mContacts.count(), this->mContacts.count()+1);
+        this->beginInsertRows(idx,  this->mContacts.count(), this->mContacts.count());
         this->mContacts.append(cin);
         this->endInsertRows();
     }
@@ -254,11 +254,13 @@ void ContactModel::onContactsRetrived(int gid, const QList<QSqlRecord> & results
                 nin->pnode = cin;
                 nin->pc = boost::shared_ptr<PhoneContact>(new PhoneContact());
                 nin->pc->mContactId = rec.value("cid").toInt();
+                nin->pc->mGroupName = rec.value("group_name").toString();
                 nin->pc->mUserName = nin->pc->mDispName = rec.value("display_name").toString();
                 nin->pc->mPhoneNumber = rec.value("phone_number").toString();
+                nin->mrow = cin->childs.count();
 
                 idx = this->index(i, 0, QModelIndex());
-                this->beginInsertRows(idx, cin->childs.count(), cin->childs.count()+1);
+                this->beginInsertRows(idx, cin->childs.count(), cin->childs.count());
                 cin->childs.append(nin);
                 this->endInsertRows();
             }
@@ -276,13 +278,17 @@ void ContactModel::onContactModified(int cid)
 
 void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
 {
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<results;
+
     QSqlRecord rec = results.at(0);
-    int cid = rec.value("vid").toInt();
+    int cid = rec.value("cid").toInt();
     int gid = rec.value("group_id").toInt();
 
     ContactInfoNode *pnode = NULL;
     ContactInfoNode *cnode = NULL;
     ContactInfoNode *tnode = NULL;
+    int rmrow = -1;
+    QModelIndex idx;
 
     // 如果组ID变了，让view的失效范围更大，否则，只需要失效一条记录
 
@@ -292,22 +298,33 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
             cnode = tnode->childs.at(j);
             if (cnode->pc->mContactId == cid) {
                 // found
+                rmrow = j;
                 break;
             }
             cnode = NULL;
         }
         tnode = NULL;
     }
-
+    // qDebug()<<cnode<<rmrow;
     if (cnode != NULL) {
         if (cnode->pc->mGroupId == gid) {
             // set data
-            
         } else {
             // remove and add
-            
         }
+        rmrow = cnode->mrow;
+        pnode = cnode->pnode;
+        idx = this->index(pnode->mrow, 0, QModelIndex());
+        this->beginRemoveRows(idx, cnode->mrow, cnode->mrow);
+        pnode->childs.remove(rmrow);
+        for (int i = rmrow; i < pnode->childs.count(); i++) {
+            tnode = pnode->childs.at(i);
+            tnode->mrow--;
+        }
+        this->endRemoveRows();
     }
+
+    this->onContactsRetrived(gid, results);
 }
 
 ///////////////////////////
@@ -422,7 +439,7 @@ bool ContactDataRetriver::getContactsByGroupId(int gid)
     req->mCbFunctor = boost::bind(&ContactDataRetriver::onGetContactsByIdDone, this, _1);
     req->mCbObject = this;
     req->mCbSlot = SLOT(onGetContactsByIdDone(boost::shared_ptr<SqlRequest>));
-    req->mSql = QString("SELECT * FROM kp_contacts WHERE group_id=%1").arg(gid);
+    req->mSql = QString("SELECT * FROM kp_contacts,kp_groups WHERE group_id=%1 AND kp_contacts.group_id=kp_groups.gid").arg(gid);
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
@@ -439,7 +456,7 @@ bool ContactDataRetriver::getContactById(int cid)
     req->mCbFunctor = boost::bind(&ContactDataRetriver::onGetModifiedContactDone, this, _1);
     req->mCbObject = this;
     req->mCbSlot = SLOT(onGetModifiedContactDone(boost::shared_ptr<SqlRequest>));
-    req->mSql = QString("SELECT * FROM kp_contacts WHERE cid=%1").arg(cid);
+    req->mSql = QString("SELECT * FROM kp_contacts,kp_groups WHERE cid=%1 AND kp_contacts.group_id=kp_groups.gid").arg(cid);
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 

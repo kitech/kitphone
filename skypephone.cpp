@@ -453,8 +453,8 @@ void SkypePhone::onModifyContact()
         req->mCbFunctor = boost::bind(&SkypePhone::onModifyContactDone, this, _1);
         req->mCbObject = this;
         req->mCbSlot = SLOT(onModifyContactDone(boost::shared_ptr<SqlRequest>));
-        req->mSql = QString("UPDATE kp_contacts SET group_id = (SELECT gid FROM kp_groups WHERE group_name='%1'), display_name='%2', phone_number='%3' WHERE cid='%1'")
-            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber);
+        req->mSql = QString("UPDATE kp_contacts SET group_id = (SELECT gid FROM kp_groups WHERE group_name='%1'), display_name='%2', phone_number='%3' WHERE cid='%4'")
+            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber).arg(pc->mContactId);
         req->mReqno = this->m_adb->execute(req->mSql);
         this->mRequests.insert(req->mReqno, req);
 
@@ -725,6 +725,7 @@ bool SkypePhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
 bool SkypePhone::onModifyContactDone(boost::shared_ptr<SqlRequest> req)
 {
     
+    this->m_contact_model->onContactModified(req->mCbId);
     return true;
 }
 

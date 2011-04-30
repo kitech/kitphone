@@ -401,7 +401,8 @@ void SkypePhone::onShowLogPanel()
 void SkypePhone::onAddContact()
 {
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
-    boost::shared_ptr<PhoneContact> pc;
+    // boost::shared_ptr<PhoneContact> pc;
+    PhoneContact *pc;
     boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
 
     if (pcp->exec() == QDialog::Accepted) {
@@ -426,7 +427,8 @@ void SkypePhone::onAddContact()
 void SkypePhone::onModifyContact()
 {
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
-    boost::shared_ptr<PhoneContact> pc;
+    // boost::shared_ptr<PhoneContact> pc;
+    PhoneContact * pc;
     boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
     QItemSelectionModel *ism = this->uiw->treeView->selectionModel();
 

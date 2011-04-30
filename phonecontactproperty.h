@@ -28,8 +28,10 @@ public:
     explicit PhoneContactProperty(QWidget *parent = 0);
     virtual ~PhoneContactProperty();
 
-    boost::shared_ptr<PhoneContact> contactInfo();
-    bool setContactInfo(boost::shared_ptr<PhoneContact> ci);
+    // boost::shared_ptr<PhoneContact> contactInfo();
+    PhoneContact* contactInfo();
+    // bool setContactInfo(boost::shared_ptr<PhoneContact> ci);
+    bool setContactInfo(PhoneContact *pci);
 
 private:
     Ui::PhoneContactProperty *uiw;

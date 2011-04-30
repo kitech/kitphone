@@ -27,10 +27,12 @@ PhoneContactProperty::~PhoneContactProperty()
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
 }
 
-boost::shared_ptr<PhoneContact> PhoneContactProperty::contactInfo()
+PhoneContact* PhoneContactProperty::contactInfo()
 {
-    boost::shared_ptr<PhoneContact> ci(new PhoneContact());
+    // boost::shared_ptr<PhoneContact> ci(new PhoneContact());
+    PhoneContact *ci = NULL;
 
+    ci = new PhoneContact();
     ci->mUserName = ci->mDispName = this->uiw->comboBox->currentText();
     ci->mPhoneNumber = this->uiw->comboBox_4->currentText();
     ci->mGroupName = this->uiw->comboBox_3->currentText();
@@ -42,7 +44,8 @@ boost::shared_ptr<PhoneContact> PhoneContactProperty::contactInfo()
     return ci;
 }
 
-bool PhoneContactProperty::setContactInfo(boost::shared_ptr<PhoneContact> ci)
+// bool PhoneContactProperty::setContactInfo(boost::shared_ptr<PhoneContact> ci)
+bool PhoneContactProperty::setContactInfo(PhoneContact * ci)
 {
     this->uiw->comboBox->setEditText(ci->mDispName);
     this->uiw->comboBox_4->setEditText(ci->mPhoneNumber);

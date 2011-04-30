@@ -52,7 +52,11 @@ private:
 class ContactInfoNode
 {
 public:
-    explicit ContactInfoNode() {}
+    explicit ContactInfoNode() {
+        mrow = mcol = ntype = gid = lazy_flag = -1;
+        pnode = NULL;
+        pc = NULL;
+    }
     ~ContactInfoNode() {};
 
     int mrow;
@@ -65,7 +69,8 @@ public:
     QVector<ContactInfoNode*> childs;
 
     ContactInfoNode *pnode;
-    boost::shared_ptr<PhoneContact> pc;
+    // boost::shared_ptr<PhoneContact> pc;
+    PhoneContact *pc;
 };
 
 class ContactModel : public QAbstractItemModel
@@ -88,6 +93,9 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
     virtual bool hasChildren(const QModelIndex &parent = QModelIndex()) const;
+
+    bool insertRows(int row, int count, const QModelIndex &parent);
+    virtual bool removeRows(int row, int count, const QModelIndex & parent = QModelIndex());
 
 public slots:
     void onGroupsRetrived(const QList<QSqlRecord> & results);

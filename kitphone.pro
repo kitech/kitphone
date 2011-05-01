@@ -51,10 +51,10 @@ FORMS += sipphone.ui
 
 #######
 SOURCES += skypephone.cpp websocketclient.cpp phonecontact.cpp phonecontactproperty.cpp \
-        groupinfodialog.cpp contactmodel.cpp \
+        groupinfodialog.cpp contactmodel.cpp callhistorymodel.cpp \
         networkdetect.cpp
 HEADERS += skypephone.h websocketclient.h phonecontact.h phonecontactproperty.h \
-        groupinfodialog.h contactmodel.h \ 
+        groupinfodialog.h contactmodel.h callhistorymodel.h \ 
         networkdetect.h
 FORMS += skypephone.ui phonecontactproperty.ui groupinfodialog.ui
 

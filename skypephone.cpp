@@ -487,6 +487,14 @@ void SkypePhone::onAddGroup()
 
 void SkypePhone::onShowContactViewMenu(const QPoint &pos)
 {
+    ContactInfoNode *cin = NULL;
+    QModelIndex idx = this->uiw->treeView->indexAt(pos);
+    // qDebug()<<idx<<idx.parent();
+    if (idx.parent().isValid()) {
+        // leaf contact node
+    } else {
+
+    }
     this->m_contact_view_ctx_menu->popup(this->uiw->treeView->mapToGlobal(pos));
 }
 

@@ -10,6 +10,9 @@
 #include <QtCore>
 #include <QtGui>
 
+#include "log.h"
+#include "networkdetect.h"
+
 #include "ui_skypephone.h"
 #include "skypephone.h"
 
@@ -588,18 +591,16 @@ void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
         log += "网络异常，无法检测到网络类型";
     }
 
-    // for test
-    QFile fp(QApplication::applicationDirPath() + "/kitphone.ini");
-    if (fp.exists()) {
-        fp.open(QIODevice::ReadOnly);
-        QByteArray ba = fp.readAll();
-        fp.close();
 
-        if (ba.startsWith("2")) {
-            this->m_ws_serv_ipaddr = ba.trimmed();
-            log += "(测试)";            
-        }
+    // for test
+    QString wsaddr = QSettings(QApplication::applicationDirPath() + "/kitphone.ini")
+        .value("wsaddr").toString().trimmed();
+    if (!wsaddr.isEmpty()) {
+        this->m_ws_serv_ipaddr = wsaddr;
+        log += "(测试)";            
     }
+
+    qLogx()<<"Network type:"<<this->m_ws_serv_ipaddr;
 
     // count == 0
     if (this->m_call_button_disable_count.deref() == false) {
@@ -607,6 +608,9 @@ void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
     }
     qDebug()<<"All in all, the notice server is:"<<this->m_ws_serv_ipaddr;
     this->log_output(LT_USER, log);
+
+    ////////////// do network check now
+    NetworkChecker::instance()->start();
 }
 
 void SkypePhone::onNoticeUserStartup()
@@ -661,6 +665,8 @@ void SkypePhone::onDatabaseConnected()
         req3->mReqno = this->m_adb->execute(req3->mSql);
         this->mRequests.insert(req3->mReqno, req3);
     }
+
+    /////
 }
 
 void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
@@ -839,4 +845,6 @@ void SkypePhone::log_output(int type, const QString &log)
         //     delete witem;
         // }
     }
+
+    qLogx()<<type<<u16_log;
 }

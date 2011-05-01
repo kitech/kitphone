@@ -44,7 +44,7 @@ public:
 
     
 private:
-    CallHistoryNode *mroot;
+    boost::shared_ptr<CallHistoryNode> mroot;
 };
 
 #endif /* _CALLHISTORYMODEL_H_ */

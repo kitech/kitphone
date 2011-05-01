@@ -12,7 +12,7 @@
 CallHistoryModel::CallHistoryModel(QObject *parent)
     : QAbstractItemModel(parent)
 {
-    this->mroot = NULL;
+    this->mroot = boost::shared_ptr<CallHistoryNode>(new CallHistoryNode());
 }
 
 CallHistoryModel::~CallHistoryModel()

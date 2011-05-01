@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 856 2011-04-29 03:39:20Z drswinghead $
+// Version: $Id: skypephone.cpp 857 2011-04-30 14:20:18Z drswinghead $
 // 
 
 #include <QtCore>
@@ -616,7 +616,14 @@ void SkypePhone::onDatabaseConnected()
 
     this->uiw->treeView->setHeaderHidden(true);
     this->uiw->treeView->setModel(this->m_contact_model);
-
+    this->uiw->treeView->setColumnHidden(2, false);
+    this->uiw->treeView->setAnimated(true);
+    // this->uiw->treeView->setIndentation(20);
+    this->uiw->treeView->setColumnWidth(0, 120);
+    this->uiw->treeView->setColumnWidth(1, 160);
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->uiw->treeView->columnWidth(0)
+            <<this->uiw->treeView->columnWidth(1);
+    
     {
         // get contacts list
         req1->mCbFunctor = boost::bind(&SkypePhone::onGetAllContactsDone, this, _1);

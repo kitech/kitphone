@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:46:42 +0800
-// Version: $Id: kitphone.cpp 849 2011-04-23 14:03:48Z drswinghead $
+// Version: $Id: kitphone.cpp 857 2011-04-30 14:20:18Z drswinghead $
 // 
 
 #include <QtCore>

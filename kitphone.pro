@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-09-21 16:19:00 +0800
-# Version: $Id: kitphone.pro 855 2011-04-28 10:12:42Z drswinghead $
+# Version: $Id: kitphone.pro 857 2011-04-30 14:20:18Z drswinghead $
 # 
 
 QT       += core gui network declarative sql
@@ -16,7 +16,7 @@ MOC_DIR = tmp
 UI_DIR = tmp
 OBJECTS_DIR = tmp
 
-VERSION = 0.3
+VERSION = 0.4
 
 !win32 {
 QMAKE_CXXFLAGS += -g -std=c++0x

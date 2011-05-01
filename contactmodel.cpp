@@ -12,6 +12,10 @@
 #include "phonecontact.h"
 #include "contactmodel.h"
 
+// TODO 可能还有内在漏洞问题
+// 等 再测试检测一下。
+// 再返回到boost::shared_ptr版本？怎么感觉在这有点不太适用呢。
+// MVC真是复杂啊
 ContactModel::ContactModel(boost::shared_ptr<AsyncDatabase> adb, QObject *parent)
     : QAbstractItemModel(parent)
     ,m_adb(adb)
@@ -36,9 +40,24 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
     QVariant v;
     ContactInfoNode *pnode = NULL;
     ContactInfoNode *cnode = NULL;
+    QSize colsize;
 
-    if (role != Qt::DisplayRole) {
+    if (role != Qt::DisplayRole && role != Qt::SizeHintRole) {
         return v;
+    }
+
+    if (role == Qt::SizeHintRole) {
+        // colsize = QAbstractItemModel::data(index, role);
+        if (index.column() == 0) {
+            // colsize.setWidth(30);
+            colsize = QSize(200, 16);
+        } else if (index.column() == 1) {
+            colsize = QSize(550, 16);
+        } else {
+            return v;
+        }
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<colsize<<colsize.isValid();
+        return colsize;
     }
 
     if (!index.isValid()) {       
@@ -348,6 +367,11 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<results;
 
+    if (results.count() == 0) {
+        // why???
+        Q_ASSERT(results.count() == 1);
+        return;
+    }
     QSqlRecord rec = results.at(0);
     int cid = rec.value("cid").toInt();
     int gid = rec.value("group_id").toInt();
@@ -372,7 +396,7 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
             }
             // cnode = NULL;
         }
-        if (rmrow != -1) break;
+        if (rmrow != -1) break; // 原来break了一个循环，真是晕啊，查了n长时间
         // tnode = NULL;
     }
 

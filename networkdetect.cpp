@@ -69,6 +69,40 @@ int NetworkChecker::networkType() // wt,dx,tt,3g,2g..
     return NLT_MIN;
 }
 
+QString NetworkChecker::getExternalIp()
+{
+
+    return this->m_external_ip;
+    return QString();
+}
+
+QString NetworkChecker::getInternalIp()
+{
+    
+    QNetworkInterface nif;
+
+    QHostAddress addr;
+    QList<QHostAddress> addrs = nif.allAddresses();
+    QString hw_addr = nif.hardwareAddress();
+    QString if_name = nif.humanReadableName();
+
+    for (int i = 0; i < addrs.count(); i++) {
+        addr = addrs.at(i);
+        if (addr != QHostAddress::LocalHost
+            && addr != QHostAddress::LocalHostIPv6) {
+            if (addr.protocol() != QAbstractSocket::IPv6Protocol) {
+                this->m_internal_ip = addr.toString();
+                break;
+            }
+        }
+    }
+    qLogx()<<addrs<<this->m_internal_ip<<hw_addr<<if_name;
+
+    return this->m_internal_ip;
+    return QString();
+}
+
+
 void NetworkChecker::onDoSomething()
 {
     // 一群算法，智能产生更多的想法？？？？？
@@ -93,6 +127,9 @@ void NetworkChecker::onDoSomething()
         QObject::connect(this->m_connect_ws_serv_sock.get(), SIGNAL(error(QAbstractSocket::SocketError)),
                          this, SLOT(onConnectWebServerError(QAbstractSocket::SocketError)));
         this->m_connect_ws_serv_sock->connectToHost(this->m_gateway_router_serv_ipaddr, 80);
+    } else if (this->m_internal_ip.isEmpty()) {
+        this->getInternalIp();
+        QTimer::singleShot((qrand()%30+5)*1000, this, SLOT(onDoSomething()));
     } else {
         QTimer::singleShot((qrand()%30+5)*1000, this, SLOT(onDoSomething()));
     }

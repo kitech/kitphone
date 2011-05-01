@@ -49,6 +49,8 @@ public:
     bool isInternalNetwork();
     bool isSupportIPV6();
     bool isSupportPing();
+    QString getExternalIp();
+    QString getInternalIp();
 
     int networkType(); // wt,dx,tt,3g,2g...
 
@@ -75,6 +77,9 @@ signals:
 
 private:
     static boost::shared_ptr<NetworkChecker> mInst;
+
+    QString m_internal_ip;
+    QString m_external_ip;
 
     int m_network_line_type;
     QString m_gateway_web_serv_ipaddr;

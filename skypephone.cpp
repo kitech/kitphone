@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 857 2011-04-30 14:20:18Z drswinghead $
+// Version: $Id: skypephone.cpp 858 2011-05-01 16:33:57Z drswinghead $
 // 
 
 #include <QtCore>

@@ -11,6 +11,10 @@
 
 #include "log.h"
 
+#define STDIN 0
+#define STDOUT 1
+#define STDERR 2
+
 boost::shared_ptr<FileLog> FileLog::mInst = boost::shared_ptr<FileLog>();
 FileLog::FileLog()
     :QObject()
@@ -33,7 +37,7 @@ FileLog::FileLog()
         }
     } else {
         qDebug()<<"opening stream.......";
-        if (!this->mStream->open(2, QIODevice::WriteOnly)) {
+        if (!this->mStream->open(STDERR_FILENO, QIODevice::WriteOnly)) {
             Q_ASSERT(1==2);
             qDebug()<<this->mStream->errorString();
             assert(1==2);

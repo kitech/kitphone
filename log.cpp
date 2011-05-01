@@ -11,9 +11,11 @@
 
 #include "log.h"
 
-#define STDIN 0
-#define STDOUT 1
-#define STDERR 2
+#ifdef WIN32
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+#endif
 
 boost::shared_ptr<FileLog> FileLog::mInst = boost::shared_ptr<FileLog>();
 FileLog::FileLog()

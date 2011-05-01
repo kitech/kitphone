@@ -10,7 +10,7 @@
 QT       += core gui network declarative sql
 TARGET = kitphone
 TEMPLATE = app
-config += debug qaxcontainer link_pkgconfig
+config += debug console qaxcontainer link_pkgconfig
 UI_HEADERS_DIR = GeneratedFiles
 MOC_DIR = tmp
 UI_DIR = tmp

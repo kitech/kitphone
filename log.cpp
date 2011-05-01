@@ -33,7 +33,7 @@ FileLog::FileLog()
         }
     } else {
         qDebug()<<"opening stream.......";
-        if (!this->mStream->open(stderr, QIODevice::WriteOnly)) {
+        if (!this->mStream->open(stdout, QIODevice::WriteOnly)) {
             Q_ASSERT(1==2);
             qDebug()<<this->mStream->errorString();
             assert(1==2);

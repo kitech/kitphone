@@ -14,7 +14,7 @@
 #ifdef WIN32
 #define STDIN_FILENO 0
 #define STDOUT_FILENO 1
-#define STDERR_FILENO 2
+#define STDERR_FILENO  2
 #endif
 
 boost::shared_ptr<FileLog> FileLog::mInst = boost::shared_ptr<FileLog>();
@@ -38,7 +38,7 @@ FileLog::FileLog()
             Q_ASSERT(1==2);
         }
     } else {
-        qDebug()<<"opening stream.......";
+        // qDebug()<<"opening stream.......";
         if (!this->mStream->open(STDERR_FILENO, QIODevice::WriteOnly)) {
             Q_ASSERT(1==2);
             qDebug()<<this->mStream->errorString();

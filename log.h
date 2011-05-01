@@ -38,7 +38,11 @@ public:
     }
 
     ~XQDebug() {
+        #ifdef WIN32
+        *this<<"\r\n";
+        #else
         *this<<"\n";
+        #endif
     }
 };
 

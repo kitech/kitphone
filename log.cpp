@@ -32,6 +32,7 @@ FileLog::FileLog()
             Q_ASSERT(1==2);
         }
     } else {
+        qDebug()<<"opening stream.......";
         if (!this->mStream->open(stderr, QIODevice::WriteOnly)) {
             Q_ASSERT(1==2);
             qDebug()<<this->mStream->errorString();

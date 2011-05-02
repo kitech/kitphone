@@ -56,6 +56,9 @@ public:
 
     int networkType(); // wt,dx,tt,3g,2g...
 
+public:
+    bool checkSocketConnectable(int didx);
+
 private slots:
     void onDoSomething();
     void onResolveWebServerDone(QHostInfo hi);

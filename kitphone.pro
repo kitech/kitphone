@@ -57,7 +57,7 @@ SOURCES += skypephone.cpp websocketclient.cpp phonecontact.cpp phonecontactprope
         networkdetect.cpp
 HEADERS += skypephone.h websocketclient.h phonecontact.h phonecontactproperty.h \
         groupinfodialog.h contactmodel.h callhistorymodel.h \ 
-        networkdetect.h
+        networkdetect.h networkdetect_p.h
 FORMS += skypephone.ui phonecontactproperty.ui groupinfodialog.ui
 
 SOURCES += $$QTSAPP_SOURCES

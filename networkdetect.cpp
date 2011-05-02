@@ -7,9 +7,34 @@
 // Version: $Id$
 // 
 
+#include "boost/bind.hpp"
+
 #include "log.h"
 
+#include "networkdetect_p.h"
 #include "networkdetect.h"
+
+QVector<NetworkCheckData*> g_check_cases;
+
+static void add_check_data1(QString serv, unsigned short port,
+                           boost::function<bool(int, NetworkCheckData*)> fun)
+{
+    NetworkCheckData *ncd = new NetworkCheckData();
+    ncd->m_conn_serv = serv;
+    ncd->m_conn_port = port;
+    ncd->m_check_fun1 = fun;
+    g_check_cases.append(ncd);
+}
+
+static void add_check_data0(QString serv, unsigned short port,
+                           boost::function<bool(int)> fun)
+{
+    NetworkCheckData *ncd = new NetworkCheckData();
+    ncd->m_conn_serv = serv;
+    ncd->m_conn_port = port;
+    ncd->m_check_fun0 = fun;
+    g_check_cases.append(ncd);
+}
 
 boost::shared_ptr<NetworkChecker> NetworkChecker::mInst = boost::shared_ptr<NetworkChecker>();
 NetworkChecker::NetworkChecker(QObject *parent)
@@ -20,6 +45,8 @@ NetworkChecker::NetworkChecker(QObject *parent)
     QObject::connect(this, SIGNAL(whatToDoNext()),
                      this, SLOT(onDoSomething()));
 
+    ///////////////
+    add_check_data0(GATEWAY_WEB_HOSTNAME, 80, boost::bind(&NetworkChecker::checkSocketConnectable, this, _1));
 }
 
 NetworkChecker::~NetworkChecker()
@@ -100,6 +127,12 @@ QString NetworkChecker::getInternalIp()
 
     return this->m_internal_ip;
     return QString();
+}
+
+bool NetworkChecker::checkSocketConnectable(int didx)
+{
+    
+    return true;
 }
 
 

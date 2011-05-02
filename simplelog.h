@@ -1,4 +1,4 @@
-// log.h --- 
+// simplelog.h --- 
 // 
 // Author: liuguangzhao
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
@@ -8,8 +8,8 @@
 // 
 
 
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef _SIMPLE_LOG_H_
+#define _SIMPLE_LOG_H_
 
 #include <QtCore>
 

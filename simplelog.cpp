@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 
-#include "log.h"
+#include "simplelog.h"
 
 #ifdef WIN32
 #define STDIN_FILENO 0

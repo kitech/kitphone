@@ -34,7 +34,8 @@ public:
     QDateTime m_end_time;
     QString m_conn_serv;
     unsigned short m_conn_port;
-    boost::shared_ptr<QTcpSocket> m_conn_sock;
+    boost::shared_ptr<QTcpSocket> m_conn_tsock;
+    boost::shared_ptr<QUdpSocket> m_conn_usock;
     boost::function<bool(int)> m_check_fun0;
     boost::function<bool(int, NetworkCheckData*)> m_check_fun1;
     QObject *m_check_obj;

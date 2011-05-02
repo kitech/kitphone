@@ -33,7 +33,7 @@ SOURCES += main.cpp kitapplication.cpp metauri.cpp \
         PjCallback.cpp \
         asyncdatabase.cpp \
         databaseworker.cpp \
-        log.cpp
+        simplelog.cpp
 
 HEADERS  += kitphone.h kitapplication.h metauri.h \
          sipaccountswindow.h sipaccountpropertieswindow.h \
@@ -42,7 +42,7 @@ HEADERS  += kitphone.h kitapplication.h metauri.h \
          PjCallback.h \
         asyncdatabase.h \
         databaseworker.h \
-        log.h
+        simplelog.h
 
 FORMS    += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
 

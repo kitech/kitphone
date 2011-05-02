@@ -9,7 +9,7 @@
 
 #include "boost/bind.hpp"
 
-#include "log.h"
+#include "simplelog.h"
 
 #include "networkdetect_p.h"
 #include "networkdetect.h"

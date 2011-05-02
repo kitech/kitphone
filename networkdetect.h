@@ -34,7 +34,9 @@
 #include <QtCore>
 #include <QtNetwork>
 
+#include "boost/function.hpp"
 #include "boost/smart_ptr.hpp"
+#include "boost/tuple/tuple.hpp"
 
 #define GATEWAY_WEB_HOSTNAME "gw.skype.tom.com"
 
@@ -94,6 +96,21 @@ private:
     QDateTime m_connect_ws_serv_end_time;
     boost::shared_ptr<QTcpSocket> m_connect_ws_serv_sock;
 
+    // 是不是要把test case抽象成统一的接口呢    
+    
+    //          isok 
+    typedef boost::tuple<bool  // is test ok
+                         ,int  // retry times
+                         ,QString // serv ip
+                         ,QDateTime // start time
+                         ,QDateTime // end time
+                         ,boost::shared_ptr<QTcpSocket> // connect sock
+                         ,boost::function<bool(int /*case index*/)>    // check functor
+                 > CheckCaseType;
+
+    CheckCaseType m_check_case;
+
+    QVector<CheckCaseType> m_check_cases;
 private:
 
 };

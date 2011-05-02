@@ -10,7 +10,7 @@
 #include <QtCore>
 #include <QtGui>
 
-#include "log.h"
+#include "simplelog.h"
 #include "networkdetect.h"
 
 #include "ui_skypephone.h"

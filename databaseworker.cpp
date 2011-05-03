@@ -170,6 +170,7 @@ bool DatabaseWorker::connectDatabase()
         qDebug()<<TABLE_HISTORIES<<q.lastQuery()<<q.lastError();
     }
 
+    // 如果有新创建的表，则关闭再打开。否则可能调用端查询不到数据。
     if (has_new_created_table == true) {
         m_database.close();
         m_database.open();

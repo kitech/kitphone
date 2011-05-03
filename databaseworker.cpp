@@ -216,6 +216,7 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
     if (!eret) {
         edb = dbq.lastError();
         estr = QString("ENO:%1, %2").arg(edb.type()).arg(edb.text());
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<estr;
     } else {
         eval = dbq.lastInsertId();
         if (!eval.isValid()) {

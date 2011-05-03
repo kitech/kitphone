@@ -61,7 +61,8 @@ bool DatabaseWorker::connectDatabase()
     }
 
     // static std::vector<QString> tbls = {TABLE_OPTIONS, TABLE_CONTACTS, TABLE_HISTORIES};
-    
+
+    bool has_new_created_table = false;
     bool bok;
     QSqlQuery q;
     if (!m_database.tables().contains(TABLE_OPTIONS)) {
@@ -79,6 +80,7 @@ bool DatabaseWorker::connectDatabase()
       );
      */
     if (!m_database.tables().contains(TABLE_GROUPS)) {
+        has_new_created_table = true;
         // some data
         QString sql = QString("CREATE TABLE %1 (gid INTEGER PRIMARY KEY AUTOINCREMENT, group_name VARCHAR(100) UNIQUE);").arg(TABLE_GROUPS);
         // m_database.exec( "create table item(id int, name varchar);" );
@@ -116,6 +118,7 @@ bool DatabaseWorker::connectDatabase()
       );
      */
     if (!m_database.tables().contains(TABLE_CONTACTS)) {
+        has_new_created_table = true;
         // some data
         QString sql = QString("CREATE TABLE %1 (cid INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTERGER NOT NULL, display_name VARCHAR(100) UNIQUE, phone_number VARCHAR(100) UNIQUE);").arg(TABLE_CONTACTS);
         // m_database.exec( "create table item(id int, name varchar);" );
@@ -136,6 +139,7 @@ bool DatabaseWorker::connectDatabase()
      */
 
     if (!m_database.tables().contains(TABLE_HISTORIES)) {
+        has_new_created_table = true;
         // some data
         QString sql = QString("CREATE TABLE %1 (hid INTEGER PRIMARY KEY AUTOINCREMENT, contact_id INTEGER NOT NULL, phone_number VARCHAR(100), call_status INTEGER, call_ctime VARCHAR(100), call_etime VARCHAR(100));").arg(TABLE_HISTORIES);
         // m_database.exec( "create table item(id int, name varchar);" );
@@ -158,6 +162,7 @@ bool DatabaseWorker::connectDatabase()
      */
 
     if (!m_database.tables().contains(TABLE_ACCOUNTS)) {
+        has_new_created_table = true;
         // some data
         QString sql = QString("CREATE TABLE %1 (aid INTEGER PRIMARY KEY AUTOINCREMENT, account_name VARCHAR(100), account_password VARCHAR(100), display_name VARCHAR(100), serv_addr VARCHAR(100), account_status INTEGER, account_ctime VARCHAR(100), account_etime VARCHAR(100));").arg(TABLE_ACCOUNTS);
         // m_database.exec( "create table item(id int, name varchar);" );
@@ -165,18 +170,11 @@ bool DatabaseWorker::connectDatabase()
         qDebug()<<TABLE_HISTORIES<<q.lastQuery()<<q.lastError();
     }
 
-    m_database.close();
-    m_database.open();
-
-    QString sql = "SELECT * FROM kp_groups";
-    QSqlQuery dbq(m_database);
-    bool eret = dbq.exec(sql);
-    while(dbq.next()) {
-        // recs.push_back(dbq.record());
-        qDebug()<<dbq.record();
+    if (has_new_created_table == true) {
+        m_database.close();
+        m_database.open();
     }
-    
-    
+
     emit this->connected();
 
     return true;

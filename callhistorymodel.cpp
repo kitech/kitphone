@@ -147,11 +147,12 @@ bool CallHistoryModel::canFetchMore ( const QModelIndex & parent ) const
 bool CallHistoryModel::insertRows(int row, int count, const QModelIndex &parent)
 {
 
+    return false;
 }
 
 bool CallHistoryModel::removeRows(int row, int count, const QModelIndex & parent)
 {
-
+    return false;
 }
 
 ////////////////

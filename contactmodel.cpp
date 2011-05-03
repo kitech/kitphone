@@ -283,7 +283,7 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
     ContactInfoNode *cin = NULL;
     QModelIndex idx;
 
-    // qDebug()<<results;
+    qDebug()<<results;
 
     this->m_dretr->lazy_flag = 2;
     for (int i = 0; i < results.count(); i++) {
@@ -533,7 +533,7 @@ bool ContactDataRetriver::getGroupList()
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
-    return true;
+p    return true;
 }
 
 bool ContactDataRetriver::getContactsByGroupId(int gid)

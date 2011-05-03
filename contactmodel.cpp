@@ -533,7 +533,7 @@ bool ContactDataRetriver::getGroupList()
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
-p    return true;
+    return true;
 }
 
 bool ContactDataRetriver::getContactsByGroupId(int gid)

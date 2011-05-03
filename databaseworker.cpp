@@ -127,7 +127,8 @@ bool DatabaseWorker::connectDatabase()
       Basically, create a column of type INTEGER PRIMARY KEY or a column called ROWID, then don't specify the value when inserting a row.
       CREATE TABLE TABLE_HISTORIES (
       hid INTEGER PRIMARY KEY ,
-      contact_id INTEGER NOT NULL,
+      contact_id INTEGER NOT NULL, // dep???
+      phone_number VARCHAR(100),
       call_status INTEGER,
       call_ctime VARCHAR(100),
       call_etime VARCHAR(100)
@@ -136,7 +137,7 @@ bool DatabaseWorker::connectDatabase()
 
     if (!m_database.tables().contains(TABLE_HISTORIES)) {
         // some data
-        QString sql = QString("CREATE TABLE %1 (hid INTEGER PRIMARY KEY AUTOINCREMENT, contact_id INTEGER NOT NULL, call_status INTEGER, call_ctime VARCHAR(100), call_etime VARCHAR(100));").arg(TABLE_HISTORIES);
+        QString sql = QString("CREATE TABLE %1 (hid INTEGER PRIMARY KEY AUTOINCREMENT, contact_id INTEGER NOT NULL, phone_number VARCHAR(100), call_status INTEGER, call_ctime VARCHAR(100), call_etime VARCHAR(100));").arg(TABLE_HISTORIES);
         // m_database.exec( "create table item(id int, name varchar);" );
         q = m_database.exec(sql);
         qDebug()<<TABLE_HISTORIES<<q.lastQuery()<<q.lastError();

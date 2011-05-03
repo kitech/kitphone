@@ -27,6 +27,7 @@
 #include "phonecontactproperty.h"
 #include "groupinfodialog.h"
 #include "contactmodel.h"
+#include "callhistorymodel.h"
 
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
@@ -59,6 +60,7 @@ SkypePhone::SkypePhone(QWidget *parent)
 
 
     this->m_contact_model = new ContactModel(this->m_adb);
+    this->m_call_history_model = new CallHistoryModel(this->m_adb);
 
     //////
     this->m_call_button_disable_count.ref();
@@ -635,6 +637,11 @@ void SkypePhone::onDatabaseConnected()
     this->uiw->treeView->setColumnWidth(1, 160);
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->uiw->treeView->columnWidth(0)
             <<this->uiw->treeView->columnWidth(1);
+
+    this->uiw->treeView_2->setHeaderHidden(true);
+    this->uiw->treeView_2->setModel(this->m_call_history_model);
+    this->uiw->treeView->setColumnWidth(0, 100);
+    this->uiw->treeView->setColumnWidth(1, 160);
     
     {
         // get contacts list

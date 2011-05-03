@@ -25,6 +25,7 @@ class WebSocketClient;
 class AsyncDatabase;
 class SqlRequest;
 class ContactModel;
+class CallHistoryModel;
 
 namespace Ui {
     class SkypePhone;
@@ -119,6 +120,9 @@ private: // pstn
     // AsyncDatabase *m_adb;
     boost::shared_ptr<AsyncDatabase> m_adb;
     ContactModel *m_contact_model;
+
+    CallHistoryModel *m_call_history_model;
+
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;

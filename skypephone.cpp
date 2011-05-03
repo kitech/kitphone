@@ -89,7 +89,7 @@ void SkypePhone::paintEvent ( QPaintEvent * event )
         this->first_paint_event = false;
 		// QTimer::singleShot(50, this, SLOT(main_ui_draw_complete()));
         // this->m_adb->start();        
-        // QTimer::singleShot(30, this->m_adb.get(), SLOT(start()));
+        QTimer::singleShot(30, this->m_adb.get(), SLOT(start()));
     }
 }
 void SkypePhone::showEvent ( QShowEvent * event )

@@ -53,8 +53,8 @@ SkypePhone::SkypePhone(QWidget *parent)
     // this->m_adb = new AsyncDatabase();
     this->m_adb = boost::shared_ptr<AsyncDatabase>(new AsyncDatabase());
     QObject::connect(this->m_adb.get(), SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
-    // this->m_adb->start();
-    QTimer::singleShot(20, this->m_adb.get(), SLOT(start()));
+    this->m_adb->start();
+    // QTimer::singleShot(20, this->m_adb.get(), SLOT(start()));
     
     QObject::connect(this->m_adb.get(), SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
                      this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));

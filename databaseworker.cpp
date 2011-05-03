@@ -165,6 +165,15 @@ bool DatabaseWorker::connectDatabase()
         qDebug()<<TABLE_HISTORIES<<q.lastQuery()<<q.lastError();
     }
 
+    QString sql = "SELECT * FROM kp_groups";
+    QSqlQuery dbq(m_database);
+    bool eret = dbq.exec(sql);
+    while(dbq.next()) {
+        // recs.push_back(dbq.record());
+        qDebug()<<dbq.record();
+    }
+    
+    
     emit this->connected();
 
     return true;

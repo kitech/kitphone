@@ -240,6 +240,13 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
                 while(dbq.next()) {
                     recs.push_back(dbq.record());                    
                 }
+            } else if (qelms.at(2) == TABLE_HISTORIES) {
+                sql = QString("SELECT * FROM %1 WHERE hid=%2").arg(TABLE_HISTORIES).arg(eval.toInt());
+                eret = dbq.exec(sql);
+                Q_ASSERT(eret);
+                while(dbq.next()) {
+                    recs.push_back(dbq.record());                    
+                }
             }
         }
     }

@@ -212,10 +212,23 @@ void CallHistoryModel::onSqlExecuteDone(const QList<QSqlRecord> & results, int r
 bool CallHistoryModel::onGetDbCallHistoryDone(boost::shared_ptr<SqlRequest> & req)
 {
     QList<QSqlRecord> recs;
-    QSqlRecord rec;
 
     recs = req->mResults;
     qLogx()<<recs;
+
+    this->onNewCallHistoryArrived(recs);
+
+    this->mRequests.remove(req->mReqno);
+
+    return true;
+}
+
+bool CallHistoryModel::onNewCallHistoryArrived(const QList<QSqlRecord> &results)
+{
+    QList<QSqlRecord> recs;
+    QSqlRecord rec;
+
+    recs = results;
 
     boost::shared_ptr<CallHistoryNode> cnode;
     boost::shared_ptr<CallHistoryNode> pnode;
@@ -235,8 +248,6 @@ bool CallHistoryModel::onGetDbCallHistoryDone(boost::shared_ptr<SqlRequest> & re
         this->mroot->childs.append(cnode);
         this->endInsertRows();
     }
-
-    this->mRequests.remove(req->mReqno);
 
     return true;
 }

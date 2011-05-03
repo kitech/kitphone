@@ -72,6 +72,7 @@ public:
 public slots:
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval);
     bool onGetDbCallHistoryDone(boost::shared_ptr<SqlRequest> & req);
+    bool onNewCallHistoryArrived(const QList<QSqlRecord> &results);
 
 private:
     boost::shared_ptr<CallHistoryNode> mroot;

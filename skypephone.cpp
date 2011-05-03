@@ -349,20 +349,42 @@ void SkypePhone::onCallPstn()
     // 检测号码有效性
     
     // 设置呼叫状态
+    QString phone_number = this->uiw->comboBox_3->currentText();
     // this->uiw->pushButton_4->setEnabled(false);
-    this->uiw->label_5->setText(this->uiw->comboBox_3->currentText());
+    this->uiw->label_5->setText(phone_number);
+    
 
     Q_ASSERT(!this->m_ws_serv_ipaddr.isEmpty());
     // QString wsuri = "ws://202.108.12.212:80/" + this->mSkype->handlerName() + "/";
     QString wsuri = QString("ws://%1:80/%2/").arg(this->m_ws_serv_ipaddr).arg(this->mSkype->handlerName());
     this->wscli = boost::shared_ptr<WebSocketClient>(new WebSocketClient(wsuri));
     QObject::connect(this->wscli.get(), SIGNAL(onConnected(QString)), this, SLOT(onWSConnected(QString)));
-    QObject::connect(this->wscli.get(), SIGNAL(onDisconnected(QString)), this, SLOT(onWSDisconnected(QString)));
+    QObject::connect(this->wscli.get(), SIGNAL(onDisconnected()), this, SLOT(onWSDisconnected()));
     QObject::connect(this->wscli.get(), SIGNAL(onWSMessage(QByteArray)), this, SLOT(onWSMessage(QByteArray)));
-    QObject::connect(this->wscli.get(), SIGNAL(onEror(int, const QString&)), 
-                     this, SLOT(onEror(int, const QString&)));
+    QObject::connect(this->wscli.get(), SIGNAL(onError(int, const QString&)), 
+                     this, SLOT(onWSError(int, const QString&)));
     bool ok = this->wscli->connectToServer();
     Q_ASSERT(ok);
+
+    if (this->m_conn_ws_max_retry_times == this->m_conn_ws_max_retry_times) {
+
+        boost::shared_ptr<SqlRequest> req(new SqlRequest());
+        // boost::shared_ptr<PhoneContact> pc;
+
+        req->mCbFunctor = boost::bind(&SkypePhone::onAddCallHistoryDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onAddCallHistoryDone(boost::shared_ptr<SqlRequest>));
+        req->mSql = QString("INSERT INTO kp_histories (contact_id,phone_number,call_status, call_ctime) VALUES (%1, '%2', %3, '%4')")
+            .arg(-1).arg(phone_number).arg(0)
+            .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"));
+        // req->mSql = QString("INSERT INTO kp_contacts (group_id,display_name,phone_number) VALUES (IFNULL((SELECT gid FROM kp_groups  WHERE group_name='%1'),3), '%2', '%3')")
+        //     .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber);
+        
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+
+        qLogx()<<req->mSql;
+    }
 
    // QString num = this->uiw->comboBox_3->currentText();
     
@@ -782,6 +804,8 @@ bool SkypePhone::onAddGroupDone(boost::shared_ptr<SqlRequest> req)
 bool SkypePhone::onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->m_call_history_model->onNewCallHistoryArrived(req->mResults);    
     
     this->mRequests.remove(req->mReqno);
     return true;
@@ -805,8 +829,10 @@ bool SkypePhone::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
 
 bool SkypePhone::onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
-    
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+
+    this->mRequests.remove(req->mReqno);
     return true;
 }
 

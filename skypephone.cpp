@@ -53,7 +53,7 @@ SkypePhone::SkypePhone(QWidget *parent)
     // this->m_adb = new AsyncDatabase();
     this->m_adb = boost::shared_ptr<AsyncDatabase>(new AsyncDatabase());
     QObject::connect(this->m_adb.get(), SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
-    this->m_adb->start();
+    // this->m_adb->start();
     // QTimer::singleShot(20, this->m_adb.get(), SLOT(start()));
     
     QObject::connect(this->m_adb.get(), SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
@@ -88,6 +88,7 @@ void SkypePhone::paintEvent ( QPaintEvent * event )
     if (this->first_paint_event) {
         this->first_paint_event = false;
 		// QTimer::singleShot(50, this, SLOT(main_ui_draw_complete()));
+        this->m_adb->start();        
     }
 }
 void SkypePhone::showEvent ( QShowEvent * event )

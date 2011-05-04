@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 858 2011-05-01 16:33:57Z drswinghead $
+// Version: $Id: skypephone.cpp 860 2011-05-04 07:09:29Z drswinghead $
 // 
 
 #include <QtCore>
@@ -620,7 +620,7 @@ void SkypePhone::onCalcWSServByNetworkType(QHostInfo hi)
 
 
     // for test
-    QString wsaddr = QSettings(QApplication::applicationDirPath() + "/kitphone.ini")
+    QString wsaddr = QSettings(QApplication::applicationDirPath() + "/kitphone.ini", QSettings::IniFormat)
         .value("wsaddr").toString().trimmed();
     if (!wsaddr.isEmpty()) {
         this->m_ws_serv_ipaddr = wsaddr;

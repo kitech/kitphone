@@ -297,6 +297,13 @@ static int libwebsocket_rx_sm(struct libwebsocket *wsi, unsigned char c)
 				wsi->all_zero_nonce = 0;
 			wsi->lws_rx_parse_state = LWS_RXPS_04_MASK_NONCE_1;
 			break;
+		case 7:
+			/*
+			 * no prepended frame key any more
+			 */
+			wsi->all_zero_nonce = 1;
+			goto handle_first;
+
 		default:
 			fprintf(stderr, "libwebsocket_rx_sm doesn't know "
 			    "about spec version %d\n", wsi->ietf_spec_revision);
@@ -393,6 +400,8 @@ post_mask:
 	 */
 
 	case LWS_RXPS_04_FRAME_HDR_1:
+handle_first:
+
 		/*
 		 * 04 spec defines the opcode like this: (1, 2, and 3 are
 		 * "control frame" opcodes which may not be fragmented or
@@ -410,87 +419,115 @@ post_mask:
 		 *		FIN (b7)
 		 */
 
-		c = wsi->xor_mask(wsi, c);
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 
 		if (c & 0x70) {
 			fprintf(stderr,
-				      "Frame has extensions set illegally 1\n");
+				      "Frame has extensions set illegally 1 %02X\n", c);
 			/* kill the connection */
 			return -1;
 		}
 
-		wsi->opcode = c & 0xf;
+		/* translate all incoming opcodes into v7+ map */
+		if (wsi->ietf_spec_revision < 7)
+			switch (c & 0xf) {
+			case LWS_WS_OPCODE_04__CONTINUATION:
+				wsi->opcode = LWS_WS_OPCODE_07__CONTINUATION;
+				break;
+			case LWS_WS_OPCODE_04__CLOSE:
+				wsi->opcode = LWS_WS_OPCODE_07__CLOSE;
+				break;
+			case LWS_WS_OPCODE_04__PING:
+				wsi->opcode = LWS_WS_OPCODE_07__PING;
+				break;
+			case LWS_WS_OPCODE_04__PONG:
+				wsi->opcode = LWS_WS_OPCODE_07__PONG;
+				break;
+			case LWS_WS_OPCODE_04__TEXT_FRAME:
+				wsi->opcode = LWS_WS_OPCODE_07__TEXT_FRAME;
+				break;
+			case LWS_WS_OPCODE_04__BINARY_FRAME:
+				wsi->opcode = LWS_WS_OPCODE_07__BINARY_FRAME;
+				break;
+			default:
+				fprintf(stderr, "reserved opcodes not "
+						    "usable pre v7 protocol\n");
+				return -1;
+			}
+		else
+			wsi->opcode = c & 0xf;
+
 		wsi->final = !!((c >> 7) & 1);
 
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN:
-		c = wsi->xor_mask(wsi, c);
 
-		if (c & 0x80) {
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
+
+		if ((c & 0x80) && wsi->ietf_spec_revision < 7) {
 			fprintf(stderr, "Frame has extensions "
 							   "set illegally 2\n");
 			/* kill the connection */
 			return -1;
 		}
 
+		wsi->this_frame_masked = !!(c & 0x80);
+
 		switch (c) {
 		case 126:
 			/* control frames are not allowed to have big lengths */
-			switch (wsi->opcode) {
-			case LWS_WS_OPCODE_04__CLOSE:
-			case LWS_WS_OPCODE_04__PING:
-			case LWS_WS_OPCODE_04__PONG:
-				fprintf(stderr, "Control frame asking for "
-						"extended length is illegal\n");
-				/* kill the connection */
-				return -1;
-			default:
-				break;
-			}
+			if (wsi->opcode & 8)
+				goto illegal_ctl_length;
+
 			wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN16_2;
 			break;
 		case 127:
 			/* control frames are not allowed to have big lengths */
-			switch (wsi->opcode) {
-			case LWS_WS_OPCODE_04__CLOSE:
-			case LWS_WS_OPCODE_04__PING:
-			case LWS_WS_OPCODE_04__PONG:
-				fprintf(stderr, "Control frame asking for "
-						"extended length is illegal\n");
-				/* kill the connection */
-				return -1;
-			default:
-				break;
-			}
+			if (wsi->opcode & 8)
+				goto illegal_ctl_length;
+
 			wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_8;
 			break;
 		default:
-			wsi->rx_packet_length = c;
-			wsi->lws_rx_parse_state =
+			wsi->rx_packet_length = c & 0x7f;
+			if (wsi->this_frame_masked)
+				wsi->lws_rx_parse_state =
+						LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+			else
+				wsi->lws_rx_parse_state =
 					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 			break;
 		}
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN16_2:
-		c = wsi->xor_mask(wsi, c);
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 
 		wsi->rx_packet_length = c << 8;
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN16_1;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN16_1:
-		c = wsi->xor_mask(wsi, c);
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 
 		wsi->rx_packet_length |= c;
-		wsi->lws_rx_parse_state =
-					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
+		if (wsi->this_frame_masked)
+			wsi->lws_rx_parse_state =
+					LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+		else
+			wsi->lws_rx_parse_state =
+				LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_8:
-		c = wsi->xor_mask(wsi, c);
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 		if (c & 0x80) {
 			fprintf(stderr, "b63 of length must be zero\n");
 			/* kill the connection */
@@ -505,45 +542,63 @@ post_mask:
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_7:
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 #if defined __LP64__
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 48;
+		wsi->rx_packet_length |= ((size_t)c) << 48;
 #endif
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_6;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_6:
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 #if defined __LP64__
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 40;
+		wsi->rx_packet_length |= ((size_t)c) << 40;
 #endif
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_5;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_5:
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
 #if defined __LP64__
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 32;
+		wsi->rx_packet_length |= ((size_t)c) << 32;
 #endif
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_4;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_4:
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 24;
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
+		wsi->rx_packet_length |= ((size_t)c) << 24;
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_3;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_3:
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 16;
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
+		wsi->rx_packet_length |= ((size_t)c) << 16;
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_2;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_2:
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c)) << 8;
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
+		wsi->rx_packet_length |= ((size_t)c) << 8;
 		wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_1;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_1:
-		wsi->rx_packet_length |= ((size_t)wsi->xor_mask(wsi, c));
-		wsi->lws_rx_parse_state =
-					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
+		if (wsi->ietf_spec_revision < 7)
+			c = wsi->xor_mask(wsi, c);
+		wsi->rx_packet_length |= ((size_t)c);
+		if (wsi->this_frame_masked)
+			wsi->lws_rx_parse_state =
+					LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+		else
+			wsi->lws_rx_parse_state =
+				LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 		break;
 
 	case LWS_RXPS_EAT_UNTIL_76_FF:
@@ -585,8 +640,40 @@ issue:
 	case LWS_RXPS_PULLING_76_LENGTH:
 		break;
 
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_1:
+		wsi->frame_masking_nonce_04[0] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_2;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_2:
+		wsi->frame_masking_nonce_04[1] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_3;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_3:
+		wsi->frame_masking_nonce_04[2] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_4;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_4:
+		wsi->frame_masking_nonce_04[3] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state =
+					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
+		wsi->frame_mask_index = 0;
+		break;
+
+
 	case LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED:
-		if (wsi->all_zero_nonce && wsi->ietf_spec_revision >= 5)
+		if (wsi->ietf_spec_revision < 4 || (wsi->all_zero_nonce && wsi->ietf_spec_revision >= 5))
 			wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING +
 			       (wsi->rx_user_buffer_head++)] = c;
 		else
@@ -607,7 +694,7 @@ spill:
 		 */
 
 		switch (wsi->opcode) {
-		case LWS_WS_OPCODE_04__CLOSE:
+		case LWS_WS_OPCODE_07__CLOSE:
 			/* is this an acknowledgement of our close? */
 			if (wsi->state == WSI_STATE_AWAITING_CLOSE_ACK) {
 				/*
@@ -626,7 +713,7 @@ spill:
 			/* close the connection */
 			return -1;
 
-		case LWS_WS_OPCODE_04__PING:
+		case LWS_WS_OPCODE_07__PING:
 			/* parrot the ping packet payload back as a pong */
 			n = libwebsocket_write(wsi, (unsigned char *)
 			    &wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING],
@@ -635,7 +722,7 @@ spill:
 			wsi->rx_user_buffer_head = 0;
 			return 0;
 
-		case LWS_WS_OPCODE_04__PONG:
+		case LWS_WS_OPCODE_07__PONG:
 			/* keep the statistics... */
 			wsi->pings_vs_pongs--;
 			/* ... then just drop it */
@@ -666,6 +753,13 @@ spill:
 	}
 
 	return 0;
+
+illegal_ctl_length:
+
+	fprintf(stderr, "Control frame asking for "
+			"extended length is illegal\n");
+	/* kill the connection */
+	return -1;
 }
 
 
@@ -692,6 +786,7 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 		case 4:
 		case 5:
 		case 6:
+		case 7:
 	/*
 	 *  04 logical framing from the spec (all this is masked when
 	 *  incoming and has to be unmasked)
@@ -720,6 +815,10 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 	 *  FIN.  It's up to userland to buffer it up if it wants to see a
 	 *  whole unfragmented block of the original size (which may be up to
 	 *  2^63 long!)
+	 *
+	 *  Notice in v7 RSV4 is set to indicate 32-bit frame key is coming in
+	 *  after length, unlike extension data which is now deprecated, this
+	 *  does not impact the payload length calculation.
 	 */
 
 		/*
@@ -746,11 +845,39 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 				return -1;
 			}
 
-			wsi->opcode = c & 0xf;
+			if (wsi->ietf_spec_revision < 7)
+				switch (c & 0xf) {
+				case LWS_WS_OPCODE_04__CONTINUATION:
+					wsi->opcode = LWS_WS_OPCODE_07__CONTINUATION;
+					break;
+				case LWS_WS_OPCODE_04__CLOSE:
+					wsi->opcode = LWS_WS_OPCODE_07__CLOSE;
+					break;
+				case LWS_WS_OPCODE_04__PING:
+					wsi->opcode = LWS_WS_OPCODE_07__PING;
+					break;
+				case LWS_WS_OPCODE_04__PONG:
+					wsi->opcode = LWS_WS_OPCODE_07__PONG;
+					break;
+				case LWS_WS_OPCODE_04__TEXT_FRAME:
+					wsi->opcode = LWS_WS_OPCODE_07__TEXT_FRAME;
+					break;
+				case LWS_WS_OPCODE_04__BINARY_FRAME:
+					wsi->opcode = LWS_WS_OPCODE_07__BINARY_FRAME;
+					break;
+				default:
+					fprintf(stderr, "reserved opcodes not "
+							    "usable pre v7 protocol\n");
+					return -1;
+				}
+			else
+				wsi->opcode = c & 0xf;
+
 			wsi->final = !!((c >> 7) & 1);
 
 			wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN;
 			break;
+
 		default:
 			fprintf(stderr, "client_rx_sm doesn't know how "
 				"to handle spec version %02d\n",
@@ -762,47 +889,35 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 
 	case LWS_RXPS_04_FRAME_HDR_LEN:
 
-		if (c & 0x80) {
+		if ((c & 0x80) && wsi->ietf_spec_revision < 7) {
 			fprintf(stderr,
 				      "Frame has extensions set illegally 4\n");
 			/* kill the connection */
 			return -1;
 		}
 
+		wsi->this_frame_masked = !!(c & 0x80);
+
 		switch (c) {
 		case 126:
 			/* control frames are not allowed to have big lengths */
-			switch (wsi->opcode) {
-			case LWS_WS_OPCODE_04__CLOSE:
-			case LWS_WS_OPCODE_04__PING:
-			case LWS_WS_OPCODE_04__PONG:
-				fprintf(stderr, "Control frame asking for "
-						"extended length is illegal\n");
-				/* kill the connection */
-				return -1;
-			default:
-				break;
-			}
+			if (wsi->opcode & 8)
+				goto illegal_ctl_length;
 			wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN16_2;
 			break;
 		case 127:
 			/* control frames are not allowed to have big lengths */
-			switch (wsi->opcode) {
-			case LWS_WS_OPCODE_04__CLOSE:
-			case LWS_WS_OPCODE_04__PING:
-			case LWS_WS_OPCODE_04__PONG:
-				fprintf(stderr, "Control frame asking for "
-						"extended length is illegal\n");
-				/* kill the connection */
-				return -1;
-			default:
-				break;
-			}
+			if (wsi->opcode & 8)
+				goto illegal_ctl_length;
 			wsi->lws_rx_parse_state = LWS_RXPS_04_FRAME_HDR_LEN64_8;
 			break;
 		default:
 			wsi->rx_packet_length = c;
-			wsi->lws_rx_parse_state =
+			if (wsi->this_frame_masked)
+				wsi->lws_rx_parse_state =
+						LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+			else
+				wsi->lws_rx_parse_state =
 					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 			break;
 		}
@@ -815,8 +930,12 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 
 	case LWS_RXPS_04_FRAME_HDR_LEN16_1:
 		wsi->rx_packet_length |= c;
-		wsi->lws_rx_parse_state =
-					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
+		if (wsi->this_frame_masked)
+			wsi->lws_rx_parse_state =
+					LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+		else
+			wsi->lws_rx_parse_state =
+				LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 		break;
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_8:
@@ -871,6 +990,39 @@ int libwebsocket_client_rx_sm(struct libwebsocket *wsi, unsigned char c)
 
 	case LWS_RXPS_04_FRAME_HDR_LEN64_1:
 		wsi->rx_packet_length |= (size_t)c;
+		if (wsi->this_frame_masked)
+			wsi->lws_rx_parse_state =
+					LWS_RXPS_07_COLLECT_FRAME_KEY_1;
+		else
+			wsi->lws_rx_parse_state =
+				LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_1:
+		wsi->frame_masking_nonce_04[0] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_2;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_2:
+		wsi->frame_masking_nonce_04[1] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_3;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_3:
+		wsi->frame_masking_nonce_04[2] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
+		wsi->lws_rx_parse_state = LWS_RXPS_07_COLLECT_FRAME_KEY_4;
+		break;
+
+	case LWS_RXPS_07_COLLECT_FRAME_KEY_4:
+		wsi->frame_masking_nonce_04[3] = c;
+		if (c)
+			wsi->all_zero_nonce = 0;
 		wsi->lws_rx_parse_state =
 					LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED;
 		break;
@@ -916,8 +1068,14 @@ issue:
 		break;
 
 	case LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED:
-		wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING +
-				 (wsi->rx_user_buffer_head++)] = c;
+		if ((!wsi->this_frame_masked) || wsi->all_zero_nonce)
+			wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING +
+			       (wsi->rx_user_buffer_head++)] = c;
+		else
+			wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING +
+			       (wsi->rx_user_buffer_head++)] =
+							  wsi->xor_mask(wsi, c);
+
 		if (--wsi->rx_packet_length == 0) {
 			wsi->lws_rx_parse_state = LWS_RXPS_NEW;
 			goto spill;
@@ -931,7 +1089,7 @@ spill:
 		 */
 
 		switch (wsi->opcode) {
-		case LWS_WS_OPCODE_04__CLOSE:
+		case LWS_WS_OPCODE_07__CLOSE:
 			/* is this an acknowledgement of our close? */
 			if (wsi->state == WSI_STATE_AWAITING_CLOSE_ACK) {
 				/*
@@ -951,14 +1109,14 @@ spill:
 			/* close the connection */
 			return -1;
 
-		case LWS_WS_OPCODE_04__PING:
+		case LWS_WS_OPCODE_07__PING:
 			/* parrot the ping packet payload back as a pong*/
 			n = libwebsocket_write(wsi, (unsigned char *)
 			    &wsi->rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING],
 				    wsi->rx_user_buffer_head, LWS_WRITE_PONG);
 			break;
 
-		case LWS_WS_OPCODE_04__PONG:
+		case LWS_WS_OPCODE_07__PONG:
 			/* keep the statistics... */
 			wsi->pings_vs_pongs--;
 
@@ -990,6 +1148,14 @@ spill:
 	}
 
 	return 0;
+
+illegal_ctl_length:
+
+	fprintf(stderr, "Control frame asking for "
+				"extended length is illegal\n");
+	/* kill the connection */
+	return -1;
+
 }
 
 
@@ -1118,6 +1284,9 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 	int shift = 7;
 	struct lws_tokens eff_buf;
 	int ret;
+	int masked7 = wsi->mode == LWS_CONNMODE_WS_CLIENT;
+	unsigned char *dropmask = NULL;
+	unsigned char is_masked_bit = 0;
 
 	if (len == 0 && protocol != LWS_WRITE_CLOSE) {
 		fprintf(stderr, "zero length libwebsocket_write attempt\n");
@@ -1160,28 +1329,47 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 
 		/* frame type = text, length-free spam mode */
 
-		buf[-1] = 0;
-		buf[len] = 0xff; /* EOT marker */
 		pre = 1;
+		buf[-pre] = 0;
+		buf[len] = 0xff; /* EOT marker */
 		post = 1;
 		break;
 
+	case 7:
+		if (masked7) {
+			pre += 4;
+			dropmask = &buf[0 - pre];
+			is_masked_bit = 0x80;
+		}
+		/* fallthru */
 	case 4:
 	case 5:
 	case 6:
 		switch (protocol & 0xf) {
 		case LWS_WRITE_TEXT:
-			n = LWS_WS_OPCODE_04__TEXT_FRAME;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__TEXT_FRAME;
+			else
+				n = LWS_WS_OPCODE_07__TEXT_FRAME;
 			break;
 		case LWS_WRITE_BINARY:
-			n = LWS_WS_OPCODE_04__BINARY_FRAME;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__BINARY_FRAME;
+			else
+				n = LWS_WS_OPCODE_07__BINARY_FRAME;
 			break;
 		case LWS_WRITE_CONTINUATION:
-			n = LWS_WS_OPCODE_04__CONTINUATION;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__CONTINUATION;
+			else
+				n = LWS_WS_OPCODE_07__CONTINUATION;
 			break;
 
 		case LWS_WRITE_CLOSE:
-			n = LWS_WS_OPCODE_04__CLOSE;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__CLOSE;
+			else
+				n = LWS_WS_OPCODE_07__CLOSE;
 
 			/*
 			 * v5 mandates the first byte of close packet
@@ -1232,11 +1420,18 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 			}
 			break;
 		case LWS_WRITE_PING:
-			n = LWS_WS_OPCODE_04__PING;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__PING;
+			else
+				n = LWS_WS_OPCODE_07__PING;
+
 			wsi->pings_vs_pongs++;
 			break;
 		case LWS_WRITE_PONG:
-			n = LWS_WS_OPCODE_04__PONG;
+			if (wsi->ietf_spec_revision < 7)
+				n = LWS_WS_OPCODE_04__PONG;
+			else
+				n = LWS_WS_OPCODE_07__PONG;
 			break;
 		default:
 			fprintf(stderr, "libwebsocket_write: unknown write "
@@ -1248,46 +1443,39 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 			n |= 1 << 7;
 
 		if (len < 126) {
-			buf[pre - 2] = n;
-			buf[pre - 1] = len;
 			pre += 2;
+			buf[-pre] = n;
+			buf[-pre + 1] = len | is_masked_bit;
 		} else {
 			if (len < 65536) {
-				buf[pre - 4] = n;
-				buf[pre - 3] = 126;
-				buf[pre - 2] = len >> 8;
-				buf[pre - 1] = len;
 				pre += 4;
+				buf[-pre] = n;
+				buf[-pre + 1] = 126 | is_masked_bit;
+				buf[-pre + 2] = len >> 8;
+				buf[-pre + 3] = len;
 			} else {
-				buf[pre - 10] = n;
-				buf[pre - 9] = 127;
-#if defined __LP64__
-					buf[pre - 8] = (len >> 56) & 0x7f;
-					buf[pre - 7] = len >> 48;
-					buf[pre - 6] = len >> 40;
-					buf[pre - 5] = len >> 32;
-#else
-					buf[pre - 8] = 0;
-					buf[pre - 7] = 0;
-					buf[pre - 6] = 0;
-					buf[pre - 5] = 0;
-#endif
-				buf[pre - 4] = len >> 24;
-				buf[pre - 3] = len >> 16;
-				buf[pre - 2] = len >> 8;
-				buf[pre - 1] = len;
 				pre += 10;
+				buf[-pre] = n;
+				buf[-pre + 1] = 127 | is_masked_bit;
+#if defined __LP64__
+					buf[-pre + 2] = (len >> 56) & 0x7f;
+					buf[-pre + 3] = len >> 48;
+					buf[-pre + 4] = len >> 40;
+					buf[-pre + 5] = len >> 32;
+#else
+					buf[-pre + 2] = 0;
+					buf[-pre + 3] = 0;
+					buf[-pre + 4] = 0;
+					buf[-pre + 5] = 0;
+#endif
+				buf[-pre + 6] = len >> 24;
+				buf[-pre + 7] = len >> 16;
+				buf[-pre + 8] = len >> 8;
+				buf[-pre + 9] = len;
 			}
 		}
 		break;
 	}
-
-#if 0
-	for (n = 0; n < (len + pre + post); n++)
-		fprintf(stderr, "%02X ", buf[n - pre]);
-
-	fprintf(stderr, "\n");
-#endif
 
 	/*
 	 * Deal with masking if we are in client -> server direction and
@@ -1310,33 +1498,62 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 				return 1;
 			}
 
-			/*
-			 * use the XOR masking against everything we send
-			 * past the frame nonce
-			 */
 
-			for (n = 0; n < (len + pre + post); n++)
-				buf[n - pre] = wsi->xor_mask(wsi, buf[n - pre]);
+			if (wsi->ietf_spec_revision < 7)
+				/*
+				 * use the XOR masking against everything we
+				 * send past the frame key
+				 */
+				for (n = -pre; n < ((int)len + post); n++)
+					buf[n] = wsi->xor_mask(wsi, buf[n]);
+			else
+				/*
+				 * in v7, just mask the payload
+				 */
+				for (n = 0; n < (int)len; n++)
+					dropmask[n + 4] = wsi->xor_mask(wsi, dropmask[n + 4]);
 
 
-			/* make space for the frame nonce in clear */
-			pre += 4;
+			if (wsi->ietf_spec_revision < 7) {
+				/* make space for the frame nonce in clear */
+				pre += 4;
 
-			/* copy the frame nonce into place */
-			memcpy(&buf[0 - pre], wsi->frame_masking_nonce_04, 4);
+				dropmask = &buf[0 - pre];
+			}
+
+			if (dropmask)
+				/* copy the frame nonce into place */
+				memcpy(dropmask, wsi->frame_masking_nonce_04, 4);
+
 		} else {
-			/* make space for the frame nonce in clear */
-			pre += 4;
+			if (wsi->ietf_spec_revision < 7) {
 
-			buf[0 - pre] = 0;
-			buf[1 - pre] = 0;
-			buf[2 - pre] = 0;
-			buf[3 - pre] = 0;
+				/* make space for the frame nonce in clear */
+				pre += 4;
+
+				buf[0 - pre] = 0;
+				buf[1 - pre] = 0;
+				buf[2 - pre] = 0;
+				buf[3 - pre] = 0;
+			} else {
+				dropmask[0] = 0;
+				dropmask[1] = 0;
+				dropmask[2] = 0;
+				dropmask[3] = 0;
+			}
 		}
 
 	}
 
 send_raw:
+
+#if 0
+	fprintf(stderr, "send %ld: ", len + post);
+	for (n = -pre; n < ((int)len + post); n++)
+		fprintf(stderr, "%02X ", buf[n]);
+
+	fprintf(stderr, "\n");
+#endif
 
 	if (protocol == LWS_WRITE_HTTP) {
 		if (lws_issue_raw(wsi, (unsigned char *)buf - pre,

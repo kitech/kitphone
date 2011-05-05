@@ -109,7 +109,7 @@ static inline void debug(const char *format, ...)
 #define MAX_BROADCAST_PAYLOAD 2048
 #define LWS_MAX_PROTOCOLS 10
 #define LWS_MAX_EXTENSIONS_ACTIVE 10
-#define SPEC_LATEST_SUPPORTED 6
+#define SPEC_LATEST_SUPPORTED 7
 
 #define MAX_WEBSOCKET_04_KEY_LEN 128
 #define SYSTEM_RANDOM_FILEPATH "/dev/urandom"
@@ -121,6 +121,15 @@ enum lws_websocket_opcodes_04 {
 	LWS_WS_OPCODE_04__PONG = 3,
 	LWS_WS_OPCODE_04__TEXT_FRAME = 4,
 	LWS_WS_OPCODE_04__BINARY_FRAME = 5,
+};
+
+enum lws_websocket_opcodes_07 {
+	LWS_WS_OPCODE_07__CONTINUATION = 0,
+	LWS_WS_OPCODE_07__TEXT_FRAME = 1,
+	LWS_WS_OPCODE_07__BINARY_FRAME = 2,
+	LWS_WS_OPCODE_07__CLOSE = 8,
+	LWS_WS_OPCODE_07__PING = 9,
+	LWS_WS_OPCODE_07__PONG = 0xa,
 };
 
 enum lws_connection_states {
@@ -156,6 +165,11 @@ enum lws_rx_parse_state {
 	LWS_RXPS_04_FRAME_HDR_LEN64_3,
 	LWS_RXPS_04_FRAME_HDR_LEN64_2,
 	LWS_RXPS_04_FRAME_HDR_LEN64_1,
+
+	LWS_RXPS_07_COLLECT_FRAME_KEY_1,
+	LWS_RXPS_07_COLLECT_FRAME_KEY_2,
+	LWS_RXPS_07_COLLECT_FRAME_KEY_3,
+	LWS_RXPS_07_COLLECT_FRAME_KEY_4,
 
 	LWS_RXPS_PAYLOAD_UNTIL_LENGTH_EXHAUSTED
 };
@@ -244,6 +258,7 @@ struct libwebsocket {
 	char rx_user_buffer[LWS_SEND_BUFFER_PRE_PADDING + MAX_USER_RX_BUFFER +
 						  LWS_SEND_BUFFER_POST_PADDING];
 	int rx_user_buffer_head;
+	enum libwebsocket_write_protocol rx_frame_type;
 	int protocol_index_for_broadcast_proxy;
 	enum pending_timeout pending_timeout;
 	unsigned long pending_timeout_limit;
@@ -269,6 +284,9 @@ struct libwebsocket {
 	char all_zero_nonce;
 
 	enum lws_close_status close_reason;
+
+	/* 07 specific */
+	char this_frame_masked;
 
 	/* client support */
 	char initial_handshake_hash_base64[30];
@@ -335,8 +353,6 @@ libwebsocket_set_timeout(struct libwebsocket *wsi,
 extern int
 lws_issue_raw(struct libwebsocket *wsi, unsigned char *buf, size_t len);
 
-extern int
-lws_send_pipe_choked(struct libwebsocket *wsi);
 
 #ifndef LWS_OPENSSL_SUPPORT
 

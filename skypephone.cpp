@@ -420,7 +420,9 @@ void SkypePhone::onShowDialPanel()
     if (this->m_dialpanel_layout_item->widget()->isVisible()) {
         
     }
-    this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
+    // this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
+    this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
+                              !this->m_dialpanel_layout_item->widget()->isVisible());
 }
 
 void SkypePhone::onShowLogPanel()
@@ -527,6 +529,57 @@ void SkypePhone::onShowContactViewMenu(const QPoint &pos)
     }
     this->m_contact_view_ctx_menu->popup(this->uiw->treeView->mapToGlobal(pos));
 }
+
+void SkypePhone::onDynamicSetVisible(QWidget *w, bool visible)
+{
+    Q_ASSERT(w != NULL);
+
+    this->mdyn_widget = w;
+    this->mdyn_visible = visible;
+
+    // this->onDynamicSetVisible();
+    w->setWindowOpacity(0.5);
+}
+
+void SkypePhone::onDynamicSetVisible()
+{
+    int curr_opacity = 100;
+    char *pname = "dyn_opacity";
+    QVariant dyn_opacity = this->mdyn_widget->property(pname);
+
+    if (dyn_opacity.isValid()) {
+        curr_opacity = dyn_opacity.toInt();
+        if (this->mdyn_visible == true) {
+            curr_opacity += 10;
+            if (curr_opacity == 100) {
+                this->mdyn_widget->setVisible(true);
+            } else {
+                this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+                this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
+            }
+        } else {
+            curr_opacity -= 10;
+            if (curr_opacity == 0) {
+                this->mdyn_widget->setVisible(false);
+            } else {
+                this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+                this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
+            }
+        }
+    } else {
+        if (this->mdyn_visible == true) {
+            curr_opacity = 0;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+        } else {
+            curr_opacity = 100;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+        }
+        QTimer::singleShot(1, this, SLOT(onDynamicSetVisible()));
+    }
+}
+
 
 void SkypePhone::onWSConnected(QString path)
 {

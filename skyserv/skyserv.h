@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-07-03 15:35:54 +0800
-// Version: $Id: skyserv.h 847 2011-04-23 04:46:25Z drswinghead $
+// Version: $Id: skyserv.h 865 2011-05-06 06:15:31Z drswinghead $
 // 
 
 #ifndef SKYSERV_H
@@ -176,7 +176,7 @@ public slots:
 
     void onProcessIncomingRpcCommand(int cmdlen, int comno, char *cmdbuf);
 
-    // from websock
+    // from websocket
     void onNewWSConnection();
     // void onNewWSConnection(QString path, QTcpSocket *sock);
     // void onRouterWSMessage(QByteArray msg, QTcpSocket *sock);
@@ -213,13 +213,15 @@ private slots:
     bool send_ws_command_118(QString caller_name, QString gateway, int skype_call_id, 
                              QString sip_code, QString reason);
 
+    bool send_ws_command_common(QString caller_name, QString cmdstr);
+
     // 
     void on_ws_proxy_connected(QString rpath);
     void on_ws_proxy_message(QByteArray msg);
     void on_ws_proxy_send_message(QString caller_name, QString msg);
 
 private:
-    boost::shared_ptr<call_meta_info> find_call_meta_info_by_caller_name(QString caller_name);
+    boost::shared_ptr<call_meta_info> find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id=-1, int skype_call_id=-1);
 
 private:
     QDateTime start_time; // 启动时间
@@ -261,6 +263,7 @@ private:
     KBiHash<qint64, boost::shared_ptr<call_meta_info> > nWebSocketSeqMap; // ws conn seq -> meta info
     // KBiHash<QString, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // caller name -> meta info // 与上一个重复
     KBiHash<boost::shared_ptr<WebSocketClient>, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->meta info
+    // KBiHash<WebSocketClient*, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->meta info
     
     // next next way, 再下一种试用的方法
     boost::tuple<QString, QString, QString, int, int, qint64, boost::shared_ptr<WebSocketClient> > call_meta_info_b;

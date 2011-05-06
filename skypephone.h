@@ -53,6 +53,8 @@ public slots:    // pstn
     void onModifyContact();
     void onAddGroup();
     void onShowContactViewMenu(const QPoint &pos);
+    void onDynamicSetVisible(QWidget *w, bool visible);
+    void onDynamicSetVisible();
 
     void onConnectSkype();
     void onConnectApp2App();
@@ -106,6 +108,9 @@ private: // pstn
     Skype *mSkype;
     SkypeTunnel *mtun;
     SkypeTracer *mSkypeTracer;
+
+    QWidget *mdyn_widget;
+    bool mdyn_visible;
 
     QStatusBar *m_status_bar;
     int m_dialpanel_layout_index;

@@ -1095,7 +1095,7 @@ ssize_t WebSocketServer2::wssend(qint64 cseq, const void *buf, size_t len)
     // wlen = sock->write(wbuf, len+2);
 
     if (!this->outer_conns.rightContains(cseq)) {
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"maybe sess ended already.";
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"maybe sess ended already."<<cseq;
     } else {
         wlen = libwebsocket_write(wsi, (unsigned char*)buf, len, LWS_WRITE_TEXT);
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;

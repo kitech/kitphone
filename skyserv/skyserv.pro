@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-07-03 14:03:38 +0800
-# Version: $Id: skyserv.pro 847 2011-04-23 04:46:25Z drswinghead $
+# Version: $Id: skyserv.pro 865 2011-05-06 06:15:31Z drswinghead $
 # 
 
 QT       += core gui network
@@ -28,6 +28,7 @@ QMAKE_CXXFLAGS += -g
 QMAKE_CFLAGS += -g
 
 INCLUDEPATH += . .. ../skynet ../../boost/include
+#DEFINES += BOOST_SP_USE_PTHREADS
 
 SOURCES += main.cpp skyserv.cpp skyservapplication.cpp \
         configs.cpp database.cpp \
@@ -37,7 +38,7 @@ SOURCES += main.cpp skyserv.cpp skyservapplication.cpp \
         pa_ringbuffer.c ringbuffer.c \
         wryip.c websocket.cpp \
         md5.c \
-        ../utils.cpp \
+        ../utils.cpp ../simplelog.cpp \
         limit_detect.cpp \
         lisp_bridge.cpp
 
@@ -46,7 +47,7 @@ HEADERS  += skyserv.h skyservapplication.h \
          sxs_switcher.h \
          ../metauri.h \
          websocket.h  \
-         ../utils.h \
+         ../utils.h  ../simplelog.h \
         limit_detect.h \
          lisp_bridge.h
 

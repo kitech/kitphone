@@ -35,6 +35,7 @@ private:
     Ui::KitPhone *uiw;
 
     SkypePhone *uiw_skype;
+    SipPhone *uiw_sip;
 };
 
 #endif /* _KITPHONE_H_ */

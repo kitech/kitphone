@@ -14,6 +14,7 @@
 #include "ui_kitphone.h"
 
 #include "skypephone.h"
+#include "sipphone.h"
 
 #include "sipaccount.h"
 
@@ -24,12 +25,17 @@ KitPhone::KitPhone(QWidget *parent)
 {
     this->uiw->setupUi(this);
 
-    this->uiw_skype = new SkypePhone();
     QLayout *lout = this->centralWidget()->layout();
     QVBoxLayout *vlout = static_cast<QVBoxLayout*>(lout);
-    vlout->addWidget(this->uiw_skype);
 
-    this->uiw_skype->init_status_bar(this->statusBar());
+    //////////////////
+    // this->uiw_skype = new SkypePhone();
+    // vlout->addWidget(this->uiw_skype);
+    // this->uiw_skype->init_status_bar(this->statusBar());
+
+    ///////////////////
+    this->uiw_sip = new SipPhone();
+    vlout->addWidget(this->uiw_sip);
 }
 
 KitPhone::~KitPhone()

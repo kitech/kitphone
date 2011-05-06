@@ -23,6 +23,7 @@
 #include <pjmedia/wave.h>
 #include <pjmedia/wav_port.h>
 
+#include "simplelog.h"
 #include "ui_sipphone.h"
 #include "sipphone.h"
 
@@ -408,8 +409,8 @@ void SipPhone::defaultSipInit()
     if (status == PJ_SUCCESS) {
         for (int i = 0; i < info_count; i ++) {
             QString codec_idname = QString((infos[i].codec_id).ptr);
-            qDebug()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
-            // this->uiw->comboBox_11->insertItem(0, codec_idname);
+            qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
+            this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
         }
     }
 
@@ -621,7 +622,7 @@ void SipPhone::onRemoveAccount(QString user_name)
         status = pjsua_acc_set_registration(acc_id, 0);
         status = pjsua_acc_del(acc_id);
     } else {
-        qDebug()<<"Can not find pjsip account:"<<user_name;
+        qLogx()<<"Can not find pjsip account:"<<user_name;
     }
 }
 
@@ -640,7 +641,7 @@ void SipPhone::onCallSip()
     for (int i = 0; i < cid_cnt; i++) {
         if (QString(cids[i].codec_id.ptr) == selected_codec) {
             status = pjsua_codec_set_priority(&cids[i].codec_id, 200);
-            qDebug()<<"Using codec for this call,"<<selected_codec;
+            qLogx()<<"Using codec for this call,"<<selected_codec;
         } else {
             status = pjsua_codec_set_priority(&cids[i].codec_id, 0);
         }
@@ -687,7 +688,7 @@ void SipPhone::onCallSip()
     // char *sipu = "<SIP:99008668056013552776960@122.228.202.105:4060;transport=UDP>";
     char *sipu = strdup(QString("<SIP:%1@%2;transport=UDP>")
                         .arg(callee_phone).arg(sip_server) .toAscii().data());
-    qDebug()<<"call peer: "<<sipu;
+    qLogx()<<"call peer: "<<sipu;
     // char *sipu = "<SIP:99008668056013552776960@202.108.29.234:5060;transport=UDP>";
     pj_str_t uri = pj_str(sipu);
     status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
@@ -697,7 +698,7 @@ void SipPhone::onCallSip()
     }
     free(sipu);
 
-    qDebug()<<"oncall slot returned";
+    qLogx()<<"oncall slot returned";
 }
 
 void SipPhone::onHangupSip()
@@ -940,33 +941,38 @@ void SipPhone::onCallSipNew()
     QString selected_codec;
     char tbuf[200];
     
-    // selected_codec = this->uiw->comboBox_11->currentText();
+    selected_codec = this->uiw->comboBox->currentText();
     status = pjsua_enum_codecs(cids, &cid_cnt);
     for (int i = 0; i < cid_cnt; i++) {
         if (QString(cids[i].codec_id.ptr) == selected_codec) {
             status = pjsua_codec_set_priority(&cids[i].codec_id, 200);
-            qDebug()<<"Using codec for this call,"<<selected_codec;
+            qLogx()<<"Using codec for this call,"<<selected_codec;
         } else {
             status = pjsua_codec_set_priority(&cids[i].codec_id, 0);
         }
     }
 
-    // if (this->uiw->comboBox_12->currentIndex() == 0) {
-    //     // UDP mode
-    //     status = pjsua_transport_set_enable(this->tcp_tpid, PJ_FALSE);
-    //     status = pjsua_transport_set_enable(this->udp_tpid, PJ_TRUE);
-    // } else {
-    //     // TCP mode
-    //     status = pjsua_transport_set_enable(this->tcp_tpid, PJ_TRUE);
-    //     status = pjsua_transport_set_enable(this->udp_tpid, PJ_FALSE);
-    // }
-    // qDebug()<<"Using transport: "<< this->uiw->comboBox_12->currentText();
+    if (this->uiw->comboBox_2->currentIndex() == 0) {
+        // UDP mode
+        status = pjsua_transport_set_enable(this->tcp_tpid, PJ_FALSE);
+        status = pjsua_transport_set_enable(this->udp_tpid, PJ_TRUE);
+    } else {
+        // TCP mode
+        status = pjsua_transport_set_enable(this->tcp_tpid, PJ_TRUE);
+        status = pjsua_transport_set_enable(this->udp_tpid, PJ_FALSE);
+    }
+    qLogx()<<"Using transport: "<< this->uiw->comboBox_2->currentText();
 
     /* Register to SIP server by creating SIP account. */
     {
         pjsua_acc_config cfg;
         QString caller_sip_user = this->uiw->comboBox_6->currentText();
         QString caller_from_domain = this->_get_sip_from_domain();
+
+        if (this->uiw->comboBox_6->currentIndex() == this->uiw->comboBox_6->count()-1) {
+            qLogx()<<"select a host please";
+            return;
+        }
 
         pjsua_acc_config_default(&cfg);
         // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
@@ -976,7 +982,7 @@ void SipPhone::onCallSipNew()
         QString reg_uri_str = QString("%1 <sip:%1@%2>").arg(caller_sip_user.split("@").at(0))
             .arg(caller_from_domain);
         strncpy(tbuf, reg_uri_str.toAscii().data(), sizeof(tbuf)-1);
-        qDebug()<<reg_uri_str<<tbuf;
+        qLogx()<<reg_uri_str<<tbuf;
         cfg.id = pj_str(tbuf);
 
         // cfg.reg_timeout = 800000000;
@@ -1002,7 +1008,7 @@ void SipPhone::onCallSipNew()
     // char *sipu = "<SIP:99008668056013552776960@122.228.202.105:4060;transport=UDP>";
     char *sipu = strdup(QString("<SIP:%1@%2;transport=UDP>")
                         .arg(callee_phone).arg(sip_server) .toAscii().data());
-    qDebug()<<"call peer: "<<sipu;
+    qLogx()<<"call peer: "<<sipu;
     // char *sipu = "<SIP:99008668056013552776960@202.108.29.234:5060;transport=UDP>";
     pj_str_t uri = pj_str(sipu);
     status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
@@ -1012,7 +1018,7 @@ void SipPhone::onCallSipNew()
     }
     free(sipu);
 
-    qDebug()<<"oncall slot returned";
+    qLogx()<<"oncall slot returned";
 }
 
 void SipPhone::onHangupSipNew()
@@ -1149,22 +1155,22 @@ void PJSipEventThread::run()
     pj_status_t status;
     int evt_cnt = 0;
 
-    qDebug()<<"ready register pjsip thread by Qt";
+    qLogx()<<"ready register pjsip thread by Qt";
     if (!pj_thread_is_registered()) {
         status = pj_thread_register("PjsipPollThread_run", initdec, &thread);
         if (status != PJ_SUCCESS) {
-            qDebug()<<"pj_thread_register faild:"<<status;
+            qLogx()<<"pj_thread_register faild:"<<status;
             return;
         }
     }
     PJ_CHECK_STACK();
-    qDebug()<<"registerred pjsip thread:"<<thread;
+    qLogx()<<"registerred pjsip thread:"<<thread;
 
     this->dump_info(thread);
     // while(isStackInit()) {
     //     pjsua_handle_events(10);
     // }
-    qDebug()<<"enter pjsua thread loop supported by Qt";
+    qLogx()<<"enter pjsua thread loop supported by Qt";
     while (!quit_loop) {
         evt_cnt = pjsua_handle_events(20);
         // qDebug()<<"pjsua pool event in thread supported by Qt, proccess count:"<<evt_cnt;

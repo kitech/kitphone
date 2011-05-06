@@ -537,8 +537,8 @@ void SkypePhone::onDynamicSetVisible(QWidget *w, bool visible)
     this->mdyn_widget = w;
     this->mdyn_visible = visible;
 
-    // this->onDynamicSetVisible();
-    w->setWindowOpacity(0.5);
+    this->onDynamicSetVisible();
+    // w->setWindowOpacity(0.5);
 }
 
 void SkypePhone::onDynamicSetVisible()

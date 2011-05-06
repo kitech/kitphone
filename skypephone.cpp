@@ -420,9 +420,9 @@ void SkypePhone::onShowDialPanel()
     if (this->m_dialpanel_layout_item->widget()->isVisible()) {
         
     }
-    // this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
-    this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
-                              !this->m_dialpanel_layout_item->widget()->isVisible());
+    this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
+    // this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
+    //                           !this->m_dialpanel_layout_item->widget()->isVisible());
 }
 
 void SkypePhone::onShowLogPanel()

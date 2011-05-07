@@ -6,9 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>361</width>
+    <width>347</width>
     <height>871</height>
    </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -470,6 +473,26 @@
          <string>TCP</string>
         </property>
        </item>
+       <item>
+        <property name="text">
+         <string>TLS</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>IPV6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>UDP6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>TCP6</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item row="3" column="4">
@@ -477,6 +500,25 @@
        <property name="text">
         <string>TLS</string>
        </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QComboBox" name="comboBox_3">
+       <item>
+        <property name="text">
+         <string>STUN</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>TURN</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ICE</string>
+        </property>
+       </item>
       </widget>
      </item>
     </layout>

@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 836 2011-04-18 14:16:55Z drswinghead $
+// Version: $Id: sipphone.h 869 2011-05-07 09:41:17Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -24,6 +24,12 @@ extern "C" {
 	#include <pjsip_ua.h>
 	#include <pjsua-lib/pjsua.h>
 }
+
+#define VOIP_SERVER "voip.qtchina.net"
+#define SIP_SERVER "sip.qtchina.net"
+// #define TURN_SERVER "turn.qtchina.net"
+#define TURN_SERVER "turn.qtchina.net"
+#define TURN_PORT "34780"
 
 class SipAccountList;
 
@@ -78,11 +84,19 @@ public slots: // sip
     void on1_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci);
     void on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata);
 
-    void on1_new_connection(void *m_port);
+    // void on1_new_connection(void *m_port);
 
-    void on1_put_frame(QTcpSocket *sock, QByteArray fba);
+    // void on1_put_frame(QTcpSocket *sock, QByteArray fba);
+
+    void log_output(int type, const QString &log);
+public:
+    enum LOGTYPE {
+        LT_USER = 0,
+        LT_DEBUG = 1
+    };
 
 private:
+    pjsua_acc_id _create_sip_account(QString acc_name);
     QString _get_sip_from_domain();
     int _find_account_from_pjacc(QString acc_name);
 
@@ -95,6 +109,12 @@ private: // sip
     SipAccountList *acc_list;
     pjsua_transport_id udp_tpid;
     pjsua_transport_id tcp_tpid;
+    pjsua_transport_id tls_tpid;
+    pjsua_transport_id ipv6_tpid;
+    pjsua_transport_id udp6_tpid;
+    pjsua_transport_id tcp6_tpid;
+    pjsua_transport_id user_tpid;
+    pjsua_transport_id sctp_tpid;
 
 private:
     Ui::SipPhone *uiw;

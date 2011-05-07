@@ -10,6 +10,9 @@
     <height>90</height>
    </rect>
   </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
   <property name="windowTitle">
    <string>Kitphone Soft SIP phone</string>
   </property>

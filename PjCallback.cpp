@@ -3,6 +3,8 @@
 #include <QList>
 #include <QMutex>
 
+#include "simplelog.h"
+
 #include "PjCallback.h"
 
 #define THIS_FILE "QjCallback"
@@ -206,79 +208,81 @@ void PjCallback::on_put_frame_wrapper(QTcpSocket *sock, QByteArray fba)
 
 // /* Notify application which NAT type was detected
 //  */
-// void PjCallback::on_nat_detect(const pj_stun_nat_detect_result *res) {
-// 	QString description;
-// 	switch (res->nat_type) {
-// 	case PJ_STUN_NAT_TYPE_UNKNOWN:
-// 		description="PJ_STUN_NAT_TYPE_UNKNOWN:\r\n\r\n"
-// 			"NAT type is unknown because the detection has not been performed.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_ERR_UNKNOWN:
-// 		description="PJ_STUN_NAT_TYPE_ERR_UNKNOWN:\r\n\r\n"
-// 			"NAT type is unknown because there is failure in the detection process, \r\n"
-// 			"possibly because server does not support RFC 3489.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_OPEN:
-// 		description="PJ_STUN_NAT_TYPE_OPEN:\r\n\r\n"
-// 			"This specifies that the client has open access to Internet (or at \r\n"
-// 			"least, its behind a firewall that behaves like a full-cone NAT, but \r\n"
-// 			"without the translation)";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_BLOCKED:
-// 		description="PJ_STUN_NAT_TYPE_BLOCKED:\r\n\r\n"
-// 			"This specifies that communication with server has failed, probably \r\n"
-// 			"because UDP packets are blocked.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_SYMMETRIC_UDP:
-// 		description="PJ_STUN_NAT_TYPE_SYMMETRIC_UDP:\r\n\r\n"
-// 			"Firewall that allows UDP out, and responses have to come back to the \r\n"
-// 			"source of the request (like a symmetric NAT, but no translation.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_FULL_CONE:
-// 		description="PJ_STUN_NAT_TYPE_FULL_CONE:\r\n\r\n"
-// 			"A full cone NAT is one where all requests from the same internal IP \r\n"
-// 			"address and port are mapped to the same external IP address and port. \r\n"
-// 			"Furthermore, any external host can send a packet to the internal host, \r\n"
-// 			"by sending a packet to the mapped external address.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_SYMMETRIC:
-// 		description="PJ_STUN_NAT_TYPE_SYMMETRIC:\r\n\r\n"
-// 			"A symmetric NAT is one where all requests from the same internal IP \r\n"
-// 			"address and port, to a specific destination IP address and port, are \r\n"
-// 			"mapped to the same external IP address and port. If the same host \r\n"
-// 			"sends a packet with the same source address and port, but to a different \r\n"
-// 			"destination, a different mapping is used. Furthermore, only the external \r\n"
-// 			"host that receives a packet can send a UDP packet back to the internal host.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_RESTRICTED:
-// 		description="PJ_STUN_NAT_TYPE_RESTRICTED:\r\n\r\n"
-// 			"A restricted cone NAT is one where all requests from the same internal \r\n"
-// 			"IP address and port are mapped to the same external IP address and port. \r\n"
-// 			"Unlike a full cone NAT, an external host (with IP address X) can send a \r\n"
-// 			"packet to the internal host only if the internal host had previously \r\n"
-// 			"sent a packet to IP address X.";
-// 		break;
-// 	case PJ_STUN_NAT_TYPE_PORT_RESTRICTED:
-// 		description="PJ_STUN_NAT_TYPE_PORT_RESTRICTED:\r\n\r\n"
-// 			"A port restricted cone NAT is like a restricted cone NAT, but the \r\n"
-// 			"restriction includes port numbers. Specifically, an external host \r\n"
-// 			"can send a packet, with source IP address X and source port P, to \r\n"
-// 			"the internal host only if the internal host had previously sent a \r\n"
-// 			"packet to IP address X and port P.: ";
-// 		break;
-// 	default:
-// 		description="Error: unknown type detected!";
-// 	}
-// 	emit nat_detect(QString(res->nat_type_name), description);
-// }
+void PjCallback::on_nat_detect(const pj_stun_nat_detect_result *res) {
+	QString description;
+	switch (res->nat_type) {
+	case PJ_STUN_NAT_TYPE_UNKNOWN:
+		description="PJ_STUN_NAT_TYPE_UNKNOWN:\r\n\r\n"
+			"NAT type is unknown because the detection has not been performed.";
+		break;
+	case PJ_STUN_NAT_TYPE_ERR_UNKNOWN:
+		description="PJ_STUN_NAT_TYPE_ERR_UNKNOWN:\r\n\r\n"
+			"NAT type is unknown because there is failure in the detection process, \r\n"
+			"possibly because server does not support RFC 3489.";
+		break;
+	case PJ_STUN_NAT_TYPE_OPEN:
+		description="PJ_STUN_NAT_TYPE_OPEN:\r\n\r\n"
+			"This specifies that the client has open access to Internet (or at \r\n"
+			"least, its behind a firewall that behaves like a full-cone NAT, but \r\n"
+			"without the translation)";
+		break;
+	case PJ_STUN_NAT_TYPE_BLOCKED:
+		description="PJ_STUN_NAT_TYPE_BLOCKED:\r\n\r\n"
+			"This specifies that communication with server has failed, probably \r\n"
+			"because UDP packets are blocked.";
+		break;
+	case PJ_STUN_NAT_TYPE_SYMMETRIC_UDP:
+		description="PJ_STUN_NAT_TYPE_SYMMETRIC_UDP:\r\n\r\n"
+			"Firewall that allows UDP out, and responses have to come back to the \r\n"
+			"source of the request (like a symmetric NAT, but no translation.";
+		break;
+	case PJ_STUN_NAT_TYPE_FULL_CONE:
+		description="PJ_STUN_NAT_TYPE_FULL_CONE:\r\n\r\n"
+			"A full cone NAT is one where all requests from the same internal IP \r\n"
+			"address and port are mapped to the same external IP address and port. \r\n"
+			"Furthermore, any external host can send a packet to the internal host, \r\n"
+			"by sending a packet to the mapped external address.";
+		break;
+	case PJ_STUN_NAT_TYPE_SYMMETRIC:
+		description="PJ_STUN_NAT_TYPE_SYMMETRIC:\r\n\r\n"
+			"A symmetric NAT is one where all requests from the same internal IP \r\n"
+			"address and port, to a specific destination IP address and port, are \r\n"
+			"mapped to the same external IP address and port. If the same host \r\n"
+			"sends a packet with the same source address and port, but to a different \r\n"
+			"destination, a different mapping is used. Furthermore, only the external \r\n"
+			"host that receives a packet can send a UDP packet back to the internal host.";
+		break;
+	case PJ_STUN_NAT_TYPE_RESTRICTED:
+		description="PJ_STUN_NAT_TYPE_RESTRICTED:\r\n\r\n"
+			"A restricted cone NAT is one where all requests from the same internal \r\n"
+			"IP address and port are mapped to the same external IP address and port. \r\n"
+			"Unlike a full cone NAT, an external host (with IP address X) can send a \r\n"
+			"packet to the internal host only if the internal host had previously \r\n"
+			"sent a packet to IP address X.";
+		break;
+	case PJ_STUN_NAT_TYPE_PORT_RESTRICTED:
+		description="PJ_STUN_NAT_TYPE_PORT_RESTRICTED:\r\n\r\n"
+			"A port restricted cone NAT is like a restricted cone NAT, but the \r\n"
+			"restriction includes port numbers. Specifically, an external host \r\n"
+			"can send a packet, with source IP address X and source port P, to \r\n"
+			"the internal host only if the internal host had previously sent a \r\n"
+			"packet to IP address X and port P.: ";
+		break;
+	default:
+		description="Error: unknown type detected!";
+	}
+	// emit nat_detect(QString(res->nat_type_name), description);
+    qLogx()<<QString(res->nat_type_name)<<description;
+    emit sig_nat_detect(QString(res->nat_type_name), description);
+}
 
-// void PjCallback::on_nat_detect_wrapper(const pj_stun_nat_detect_result *res) {
-// 	/* call the non-static member */
-// 	if (globalPjCallback) {
-// 		PjCallback *myCb = (PjCallback*) globalPjCallback;
-// 		myCb->on_nat_detect(res);
-// 	}
-// }
+void PjCallback::on_nat_detect_wrapper(const pj_stun_nat_detect_result *res) {
+	/* call the non-static member */
+	if (globalPjCallback) {
+		PjCallback *myCb = (PjCallback*) globalPjCallback;
+		myCb->on_nat_detect(res);
+	}
+}
 
 // void PjCallback::on_call_state(pjsua_call_id call_id, pjsip_event *e) {
 // 	PJ_UNUSED_ARG(e);

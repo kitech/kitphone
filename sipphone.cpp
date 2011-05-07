@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 846 2011-04-22 15:20:54Z drswinghead $
+// Version: $Id: sipphone.cpp 869 2011-05-07 09:41:17Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -353,9 +353,30 @@ void SipPhone::defaultSipInit()
    ua_cfg.cb.on_call_media_state = PjCallback::on_call_media_state_wrapper;
    ua_cfg.nat_type_in_sdp = 1;
 
+   ua_cfg.cb.on_nat_detect = PjCallback::on_nat_detect_wrapper;
+
+   ua_cfg.stun_host = pj_str(TURN_SERVER ":" TURN_PORT);
+   ua_cfg.stun_srv[ua_cfg.stun_srv_cnt++] = pj_str(TURN_SERVER ":" TURN_PORT);
+
+   /////// media config 
    media_cfg.snd_auto_close_time = 1;
    // Customize other settings (or initialize them from application specific
    // configuration file):
+
+   // media_cfg.enable_turn = PJ_TRUE;
+   // media_cfg.turn_server = pj_str("turn.qtchina.net:34780");
+   // media_cfg.turn_conn_type = PJ_TURN_TP_UDP;
+
+   // media_cfg.turn_auth_cred.type = PJ_STUN_AUTH_CRED_STATIC;
+   // media_cfg.turn_auth_cred.data.static_cred.realm = pj_str("pjsip.org");
+   // media_cfg.turn_auth_cred.data.static_cred.username = pj_str("100");
+
+   // media_cfg.turn_auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
+   // media_cfg.turn_auth_cred.data.static_cred.data = pj_str("100");
+
+   
+
+   // media_cfg.
 
    // Initialize pjsua
    status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
@@ -369,9 +390,17 @@ void SipPhone::defaultSipInit()
    /* Add UDP transport. */
    {
        pjsua_transport_config cfg;
+       pjsua_transport_config rtp_cfg;
+       
+       // 创建指定端口的RTP/RTCP层media后端
+       pjsua_transport_config_default(&rtp_cfg);
+       rtp_cfg.port = 8050;
+       status = pjsua_media_transports_create(&rtp_cfg);
 
+       // SIP 层初始化，可指定端口
        pjsua_transport_config_default(&cfg);
        cfg.port = 15678; // if not set , use random big port 
+       // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
        if (status != PJ_SUCCESS) {
            pjsua_perror(__FILE__, "Error creating udp transport", status);
@@ -398,6 +427,12 @@ void SipPhone::defaultSipInit()
    // NON-standard SIP Extension
    pjsip_cfg()->endpt.allow_port_in_fromto_hdr = PJ_TRUE;
 
+   status = pjsua_detect_nat_type();
+   if (status != PJ_SUCCESS) {
+       pjsua_perror(__FILE__, "Error starting pjsua", status);
+       qLogx()<<status;
+   }
+   
    // 
     // 
     pjsua_codec_info infos[20];
@@ -703,9 +738,24 @@ void SipPhone::onCallSip()
 
 void SipPhone::onHangupSip()
 {
-    // pj_status_t status;
+    pj_status_t status;
 
-    pjsua_call_hangup_all();
+    // 枚举当前的 call
+    if (pjsua_call_get_count() == 1) {
+        pjsua_call_id cids[100];
+        unsigned int call_count = 0;
+
+        status = pjsua_enum_calls(cids, &call_count);
+        qLogx()<<"active calls:"<<call_count;
+
+        status = pjsua_call_hangup(cids[0], 0, NULL, NULL);
+    } else if (pjsua_call_get_count() == 0) {
+        qLogx()<<"No active call";
+    } else {
+        qLogx()<<"Why has more than 1 calls";
+    }
+
+    // pjsua_call_hangup_all();
 }
 
 // sip
@@ -810,124 +860,124 @@ void SipPhone::on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjs
 
 }
 
-void SipPhone::on1_new_connection(void *m_port)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
-    pj_status_t status;
-    // tcp_port *f_port = (tcp_port*)m_port;
-    // tcp_port *fport = f_port;
+// void SipPhone::on1_new_connection(void *m_port)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
+//     pj_status_t status;
+//     // tcp_port *f_port = (tcp_port*)m_port;
+//     // tcp_port *fport = f_port;
 
-    /*
-                                                    pjsua_var.media_cfg.clock_rate, 
-                                                    pjsua_var.mconf_cfg.channel_count,
-                                                    pjsua_var.mconf_cfg.samples_per_frame,
-                                                    pjsua_var.mconf_cfg.bits_per_sample, 
+//     /*
+//                                                     pjsua_var.media_cfg.clock_rate, 
+//                                                     pjsua_var.mconf_cfg.channel_count,
+//                                                     pjsua_var.mconf_cfg.samples_per_frame,
+//                                                     pjsua_var.mconf_cfg.bits_per_sample, 
 
-     */
+//      */
     
-    // pj_int16_t channel_count = pjsua_var.mconf_cfg.channel_count;
-    // unsigned sampling_rate = pjsua_var.mconf_cfg.samples_per_frame;
+//     // pj_int16_t channel_count = pjsua_var.mconf_cfg.channel_count;
+//     // unsigned sampling_rate = pjsua_var.mconf_cfg.samples_per_frame;
     
-    // f_port->cli_handle = f_port->serv_handle->nextPendingConnection();
-    // qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port<<f_port->cli_handle->peerPort();
+//     // f_port->cli_handle = f_port->serv_handle->nextPendingConnection();
+//     // qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port<<f_port->cli_handle->peerPort();
 
-    // write file need header, redirect to skype, not need header
-    bool need_wav_header = true;
-    if (!need_wav_header) {
-        return;
-    }
-    // try write wav header
-    pjmedia_wave_hdr wave_hdr;
-    pj_ssize_t size;
+//     // write file need header, redirect to skype, not need header
+//     bool need_wav_header = true;
+//     if (!need_wav_header) {
+//         return;
+//     }
+//     // try write wav header
+//     pjmedia_wave_hdr wave_hdr;
+//     pj_ssize_t size;
 
-    /* Initialize WAVE header */
-    pj_bzero(&wave_hdr, sizeof(pjmedia_wave_hdr));
-    wave_hdr.riff_hdr.riff = PJMEDIA_RIFF_TAG;
-    wave_hdr.riff_hdr.file_len = 1024*1024*500; /* will be filled later */
-    wave_hdr.riff_hdr.wave = PJMEDIA_WAVE_TAG;
+//     /* Initialize WAVE header */
+//     pj_bzero(&wave_hdr, sizeof(pjmedia_wave_hdr));
+//     wave_hdr.riff_hdr.riff = PJMEDIA_RIFF_TAG;
+//     wave_hdr.riff_hdr.file_len = 1024*1024*500; /* will be filled later */
+//     wave_hdr.riff_hdr.wave = PJMEDIA_WAVE_TAG;
 
-    wave_hdr.fmt_hdr.fmt = PJMEDIA_FMT_TAG;
-    wave_hdr.fmt_hdr.len = 16;
-    // wave_hdr.fmt_hdr.fmt_tag = (pj_uint16_t)fport->fmt_tag;
-    // wave_hdr.fmt_hdr.nchan = (pj_int16_t)channel_count;
-    // wave_hdr.fmt_hdr.sample_rate = sampling_rate;
-    // wave_hdr.fmt_hdr.bytes_per_sec = sampling_rate * channel_count *
-    // fport->bytes_per_sample;
-    // wave_hdr.fmt_hdr.block_align = (pj_uint16_t)
-    //     (fport->bytes_per_sample * channel_count);
-    // wave_hdr.fmt_hdr.bits_per_sample = (pj_uint16_t)
-    //     (fport->bytes_per_sample * 8);
+//     wave_hdr.fmt_hdr.fmt = PJMEDIA_FMT_TAG;
+//     wave_hdr.fmt_hdr.len = 16;
+//     // wave_hdr.fmt_hdr.fmt_tag = (pj_uint16_t)fport->fmt_tag;
+//     // wave_hdr.fmt_hdr.nchan = (pj_int16_t)channel_count;
+//     // wave_hdr.fmt_hdr.sample_rate = sampling_rate;
+//     // wave_hdr.fmt_hdr.bytes_per_sec = sampling_rate * channel_count *
+//     // fport->bytes_per_sample;
+//     // wave_hdr.fmt_hdr.block_align = (pj_uint16_t)
+//     //     (fport->bytes_per_sample * channel_count);
+//     // wave_hdr.fmt_hdr.bits_per_sample = (pj_uint16_t)
+//     //     (fport->bytes_per_sample * 8);
 
-    wave_hdr.data_hdr.data = PJMEDIA_DATA_TAG;
-    wave_hdr.data_hdr.len = 0;      /* will be filled later */
+//     wave_hdr.data_hdr.data = PJMEDIA_DATA_TAG;
+//     wave_hdr.data_hdr.len = 0;      /* will be filled later */
 
 
-    /* Convert WAVE header from host byte order to little endian
-     * before writing the header.
-     */
-    pjmedia_wave_hdr_host_to_file(&wave_hdr);
+//     /* Convert WAVE header from host byte order to little endian
+//      * before writing the header.
+//      */
+//     pjmedia_wave_hdr_host_to_file(&wave_hdr);
 
-    /* Write WAVE header */
-    // if (fport->fmt_tag != PJMEDIA_WAVE_FMT_TAG_PCM) {
-    //     pjmedia_wave_subchunk fact_chunk;
-    //     pj_uint32_t tmp = 0;
+//     /* Write WAVE header */
+//     // if (fport->fmt_tag != PJMEDIA_WAVE_FMT_TAG_PCM) {
+//     //     pjmedia_wave_subchunk fact_chunk;
+//     //     pj_uint32_t tmp = 0;
 
-    //     fact_chunk.id = PJMEDIA_FACT_TAG;
-    //     fact_chunk.len = 4;
+//     //     fact_chunk.id = PJMEDIA_FACT_TAG;
+//     //     fact_chunk.len = 4;
 
-    //     PJMEDIA_WAVE_NORMALIZE_SUBCHUNK(&fact_chunk);
+//     //     PJMEDIA_WAVE_NORMALIZE_SUBCHUNK(&fact_chunk);
 
-    //     /* Write WAVE header without DATA chunk header */
-    //     size = sizeof(pjmedia_wave_hdr) - sizeof(wave_hdr.data_hdr);
-    //     // status = pj_file_write(fport->fd, &wave_hdr, &size);
-    //     // if (status != PJ_SUCCESS) {
-    //     //     pj_file_close(fport->fd);
-    //     //     return status;
-    //     // }
-    //     // f_port->cli_handle->write((char*)&wave_hdr, size);
+//     //     /* Write WAVE header without DATA chunk header */
+//     //     size = sizeof(pjmedia_wave_hdr) - sizeof(wave_hdr.data_hdr);
+//     //     // status = pj_file_write(fport->fd, &wave_hdr, &size);
+//     //     // if (status != PJ_SUCCESS) {
+//     //     //     pj_file_close(fport->fd);
+//     //     //     return status;
+//     //     // }
+//     //     // f_port->cli_handle->write((char*)&wave_hdr, size);
 
-    //     /* Write FACT chunk if it stores compressed data */
-    //     size = sizeof(fact_chunk);
-    //     // status = pj_file_write(fport->fd, &fact_chunk, &size);
-    //     // if (status != PJ_SUCCESS) {
-    //     //     pj_file_close(fport->fd);
-    //     //     return status;
-    //     // }
-    //     // f_port->cli_handle->write((char*)&fact_chunk, size);
+//     //     /* Write FACT chunk if it stores compressed data */
+//     //     size = sizeof(fact_chunk);
+//     //     // status = pj_file_write(fport->fd, &fact_chunk, &size);
+//     //     // if (status != PJ_SUCCESS) {
+//     //     //     pj_file_close(fport->fd);
+//     //     //     return status;
+//     //     // }
+//     //     // f_port->cli_handle->write((char*)&fact_chunk, size);
 
-    //     size = 4;
-    //     // status = pj_file_write(fport->fd, &tmp, &size);
-    //     // if (status != PJ_SUCCESS) {
-    //     //     pj_file_close(fport->fd);
-    //     //     return status;
-    //     // }
-    //     // f_port->cli_handle->write((char*)&tmp, size);
+//     //     size = 4;
+//     //     // status = pj_file_write(fport->fd, &tmp, &size);
+//     //     // if (status != PJ_SUCCESS) {
+//     //     //     pj_file_close(fport->fd);
+//     //     //     return status;
+//     //     // }
+//     //     // f_port->cli_handle->write((char*)&tmp, size);
 
-    //     /* Write DATA chunk header */
-    //     size = sizeof(wave_hdr.data_hdr);
-    //     // status = pj_file_write(fport->fd, &wave_hdr.data_hdr, &size);
-    //     // if (status != PJ_SUCCESS) {
-    //     //     pj_file_close(fport->fd);
-    //     //     return status;
-    //     // }
-    //     // f_port->cli_handle->write((char*)&wave_hdr.data_hdr, size);
-    // } else {
-    //     size = sizeof(pjmedia_wave_hdr);
-    //     // status = pj_file_write(fport->fd, &wave_hdr, &size);
-    //     // if (status != PJ_SUCCESS) {
-    //     //     pj_file_close(fport->fd);
-    //     //     return status;
-    //     // }
-    //     // f_port->cli_handle->write((char*)&wave_hdr, size);
-    // }
+//     //     /* Write DATA chunk header */
+//     //     size = sizeof(wave_hdr.data_hdr);
+//     //     // status = pj_file_write(fport->fd, &wave_hdr.data_hdr, &size);
+//     //     // if (status != PJ_SUCCESS) {
+//     //     //     pj_file_close(fport->fd);
+//     //     //     return status;
+//     //     // }
+//     //     // f_port->cli_handle->write((char*)&wave_hdr.data_hdr, size);
+//     // } else {
+//     //     size = sizeof(pjmedia_wave_hdr);
+//     //     // status = pj_file_write(fport->fd, &wave_hdr, &size);
+//     //     // if (status != PJ_SUCCESS) {
+//     //     //     pj_file_close(fport->fd);
+//     //     //     return status;
+//     //     // }
+//     //     // f_port->cli_handle->write((char*)&wave_hdr, size);
+//     // }
 
-}
+// }
 
-void SipPhone::on1_put_frame(QTcpSocket *sock, QByteArray fba)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<sock<<fba.length();
-    sock->write(fba);
-}
+// void SipPhone::on1_put_frame(QTcpSocket *sock, QByteArray fba)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<sock<<fba.length();
+//     sock->write(fba);
+// }
 
 //////
 void SipPhone::onCallSipNew()
@@ -952,59 +1002,32 @@ void SipPhone::onCallSipNew()
         }
     }
 
-    if (this->uiw->comboBox_2->currentIndex() == 0) {
+    switch (this->uiw->comboBox_2->currentIndex()) {
+    case 0:
         // UDP mode
         status = pjsua_transport_set_enable(this->tcp_tpid, PJ_FALSE);
         status = pjsua_transport_set_enable(this->udp_tpid, PJ_TRUE);
-    } else {
+        break;
+    case 1:
         // TCP mode
         status = pjsua_transport_set_enable(this->tcp_tpid, PJ_TRUE);
         status = pjsua_transport_set_enable(this->udp_tpid, PJ_FALSE);
+        break;
+    default:
+        Q_ASSERT(1==2);
+        break;
     }
     qLogx()<<"Using transport: "<< this->uiw->comboBox_2->currentText();
 
-    /* Register to SIP server by creating SIP account. */
-    {
-        pjsua_acc_config cfg;
-        QString caller_sip_user = this->uiw->comboBox_6->currentText();
-        QString caller_from_domain = this->_get_sip_from_domain();
-
-        if (this->uiw->comboBox_6->currentIndex() == this->uiw->comboBox_6->count()-1) {
-            qLogx()<<"select a host please";
-            return;
-        }
-
-        pjsua_acc_config_default(&cfg);
-        // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
-        // cfg.id = pj_str(SIP_USER " <sip:" SIP_USER "@"  "192.168.15.53:5678>");
-        // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok
-        memset(tbuf, 0, sizeof(tbuf));
-        QString reg_uri_str = QString("%1 <sip:%1@%2>").arg(caller_sip_user.split("@").at(0))
-            .arg(caller_from_domain);
-        strncpy(tbuf, reg_uri_str.toAscii().data(), sizeof(tbuf)-1);
-        qLogx()<<reg_uri_str<<tbuf;
-        cfg.id = pj_str(tbuf);
-
-        // cfg.reg_timeout = 800000000;
-        // cfg.publish_enabled = PJ_FALSE;
-        // cfg.auth_pref.initial_auth = 0; // no use
-        // cfg.reg_retry_interval = 0;
-        cfg.cred_count = 1;
-        cfg.cred_info[0].realm = pj_str("*");
-        cfg.cred_info[0].scheme = pj_str("digest");
-        cfg.cred_info[0].username = pj_str(caller_sip_user.split("@").at(0).toAscii().data());
-        cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
-        cfg.cred_info[0].data = pj_str(SIP_PASSWD);
-
-        status = pjsua_acc_add(&cfg, PJ_TRUE, &acc_id);
-        if (status != PJ_SUCCESS) {
-            pjsua_perror(__FILE__, "Error adding account", status);
-            //   error_exit("Error adding account", status);
-        }
+    //////////
+    acc_id = this->_create_sip_account(QString());
+    if (acc_id == -1) {
+        return;
     }
-    // QString callee_phone = this->uiw->comboBox->currentText();
+
     QString callee_phone = this->uiw->comboBox_7->currentText();
     QString sip_server;// = this->uiw->comboBox_2->currentText();
+    sip_server = "202.108.29.234:4060";
     // char *sipu = "<SIP:99008668056013552776960@122.228.202.105:4060;transport=UDP>";
     char *sipu = strdup(QString("<SIP:%1@%2;transport=UDP>")
                         .arg(callee_phone).arg(sip_server) .toAscii().data());
@@ -1013,8 +1036,12 @@ void SipPhone::onCallSipNew()
     pj_str_t uri = pj_str(sipu);
     status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
     if (status != PJ_SUCCESS) {
-        pjsua_perror(__FILE__, "Error making call", status);
-        //error_exit("Error making call", status);
+        if (status == 469996) {
+            this->log_output(LT_USER, "无法打开声音设备。");
+        } else {
+            pjsua_perror(__FILE__, "Error making call", status);
+            //error_exit("Error making call", status);
+        }
     }
     free(sipu);
 
@@ -1024,6 +1051,54 @@ void SipPhone::onCallSipNew()
 void SipPhone::onHangupSipNew()
 {
     pjsua_call_hangup_all();    
+}
+
+pjsua_acc_id SipPhone::_create_sip_account(QString acc_name)
+{
+    pj_status_t status;
+    pjsua_acc_id acc_id = -1;
+    char tbuf[200];
+
+    /* Register to SIP server by creating SIP account. */
+
+    pjsua_acc_config cfg;
+    QString caller_sip_user = this->uiw->comboBox_6->currentText();
+    QString caller_from_domain = this->_get_sip_from_domain();
+
+    if (this->uiw->comboBox_6->currentIndex() == this->uiw->comboBox_6->count()-1) {
+        qLogx()<<"select a host please";
+        return acc_id;
+    }
+
+    pjsua_acc_config_default(&cfg);
+    // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
+    // cfg.id = pj_str(SIP_USER " <sip:" SIP_USER "@"  "192.168.15.53:5678>");
+    // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok
+    memset(tbuf, 0, sizeof(tbuf));
+    QString reg_uri_str = QString("%1 <sip:%1@%2>").arg(caller_sip_user.split("@").at(0))
+        .arg(caller_from_domain);
+    strncpy(tbuf, reg_uri_str.toAscii().data(), sizeof(tbuf)-1);
+    qLogx()<<reg_uri_str<<tbuf;
+    cfg.id = pj_str(tbuf);
+
+    // cfg.reg_timeout = 800000000;
+    // cfg.publish_enabled = PJ_FALSE;
+    // cfg.auth_pref.initial_auth = 0; // no use
+    // cfg.reg_retry_interval = 0;
+    cfg.cred_count = 1;
+    cfg.cred_info[0].realm = pj_str("*");
+    cfg.cred_info[0].scheme = pj_str("digest");
+    cfg.cred_info[0].username = pj_str(caller_sip_user.split("@").at(0).toAscii().data());
+    cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
+    cfg.cred_info[0].data = pj_str(SIP_PASSWD);
+
+    status = pjsua_acc_add(&cfg, PJ_TRUE, &acc_id);
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(__FILE__, "Error adding account", status);
+        //   error_exit("Error adding account", status);
+    }
+
+    return acc_id;
 }
 
 QString SipPhone::_get_sip_from_domain()
@@ -1085,14 +1160,14 @@ QString SipPhone::_get_sip_from_domain()
 
     pjsua_transport_config cfg;
     pjsua_transport_info tinfo;
-    // if (this->uiw->comboBox_12->currentIndex() == 0) {
-    //     // UDP mode
-    //     pjsua_transport_get_info(this->udp_tpid, &tinfo);
-    // } else {
-    //     // TCP mode
-    //     pjsua_transport_get_info(this->tcp_tpid, &tinfo);
-    // }
-    // qDebug()<<"Using transport: "<< this->uiw->comboBox_12->currentText();
+    if (this->uiw->comboBox_2->currentIndex() == 0) {
+        // UDP mode
+        pjsua_transport_get_info(this->udp_tpid, &tinfo);
+    } else {
+        // TCP mode
+        pjsua_transport_get_info(this->tcp_tpid, &tinfo);
+    }
+    qLogx()<<"Using transport: "<< this->uiw->comboBox_2->currentText();
 
     unsigned short port = ntohs(tinfo.local_addr.ipv4.sin_port);
     
@@ -1104,7 +1179,7 @@ QString SipPhone::_get_sip_from_domain()
 void SipPhone::onSelectedUserAccountChanged(int idx)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<idx;
-    qDebug()<<this->uiw->comboBox_6->currentText();
+    qLogx()<<this->uiw->comboBox_6->currentText();
 }
 
 void SipPhone::onDigitButtonClicked()
@@ -1184,11 +1259,56 @@ void PJSipEventThread::dump_info(pj_thread_t *thread)
 {
     Q_ASSERT(thread != NULL);
 
-    qDebug()<<"pj_thread_is_registered:"<<pj_thread_is_registered();
-    qDebug()<<"pj_thread_get_prio:"<<pj_thread_get_prio(thread);
-    qDebug()<<"pj_thread_get_prio_min:"<<pj_thread_get_prio_min(thread);
-    qDebug()<<"pj_thread_get_prio_max:"<<pj_thread_get_prio_max(thread);
-    qDebug()<<"pj_thread_get_name:"<<pj_thread_get_name(thread);
-    qDebug()<<"pj_getpid:"<<pj_getpid();
+    qLogx()<<"pj_thread_is_registered:"<<pj_thread_is_registered();
+    qLogx()<<"pj_thread_get_prio:"<<pj_thread_get_prio(thread);
+    qLogx()<<"pj_thread_get_prio_min:"<<pj_thread_get_prio_min(thread);
+    qLogx()<<"pj_thread_get_prio_max:"<<pj_thread_get_prio_max(thread);
+    qLogx()<<"pj_thread_get_name:"<<pj_thread_get_name(thread);
+    qLogx()<<"pj_getpid:"<<pj_getpid();
 }
 
+// TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
+// log is utf8 codec
+void SipPhone::log_output(int type, const QString &log)
+{
+    QListWidgetItem *witem = nullptr;
+    QString log_time = QDateTime::currentDateTime().toString("hh:mm:ss");
+
+    int debug = 1;
+
+    QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
+    QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
+
+    if (type == LT_USER) {
+        // TODO 怎么确定是属于呼叫日志呢。恐怕还是得在相应的地方执行才行。
+        this->uiw->label_11->setText(u16_log);
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
+        this->uiw->listWidget->addItem(witem);
+    } else if (type == LT_DEBUG && debug) {
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
+        this->uiw->listWidget->addItem(witem);
+    } else {
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<type<<log;
+    }
+
+    // 清除多余日志
+    static int max_log_count = 30;
+    if (debug == 1) {
+        max_log_count += 200;
+    }
+    if (this->uiw->listWidget->count() > max_log_count) {
+        int rm_count = this->uiw->listWidget->count() - max_log_count;
+        // 从最老的日志开始删除
+        for (int i = 0; i < rm_count; i++) {
+            witem = this->uiw->listWidget->takeItem(i);
+            delete witem;
+        }
+        // 从最新的开始
+        // for (int i = rm_count - 1; i >= 0; i--) {
+        //     witem = this->uiw->listWidget->takeItem(max_log_count+i);
+        //     delete witem;
+        // }
+    }
+
+    qLogx()<<type<<u16_log;
+}

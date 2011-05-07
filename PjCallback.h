@@ -63,8 +63,8 @@ public:
 
 	// /* Notify application which NAT type was detected
 	//  */
-	// void on_nat_detect(const pj_stun_nat_detect_result *res);
-	// static void on_nat_detect_wrapper(const pj_stun_nat_detect_result *res);
+	void on_nat_detect(const pj_stun_nat_detect_result *res);
+	static void on_nat_detect_wrapper(const pj_stun_nat_detect_result *res);
 	
 	// /* Notify application when media state in the call has changed. Normal 
 	//  * application would need to implement this callback, e.g. to connect 
@@ -113,6 +113,7 @@ public:
     void on_exceed_max_call_count(int payload);
     static void on_exceed_max_call_count_wrapper(int payload);
 
+
     void on_new_connection(void *m_port);
     static void on_new_connection_wrapper(void *m_port);
 
@@ -141,7 +142,7 @@ signals:
 // 	/* this signal forwards the instant message a-synchronous to the GUI thread */
 // 	void new_im(QString from, QString text);
 // 	/* this signal forwards the instant message a-synchronous to the GUI thread */
-// 	void nat_detect(QString text, QString description);
+ 	void sig_nat_detect(QString text, QString description);
 // 	/* this signal forwards the call state synchronous to the GUI thread */
 // 	void call_state_sync(int call_id);
 // 	/* this signal forwards the call state a-synchronous BLOCKING to the GUI thread */

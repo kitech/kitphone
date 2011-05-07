@@ -477,6 +477,8 @@ void SipPhone::init_sip_client_ui_element()
 {
     int qid_pjsua_call_id = qRegisterMetaType<pjsua_call_id>("pjsua_call_id");
     int qid_pjsua_acc_id = qRegisterMetaType<pjsua_acc_id>("pjsua_acc_id");
+    Q_UNUSED(qid_pjsua_call_id);
+    Q_UNUSED(qid_pjsua_acc_id);
 
     ::globalPjCallback = new PjCallback();
     PjCallback *pjcb = (PjCallback *)globalPjCallback;

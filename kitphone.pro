@@ -113,6 +113,8 @@ win32 {
 
     LIBS += -lws2_32 -lole32 -luser32
     LIBS += -llibg7221codec-i386-win32-vc6-release \
+    -llibg729codec-i386-win32-vc6-release.lib \
+    -llibsilkcodec-i386-win32-vc6-release.lib \
     -llibgsmcodec-i386-win32-vc6-release \
     -llibilbccodec-i386-win32-vc6-release \
     -llibmilenage-i386-win32-vc6-release \

@@ -3,6 +3,13 @@
 #include <QList>
 #include <QMutex>
 
+#include "pjsip.h"
+#include <pjsua-lib/pjsua.h>
+#include <pjsua-lib/pjsua_internal.h>
+#include "pjsua.h"
+#include <pjmedia/wave.h>
+#include <pjmedia/wav_port.h>
+
 #include "simplelog.h"
 #include "sipphone.h"
 #include "PjCallback.h"
@@ -509,6 +516,18 @@ void PjCallback::on_pjsua_init_impl(int reqno, pjsua_config *ua_cfg, pjsua_loggi
     emit this->sig_pjsua_init_done(reqno, status);
 }
 
+void PjCallback::on_pjsua_transport_create_impl(int reqno, const QVector<int> &types,
+                                                const QVector<pjsua_transport_config*> &tp_cfgs)
+{
+    qLogx()<<"";
+    pj_status_t status;
+    QVector<pj_status_t> statuses;
+    QVector<pjsua_transport_id> tp_ids;
+    
+
+    emit this->sig_pjsua_transport_create_done(reqno, statuses, tp_ids);
+}
+
 void PjCallback::on_pjsua_start_impl(int reqno)
 {
     qLogx()<<"";
@@ -546,6 +565,30 @@ PjsipCallFront::PjsipCallFront(QObject *parent)
 
 PjsipCallFront::~PjsipCallFront()
 {
+}
+
+int PjsipCallFront::mystart(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg,
+          pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg)
+{
+    m_ua_cfg = ua_cfg;
+    m_log_cfg = log_cfg;
+    m_media_cfg = media_cfg;
+    
+    m_tcp_tp_cfg = tcp_tp_cfg;
+    m_udp_tp_cfg = udp_tp_cfg;
+
+    this->start();
+
+    return PJ_SUCCESS;
+}
+
+pj_status_t PjsipCallFront::sip_init_misc()
+{
+    pj_status_t status;
+
+    
+
+    return status;
 }
 
 void PjsipCallFront::run()
@@ -589,6 +632,9 @@ void PjsipCallFront::run()
                      myCb, SLOT(on_pjsua_create_impl(int)));
     QObject::connect(this, SIGNAL(invoke_pjsua_init_fwd(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)),
                      myCb, SLOT(on_pjsua_init_impl(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)));
+    QObject::connect(this, SIGNAL(invoke_pjsua_transport_create_fwd(int, const QVector<int> &, const QVector<pjsua_transport_config*> &)),
+                     myCb, SLOT(on_pjsua_transport_create_impl(int, const QVector<int>&, const QVector<pjsua_transport_config*>&)));
+
     QObject::connect(this, SIGNAL(invoke_pjsua_start_fwd(int)),
                      myCb, SLOT(on_pjsua_start_impl(int)));
     QObject::connect(this, SIGNAL(invoke_make_call_fwd(int, pjsua_acc_id, const QString&)),
@@ -599,13 +645,56 @@ void PjsipCallFront::run()
                      this, SIGNAL(invoke_pjsua_create_result(int, pj_status_t)));
     QObject::connect(myCb, SIGNAL(sig_pjsua_init_done(int, pj_status_t)),
                      this, SIGNAL(invoke_pjsua_init_result(int, pj_status_t)));
+    QObject::connect(myCb, SIGNAL(sig_pjsua_transport_create_done(int, const QVector<pj_status_t>&, const QVector<pjsua_transport_id> &)),
+                     this, SIGNAL(invoke_pjsua_transport_create_result(int, const QVector<pj_status_t>&, const QVector<pjsua_transport_id> &)));
     QObject::connect(myCb, SIGNAL(sig_pjsua_start_done(int, pj_status_t)),
                      this, SIGNAL(invoke_pjsua_start_result(int, pj_status_t)));
     QObject::connect(myCb, SIGNAL(sig_make_call_done(int, pj_status_t, pjsua_call_id)),
                      this, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)));
 
+
+    status = pjsua_init(m_ua_cfg, m_log_cfg, m_media_cfg);
+    Q_ASSERT(status == PJ_SUCCESS);
+
+    pjsua_var.mconf_cfg.samples_per_frame = 8000; // pjsua_var from 
+
+    /* Add UDP transport. */
+    {
+        pjsua_transport_config cfg;
+        pjsua_transport_config rtp_cfg;
+        pjsua_transport_id udp_tp_id;
+        pjsua_transport_id tcp_tp_id;
+       
+        // 创建指定端口的RTP/RTCP层media后端
+        pjsua_transport_config_default(&rtp_cfg);
+        rtp_cfg.port = 8050;
+        status = pjsua_media_transports_create(&rtp_cfg);
+
+        // SIP 层初始化，可指定端口
+        pjsua_transport_config_default(&cfg);
+        cfg.port = 15678; // if not set , use random big port 
+        // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
+        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &udp_tp_id);
+        if (status != PJ_SUCCESS) {
+            pjsua_perror(__FILE__, "Error creating udp transport", status);
+            // error_exit("Error creating transport", status);
+        }
+
+        // TCP transport
+        pjsua_transport_config_default(&cfg);
+        cfg.port = 56789;
+        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &tcp_tp_id);
+        if (status != PJ_SUCCESS) {
+            pjsua_perror(__FILE__, "Error creating tcp transport", status);
+            // error_exit("Error creating transport", status);
+        }
+    }
+    
+    status = pjsua_start();
+    Q_ASSERT(status == PJ_SUCCESS);
+
     qLogx()<<"";
-    emit this->realStarted();
+    emit this->realStarted(status);
     this->exec();
 }
 
@@ -640,6 +729,17 @@ int PjsipCallFront::invoke_pjsua_init(pjsua_config *ua_cfg, pjsua_logging_config
     return reqno;
 
 }
+
+int PjsipCallFront::invoke_pjsua_transport_create(const QVector<int> &types,
+                                                  const QVector<pjsua_transport_config*> &tp_cfgs)
+{
+    int reqno = ++ this->m_reqno;
+
+    emit this->invoke_pjsua_transport_create_fwd(reqno, types, tp_cfgs);
+
+    return reqno;
+}
+
 
 int PjsipCallFront::invoke_pjsua_start()
 {

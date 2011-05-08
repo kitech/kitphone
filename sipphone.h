@@ -67,7 +67,7 @@ public:
 
 public slots: // sip
     void defaultSipInit();
-    void on3_invoker_started();
+    void on3_invoker_started(pj_status_t status);
 
     // ui
     void main_ui_draw_complete();
@@ -104,6 +104,7 @@ public slots: // sip
 
 private slots:
     void onFCMakeCallFinished();
+    void set_custom_sip_config();
 
 public:
     enum LOGTYPE {

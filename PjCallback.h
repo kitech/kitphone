@@ -127,6 +127,9 @@ public:
 public slots:
     void on_pjsua_create_impl(int reqno);
     void on_pjsua_init_impl(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    void on_pjsua_transport_create_impl(int reqno, const QVector<int> &types,
+                                        const QVector<pjsua_transport_config*> &tp_cfgs);
+
     void on_pjsua_start_impl(int reqno);
     void on_make_call_impl(int reqno, pjsua_acc_id acc_id, const QString &sip_uri);
 
@@ -166,6 +169,8 @@ signals:
 
     void sig_pjsua_create_done(int reqno, pj_status_t status);
     void sig_pjsua_init_done(int reqno, pj_status_t status);
+    void sig_pjsua_transport_create_done(int reqno,  const QVector<pj_status_t> &statuses, 
+                                         const QVector<pjsua_transport_id> &tp_ids);
     void sig_pjsua_start_done(int reqno, pj_status_t status);
     void sig_make_call_done(int reqno, pj_status_t status, pjsua_call_id call_id);
 };
@@ -178,32 +183,50 @@ public:
     virtual ~PjsipCallFront();
 
     void dump_info(pj_thread_t *thread);
+
 protected:
     void run();
 
+    pj_status_t sip_init_misc();              
+
 public slots:
+    int mystart(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg,
+              pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg);
+
     int invoke_pjsua_create();
     int invoke_pjsua_init(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    int invoke_pjsua_transport_create(const QVector<int> &types,
+                                      const QVector<pjsua_transport_config*> &tp_cfgs);
     int invoke_pjsua_start();
     int invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri);
 
 signals:
-    void realStarted();
+    void realStarted(pj_status_t status);
 
     void invoke_sip_init_result(int reqno, pj_status_t status);
     void invoke_pjsua_create_result(int reqno, pj_status_t status);
     void invoke_pjsua_init_result(int reqno, pj_status_t status);
+    void invoke_pjsua_transport_create_result(int reqno, const QVector<pj_status_t> &statuses, 
+                                              const QVector<pjsua_transport_id> &tp_ids);
     void invoke_pjsua_start_result(int reqno, pj_status_t status);
     void invoke_make_call_result(int reqno, pj_status_t status, pjsua_call_id call_id);
 
     // signals:
     void invoke_pjsua_create_fwd(int reqno);
     void invoke_pjsua_init_fwd(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    int invoke_pjsua_transport_create_fwd(int reqno, const QVector<int> &types,
+                                          const QVector<pjsua_transport_config*> &tp_cfgs);
     void invoke_pjsua_start_fwd(int reqno);
     void invoke_make_call_fwd(int reqno, pjsua_acc_id acc_id, QString sip_uri);
 
 private:
     static int m_reqno;
+
+    pjsua_config *m_ua_cfg;
+    pjsua_logging_config *m_log_cfg;
+    pjsua_media_config *m_media_cfg;
+    pjsua_transport_config *m_tcp_tp_cfg;
+    pjsua_transport_config *m_udp_tp_cfg;
 };
 
 #endif /*PJCALLBACK_H_*/

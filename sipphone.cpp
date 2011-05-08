@@ -333,6 +333,9 @@ void SipPhone::defaultSipInit()
     Q_UNUSED(qid_pjsua_transport_id);
 
     qLogx()<<"";
+
+    this->set_custom_sip_config();
+
     // ::globalPjCallback = new PjCallback(); // 移动到invoker线程中
     this->m_invoker = new PjsipCallFront();
     QObject::connect(this->m_invoker, SIGNAL(invoke_pjsua_create_result(int, pj_status_t)),
@@ -343,8 +346,10 @@ void SipPhone::defaultSipInit()
                      this, SLOT(on2_pjsua_start_done(int, pj_status_t)));
     QObject::connect(this->m_invoker, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)),
                      this, SLOT(on2_make_call_done(int, pj_status_t, pjsua_call_id)));
-    QObject::connect(this->m_invoker, SIGNAL(realStarted()), this, SLOT(on3_invoker_started()));
-    this->m_invoker->start();
+    QObject::connect(this->m_invoker, SIGNAL(realStarted(pj_status_t)),
+                     this, SLOT(on3_invoker_started(pj_status_t)));
+    this->m_invoker->mystart(&m_ua_cfg, &m_log_cfg, &m_media_cfg, 
+                             &m_tcp_tp_cfg, &m_udp_tp_cfg);
 
 	// QObject::connect(pjcb, SIGNAL(sig_new_connection(void *)),
     //                  this, SLOT(on1_new_connection(void *)),
@@ -514,70 +519,9 @@ void SipPhone::defaultSipInit()
     // qDebug()<<"snd ok?"<<pjsua_snd_is_active();
 }
 
-void SipPhone::init_sip_client_ui_element()
+void SipPhone::set_custom_sip_config()
 {
-
-    // QObject::connect(this->ui->pushButton, SIGNAL(clicked()), this, SLOT(onCall()));
-    // QObject::connect(this->uiw->pushButton, SIGNAL(clicked()), this, SLOT(onCallSip()));
-    // QObject::connect(this->ui->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangup()));
-    // QObject::connect(this->uiw->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangupSip()));
-
-    QObject::connect(this->uiw->pushButton_11, SIGNAL(clicked()), this, SLOT(onCallSipNew()));
-    QObject::connect(this->uiw->toolButton_10, SIGNAL(clicked()), this, SLOT(onHangupSipNew()));
-
-    QObject::connect(this->uiw->comboBox_6, SIGNAL(currentIndexChanged(int)),
-                     this, SLOT(onSelectedUserAccountChanged(int)));
-
-    QObject::connect(this->uiw->toolButton_14, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_15, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_16, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_17, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_18, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_19, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_20, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_21, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_22, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_23, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_24, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-    QObject::connect(this->uiw->toolButton_25, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
-
-}
-
-void SipPhone::on3_invoker_started()
-{
-    qLogx()<<"";
-
-    pj_thread_desc initdec;
-    pj_thread_t* thread = 0;
     pj_status_t status;
-
-    qLogx()<<"ready register pjsip thread by Qt";
-    if (!pj_thread_is_registered()) {
-        status = pj_thread_register("KitPhoneMainUiThread_run", initdec, &thread);
-        if (status != PJ_SUCCESS) {
-            qLogx()<<"pj_thread_register faild:"<<status;
-            Q_ASSERT(status == PJ_SUCCESS);
-            return;
-        }
-    }
-    PJ_CHECK_STACK();
-    qLogx()<<"registerred pjsip thread:"<<thread;
-
-    this->m_invoker->dump_info(thread);
-    
-
-    PjCallback *pjcb = (PjCallback *)globalPjCallback;
-	QObject::connect(pjcb, SIGNAL(sig_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
-                     this, SLOT(on1_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
-                     Qt::QueuedConnection);
-	QObject::connect(pjcb, SIGNAL(sig_call_media_state(pjsua_call_id, pjsua_call_info *)),
-                     this, SLOT(on1_call_media_state(pjsua_call_id, pjsua_call_info *)),
-                     Qt::QueuedConnection);
-	QObject::connect(pjcb, SIGNAL(sig_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
-                     this, SLOT(on1_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
-                     Qt::QueuedConnection);
-
-
 
     // Initialize configs with default settings.
     pjsua_config_default(&m_ua_cfg);
@@ -617,9 +561,74 @@ void SipPhone::on3_invoker_started()
 
     m_media_cfg.turn_auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
     m_media_cfg.turn_auth_cred.data.static_cred.data = pj_str("100");
+}
 
-    int reqno = this->m_invoker->invoke_pjsua_init(&m_ua_cfg, &m_log_cfg, &m_media_cfg);
-    qLogx()<<reqno;
+void SipPhone::init_sip_client_ui_element()
+{
+
+    // QObject::connect(this->ui->pushButton, SIGNAL(clicked()), this, SLOT(onCall()));
+    // QObject::connect(this->uiw->pushButton, SIGNAL(clicked()), this, SLOT(onCallSip()));
+    // QObject::connect(this->ui->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangup()));
+    // QObject::connect(this->uiw->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangupSip()));
+
+    QObject::connect(this->uiw->pushButton_11, SIGNAL(clicked()), this, SLOT(onCallSipNew()));
+    QObject::connect(this->uiw->toolButton_10, SIGNAL(clicked()), this, SLOT(onHangupSipNew()));
+
+    QObject::connect(this->uiw->comboBox_6, SIGNAL(currentIndexChanged(int)),
+                     this, SLOT(onSelectedUserAccountChanged(int)));
+
+    QObject::connect(this->uiw->toolButton_14, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_15, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_16, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_17, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_18, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_19, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_20, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_21, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_22, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_23, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_24, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_25, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+
+}
+
+void SipPhone::on3_invoker_started(pj_status_t rstatus)
+{
+    qLogx()<<"";
+
+    pj_thread_desc initdec;
+    pj_thread_t* thread = 0;
+    pj_status_t status;
+
+    qLogx()<<"ready register pjsip thread by Qt";
+    if (!pj_thread_is_registered()) {
+        status = pj_thread_register("KitPhoneMainUiThread_run", initdec, &thread);
+        if (status != PJ_SUCCESS) {
+            qLogx()<<"pj_thread_register faild:"<<status;
+            Q_ASSERT(status == PJ_SUCCESS);
+            return;
+        }
+    }
+    PJ_CHECK_STACK();
+    qLogx()<<"registerred pjsip thread:"<<thread;
+
+    this->m_invoker->dump_info(thread);
+    
+
+    PjCallback *pjcb = (PjCallback *)globalPjCallback;
+	QObject::connect(pjcb, SIGNAL(sig_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
+                     this, SLOT(on1_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
+                     Qt::QueuedConnection);
+	QObject::connect(pjcb, SIGNAL(sig_call_media_state(pjsua_call_id, pjsua_call_info *)),
+                     this, SLOT(on1_call_media_state(pjsua_call_id, pjsua_call_info *)),
+                     Qt::QueuedConnection);
+	QObject::connect(pjcb, SIGNAL(sig_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
+                     this, SLOT(on1_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
+                     Qt::QueuedConnection);
+
+    this->on2_pjsua_start_done(0, PJ_SUCCESS);
+    // int reqno = this->m_invoker->invoke_pjsua_init(&m_ua_cfg, &m_log_cfg, &m_media_cfg);
+    // qLogx()<<reqno;
 }
 
 void SipPhone::onManageSipAccounts()

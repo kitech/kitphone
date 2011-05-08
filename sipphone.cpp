@@ -1345,32 +1345,32 @@ void SipPhone::on2_pjsua_init_done(int seqno, pj_status_t rstatus)
 
     /* Add UDP transport. */
     {
-        pjsua_transport_config cfg;
-        pjsua_transport_config rtp_cfg;
+        // pjsua_transport_config cfg;
+        // pjsua_transport_config rtp_cfg;
        
-        // 创建指定端口的RTP/RTCP层media后端
-        pjsua_transport_config_default(&rtp_cfg);
-        rtp_cfg.port = 8050;
-        status = pjsua_media_transports_create(&rtp_cfg);
+        // // 创建指定端口的RTP/RTCP层media后端
+        // pjsua_transport_config_default(&rtp_cfg);
+        // rtp_cfg.port = 8050;
+        // status = pjsua_media_transports_create(&rtp_cfg);
 
-        // SIP 层初始化，可指定端口
-        pjsua_transport_config_default(&cfg);
-        cfg.port = 15678; // if not set , use random big port 
-        // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
-        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
-        if (status != PJ_SUCCESS) {
-            pjsua_perror(__FILE__, "Error creating udp transport", status);
-            // error_exit("Error creating transport", status);
-        }
+        // // SIP 层初始化，可指定端口
+        // pjsua_transport_config_default(&cfg);
+        // cfg.port = 15678; // if not set , use random big port 
+        // // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
+        // status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
+        // if (status != PJ_SUCCESS) {
+        //     pjsua_perror(__FILE__, "Error creating udp transport", status);
+        //     // error_exit("Error creating transport", status);
+        // }
 
-        // TCP transport
-        pjsua_transport_config_default(&cfg);
-        cfg.port = 56789;
-        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &this->tcp_tpid);
-        if (status != PJ_SUCCESS) {
-            pjsua_perror(__FILE__, "Error creating tcp transport", status);
-            // error_exit("Error creating transport", status);
-        }
+        // // TCP transport
+        // pjsua_transport_config_default(&cfg);
+        // cfg.port = 56789;
+        // status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &this->tcp_tpid);
+        // if (status != PJ_SUCCESS) {
+        //     pjsua_perror(__FILE__, "Error creating tcp transport", status);
+        //     // error_exit("Error creating transport", status);
+        // }
     }
 
     /* Initialization is done, now start pjsua */

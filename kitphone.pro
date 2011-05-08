@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-09-21 16:19:00 +0800
-# Version: $Id: kitphone.pro 859 2011-05-03 10:17:35Z drswinghead $
+# Version: $Id: kitphone.pro 874 2011-05-08 08:48:25Z drswinghead $
 # 
 
 QT       += core gui network declarative sql

@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 869 2011-05-07 09:41:17Z drswinghead $
+// Version: $Id: sipphone.cpp 874 2011-05-08 08:48:25Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -34,6 +34,14 @@
 #include "sipaccount.h"
 #include "sipaccountswindow.h"
 
+#include "asyncdatabase.h"
+#include "phonecontact.h"
+#include "phonecontactproperty.h"
+#include "groupinfodialog.h"
+#include "contactmodel.h"
+#include "callhistorymodel.h"
+
+
 /* global callback/logger object */
 extern void *globalPjCallback;
 
@@ -55,6 +63,26 @@ SipPhone::SipPhone(QWidget *parent)
                      this, SLOT(onManageSipAccounts()));
 
     this->defaultSipInit();
+
+    this->m_adb = boost::shared_ptr<AsyncDatabase>(new AsyncDatabase());
+    QObject::connect(this->m_adb.get(), SIGNAL(connected()), this, SLOT(onDatabaseConnected()));
+    this->m_adb->start();
+    // QTimer::singleShot(50, this->m_adb.get(), SLOT(start()));
+    
+    QObject::connect(this->m_adb.get(), SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
+                     this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
+
+
+    this->m_contact_model = new ContactModel(this->m_adb);
+    this->m_call_history_model = new CallHistoryModel(this->m_adb);
+
+
+    /////////////
+    QGraphicsOpacityEffect *oe = new QGraphicsOpacityEffect();
+    oe->setOpacity(0.3);
+    // this->uiw->toolButton_5->setWindowOpacity(0.5);
+    this->uiw->toolButton_5->setGraphicsEffect(oe);
+
 }
 
 SipPhone::~SipPhone()
@@ -65,7 +93,22 @@ SipPhone::~SipPhone()
 
 void SipPhone::main_ui_draw_complete()
 {
-    qDebug()<<"draw complete, load dynamic data now";
+    qLogx()<<"draw complete, load dynamic data now";
+
+    this->m_dialpanel_layout_index = 4;
+    this->m_dialpanel_layout_item = this->layout()->itemAt(this->m_dialpanel_layout_index);
+    qLogx()<<this->m_dialpanel_layout_item->widget();
+
+    this->m_log_list_layout_index = 7;
+    this->m_log_list_layout_item = this->layout()->itemAt(this->m_log_list_layout_index);
+    qLogx()<<this->m_log_list_layout_item->widget();
+
+    this->mdyn_oe = new QGraphicsOpacityEffect();
+    QObject::connect(this->uiw->toolButton_4, SIGNAL(clicked()),
+                     this, SLOT(onShowDialPanel()));
+    QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
+                     this, SLOT(onShowLogPanel()));
+
     this->acc_list = SipAccountList::instance();
 
     QString user_account;
@@ -91,6 +134,83 @@ void SipPhone::showEvent ( QShowEvent * event )
 {
     QWidget::showEvent(event);
     // qDebug()<<"showwwwwwwwwwwww"<<event<<event->type();
+}
+
+void SipPhone::onShowDialPanel()
+{
+    this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
+                              !this->m_dialpanel_layout_item->widget()->isVisible());    
+}
+
+void SipPhone::onShowLogPanel()
+{
+    // this->onDynamicSetVisible(this->m_log_list_layout_item->widget(),
+    //                           !this->m_log_list_layout_item->widget()->isVisible());
+
+    this->m_log_list_layout_item->widget()->setVisible(!this->m_log_list_layout_item->widget()->isVisible());
+    this->uiw->toolButton->setArrowType(this->m_log_list_layout_item->widget()->isVisible()
+                                        ? Qt::DownArrow : Qt::UpArrow);
+}
+
+void SipPhone::onDynamicSetVisible(QWidget *w, bool visible)
+{
+    Q_ASSERT(w != NULL);
+
+    this->mdyn_widget = w;
+    this->mdyn_visible = visible;
+
+    this->onDynamicSetVisible();
+    // w->setWindowOpacity(0.5);
+
+}
+
+void SipPhone::onDynamicSetVisible()
+{
+    int curr_opacity = 100;
+    char *pname = "dyn_opacity";
+    QVariant dyn_opacity = this->mdyn_widget->property(pname);
+
+    if (dyn_opacity.isValid()) {
+        curr_opacity = dyn_opacity.toInt();
+        if (this->mdyn_visible == true) {
+            curr_opacity += 10;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+            if (curr_opacity == 100) {
+                this->mdyn_oe->setOpacity(1.0);
+                this->mdyn_widget->setGraphicsEffect(this->mdyn_oe);
+                this->mdyn_widget->setVisible(true);
+            } else {
+                // this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                this->mdyn_oe->setOpacity(curr_opacity*1.0/100);
+                this->mdyn_widget->setGraphicsEffect(this->mdyn_oe);
+                if (curr_opacity == 10) {
+                    this->mdyn_widget->setVisible(true);
+                }
+                QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
+            }
+        } else {
+            curr_opacity -= 10;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+            if (curr_opacity == 0) {
+                this->mdyn_widget->setVisible(false);
+            } else {
+                // this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                this->mdyn_oe->setOpacity(curr_opacity*1.0/100);
+                this->mdyn_widget->setGraphicsEffect(this->mdyn_oe);
+                QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
+            }
+        }
+    } else {
+        if (this->mdyn_visible == true) {
+            curr_opacity = 0;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+        } else {
+            curr_opacity = 100;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
+        }
+        QTimer::singleShot(1, this, SLOT(onDynamicSetVisible()));
+    }
+    
 }
 
 QString my_pjsua_strerror(pj_status_t status)
@@ -128,11 +248,14 @@ void SipPhone::defaultSipInit()
     QObject::connect(this->m_invoker, SIGNAL(realStarted(pj_status_t)),
                      this, SLOT(on3_invoker_started(pj_status_t)));
     this->m_invoker->mystart(&m_ua_cfg, &m_log_cfg, &m_media_cfg, 
-                             &m_tcp_tp_cfg, &m_udp_tp_cfg);
+                             &m_tcp_tp_cfg, &m_udp_tp_cfg,
+                             &m_tcp_tp_id, &m_udp_tp_id);
 
 
     // // 
     this->init_sip_client_ui_element();
+    this->customAddContactButtonMenu();
+    this->initContactViewContextMenu();
 }
 
 void SipPhone::set_custom_sip_config()
@@ -405,12 +528,12 @@ void SipPhone::onCallSip()
 
     // if (this->uiw->comboBox_12->currentIndex() == 0) {
     //     // UDP mode
-    //     status = pjsua_transport_set_enable(this->tcp_tpid, PJ_FALSE);
-    //     status = pjsua_transport_set_enable(this->udp_tpid, PJ_TRUE);
+    //     status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_FALSE);
+    //     status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_TRUE);
     // } else {
     //     // TCP mode
-    //     status = pjsua_transport_set_enable(this->tcp_tpid, PJ_TRUE);
-    //     status = pjsua_transport_set_enable(this->udp_tpid, PJ_FALSE);
+    //     status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_TRUE);
+    //     status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_FALSE);
     // }
     // qDebug()<<"Using transport: "<< this->uiw->comboBox_12->currentText();
 
@@ -612,13 +735,13 @@ void SipPhone::onCallSipNew()
     switch (this->uiw->comboBox_2->currentIndex()) {
     case 0:
         // UDP mode
-        status = pjsua_transport_set_enable(this->tcp_tpid, PJ_FALSE);
-        status = pjsua_transport_set_enable(this->udp_tpid, PJ_TRUE);
+        status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_FALSE);
+        status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_TRUE);
         break;
     case 1:
         // TCP mode
-        status = pjsua_transport_set_enable(this->tcp_tpid, PJ_TRUE);
-        status = pjsua_transport_set_enable(this->udp_tpid, PJ_FALSE);
+        status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_TRUE);
+        status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_FALSE);
         break;
     default:
         Q_ASSERT(1==2);
@@ -773,10 +896,10 @@ QString SipPhone::_get_sip_from_domain()
     pjsua_transport_info tinfo;
     if (this->uiw->comboBox_2->currentIndex() == 0) {
         // UDP mode
-        pjsua_transport_get_info(this->udp_tpid, &tinfo);
+        pjsua_transport_get_info(this->m_udp_tp_id, &tinfo);
     } else {
         // TCP mode
-        pjsua_transport_get_info(this->tcp_tpid, &tinfo);
+        pjsua_transport_get_info(this->m_tcp_tp_id, &tinfo);
     }
     qLogx()<<"Using transport: "<< this->uiw->comboBox_2->currentText();
 
@@ -887,14 +1010,364 @@ void SipPhone::on2_make_call_done(int seqno, pj_status_t rstatus, pjsua_call_id 
     }
 }
 
-void SipPhone::onFCMakeCallFinished() 
+void SipPhone::customAddContactButtonMenu()
 {
-    QFutureWatcher<pj_status_t> *pwatcher = static_cast<QFutureWatcher<pj_status_t>*>(sender());
-    QFuture<pj_status_t> future = pwatcher->future();
-    pj_status_t status = future.result();
-    
-    qLogx()<<status;
+    QAction *action;
+    QAction *daction;
+    QMenu *add_contact_menu = new QMenu(this);
+
+    daction = new QAction(QIcon(":/skins/default/addcontact.png"), tr("Add Contact"), this);
+    add_contact_menu->addAction(daction);
+    // add_contact_menu->setDefaultAction(action);
+
+    QObject::connect(daction, SIGNAL(triggered()),
+                     this, SLOT(onAddContact()));
+
+
+    action = new QAction(tr("Import Contacts"), this);
+    add_contact_menu->addAction(action);
+
+    action = new QAction(tr("Export Contacts"), this);
+    add_contact_menu->addAction(action);
+
+    add_contact_menu->addSeparator();
+
+    action = new QAction(tr("New Group"), this);
+    add_contact_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onAddGroup()));
+
+    this->uiw->toolButton_6->setMenu(add_contact_menu);
+    this->uiw->toolButton_6->setDefaultAction(daction);
 }
+
+
+void SipPhone::initContactViewContextMenu()
+{
+    QAction *action;
+
+    this->m_contact_view_ctx_menu = new QMenu(this);
+
+    action = new QAction(tr("&Call..."), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+    
+    this->m_contact_view_ctx_menu->addSeparator();
+
+    action = new QAction(tr("&Edit Contact"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onModifyContact()));
+
+    action = new QAction(tr("&Delete Contact"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+
+    this->m_contact_view_ctx_menu->addSeparator();
+
+    action = new QAction(tr("&Delete Group"), this);
+    this->m_contact_view_ctx_menu->addAction(action);
+
+    QObject::connect(this->uiw->treeView, SIGNAL(customContextMenuRequested(const QPoint &)),
+                     this, SLOT(onShowContactViewMenu(const QPoint &)));
+}
+
+void SipPhone::onAddContact()
+{
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    // boost::shared_ptr<PhoneContact> pc;
+    PhoneContact *pc;
+    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
+
+    if (pcp->exec() == QDialog::Accepted) {
+        pc = pcp->contactInfo();
+
+        req->mCbFunctor = boost::bind(&SipPhone::onAddContactDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>));
+        // req->mSql = QString("INSERT INTO kp_contacts (group_id,phone_number) VALUES (%1, '%2')")
+        //     .arg(pc->mGroupId).arg(pc->mPhoneNumber);
+        req->mSql = QString("INSERT INTO kp_contacts (group_id,display_name,phone_number) VALUES (IFNULL((SELECT gid FROM kp_groups  WHERE group_name='%1'),3), '%2', '%3')")
+            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+
+        qDebug()<<req->mSql;
+    } else {
+
+    }
+}
+
+void SipPhone::onModifyContact()
+{
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    // boost::shared_ptr<PhoneContact> pc;
+    PhoneContact * pc;
+    boost::scoped_ptr<PhoneContactProperty> pcp(new PhoneContactProperty(this));
+    QItemSelectionModel *ism = this->uiw->treeView->selectionModel();
+
+    if (!ism->hasSelection()) {
+        return;
+    }
+
+    QModelIndex cidx, idx;
+    cidx = ism->currentIndex();
+    idx = ism->model()->index(cidx.row(), 0, cidx.parent());
+
+    if (this->m_contact_model->hasChildren(idx)) {
+        // group node
+        return ;
+    }
+    
+    ContactInfoNode *cnode = static_cast<ContactInfoNode*>(idx.internalPointer());
+    pcp->setContactInfo(cnode->pc);
+
+    if (pcp->exec() == QDialog::Accepted) {
+        pc = pcp->contactInfo();
+
+        req->mCbId = pc->mContactId;
+        req->mCbFunctor = boost::bind(&SipPhone::onModifyContactDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onModifyContactDone(boost::shared_ptr<SqlRequest>));
+        req->mSql = QString("UPDATE kp_contacts SET group_id = (SELECT gid FROM kp_groups WHERE group_name='%1'), display_name='%2', phone_number='%3' WHERE cid='%4'")
+            .arg(pc->mGroupName).arg(pc->mUserName).arg(pc->mPhoneNumber).arg(pc->mContactId);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+
+        qDebug()<<req->mSql;
+    } else {
+
+    }
+}
+
+void SipPhone::onAddGroup() 
+{
+    QString group_name;
+    boost::shared_ptr<SqlRequest> req(new SqlRequest());
+    boost::scoped_ptr<GroupInfoDialog> gidlg(new GroupInfoDialog(this));
+
+    if (gidlg->exec() == QDialog::Accepted) {
+        group_name = gidlg->groupName();
+
+        req->mCbFunctor = boost::bind(&SipPhone::onAddGroupDone, this, _1);
+        req->mCbObject = this;
+        req->mCbSlot = SLOT(onAddGroupDone(boost::shared_ptr<SqlRequest>));
+        req->mSql = QString("INSERT INTO kp_groups (group_name) VALUES ('%1')")
+            .arg(group_name);
+        req->mReqno = this->m_adb->execute(req->mSql);
+        this->mRequests.insert(req->mReqno, req);
+    }
+}
+
+
+void SipPhone::onShowContactViewMenu(const QPoint &pos)
+{
+    ContactInfoNode *cin = NULL;
+    QModelIndex idx = this->uiw->treeView->indexAt(pos);
+    // qDebug()<<idx<<idx.parent();
+    if (idx.parent().isValid()) {
+        // leaf contact node
+    } else {
+
+    }
+    this->m_contact_view_ctx_menu->popup(this->uiw->treeView->mapToGlobal(pos));
+}
+
+
+void SipPhone::onDatabaseConnected()
+{
+    // 加载联系人信息，加载呼叫历史记录信息
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    boost::shared_ptr<SqlRequest> req1(new SqlRequest());
+    boost::shared_ptr<SqlRequest> req2(new SqlRequest());
+    boost::shared_ptr<SqlRequest> req3(new SqlRequest());
+
+    QTreeView *ctv = this->uiw->treeView; // contact 联系人表
+    QTreeView *htv = this->uiw->treeView_2; // 呼叫历史表
+
+    ctv->setHeaderHidden(true);
+    ctv->setModel(this->m_contact_model);
+    ctv->setColumnHidden(2, false);
+    ctv->setAnimated(true);
+    // ctv->setIndentation(20);
+    ctv->setColumnWidth(0, 120);
+    ctv->setColumnWidth(1, 160);
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<ctv->columnWidth(0)
+            <<ctv->columnWidth(1);
+
+    htv->setHeaderHidden(true);
+    htv->setModel(this->m_call_history_model);
+    htv->setColumnWidth(0, 100);
+    htv->setColumnWidth(1, 160);
+    
+    {
+        // get contacts list
+        req1->mCbFunctor = boost::bind(&SipPhone::onGetAllContactsDone, this, _1);
+        req1->mCbObject = this;
+        req1->mCbSlot = SLOT(onGetAllContactsDone(boost::shared_ptr<SqlRequest>));
+        req1->mSql = QString("SELECT * FROM kp_groups,kp_contacts WHERE kp_contacts.group_id=kp_groups.gid");
+        req1->mReqno = this->m_adb->execute(req1->mSql);
+        this->mRequests.insert(req1->mReqno, req1);
+    }
+
+    {
+        // get groups list
+        req2->mCbFunctor = boost::bind(&SipPhone::onGetAllGroupsDone, this, _1);
+        req2->mCbObject = this;
+        req2->mCbSlot = SLOT(onGetAllGroupsDone(boost::shared_ptr<SqlRequest>));
+        req2->mSql = QString("SELECT * FROM kp_groups");
+        req2->mReqno = this->m_adb->execute(req2->mSql);
+        this->mRequests.insert(req2->mReqno, req2);
+    }
+
+    {
+        // get history list
+        req3->mCbFunctor = boost::bind(&SipPhone::onGetAllGroupsDone, this, _1);
+        req3->mCbObject = this;
+        req3->mCbSlot = SLOT(onGetAllGroupsDone(boost::shared_ptr<SqlRequest>));
+        req3->mSql = QString("SELECT * FROM kp_histories ORDER BY call_ctime DESC");
+        req3->mReqno = this->m_adb->execute(req3->mSql);
+        this->mRequests.insert(req3->mReqno, req3);
+    }
+
+    /////
+}
+
+void SipPhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
+    
+    QObject *cb_obj = NULL;
+    const char *cb_slot = NULL;
+    boost::function<bool(boost::shared_ptr<SqlRequest>)> cb_functor;
+    boost::shared_ptr<SqlRequest> req;
+    bool bret = false;
+    // QGenericReturnArgument qret;
+    // QGenericArgument qarg;
+    bool qret;
+    QMetaMethod qmethod;
+    char raw_method_name[32] = {0};
+
+    if (this->mRequests.contains(reqno)) {
+        req = this->mRequests[reqno];
+        req->mRet = eret;
+        req->mErrorString = estr;
+        req->mExtraValue = eval;
+        req->mResults = results;
+
+        // 实现方法太多，还要随机使用一种方法，找麻烦
+        if (qrand() % 2 == 1) {
+            cb_functor = req->mCbFunctor;
+            bret = cb_functor(req);
+        } else {
+            cb_obj = req->mCbObject;
+            cb_slot = req->mCbSlot;
+
+            qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
+            // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
+            for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
+                if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
+                    continue;
+                }
+                if (cb_slot[i] == '(') break;
+                Q_ASSERT(j < sizeof(raw_method_name));
+                raw_method_name[j++] = cb_slot[i];
+            }
+            Q_ASSERT(strlen(raw_method_name) > 0);
+            Q_ASSERT(cb_obj->metaObject()->indexOfSlot(raw_method_name) != -1);
+            bret = QMetaObject::invokeMethod(cb_obj, raw_method_name,
+                                             Q_RETURN_ARG(bool, qret),
+                                             Q_ARG(boost::shared_ptr<SqlRequest>, req));
+            // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>))));
+            // bret = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
+            //                        Q_ARG(boost::shared_ptr<SqlRequest>, req));
+            // qDebug()<<cb_obj->metaObject()->indexOfSlot(cb_slot);
+        }
+    }
+}
+
+bool SipPhone::onAddContactDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;    
+
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mExtraValue<<req->mErrorString<<req->mRet; 
+
+    QList<QSqlRecord> recs;
+    int ncid;
+
+    if (!req->mRet) {
+        this->log_output(LT_USER, "添加联系人出错：" + req->mErrorString);
+    } else {
+        ncid = req->mExtraValue.toInt();
+        recs = req->mResults;
+
+        this->m_contact_model->onContactsRetrived(recs.at(0).value("group_id").toInt(), recs);
+    }
+    
+    this->mRequests.remove(req->mReqno);
+
+    return true;
+}
+
+bool SipPhone::onModifyContactDone(boost::shared_ptr<SqlRequest> req)
+{
+    
+    this->m_contact_model->onContactModified(req->mCbId);
+    return true;
+}
+
+bool SipPhone::onAddGroupDone(boost::shared_ptr<SqlRequest> req)
+{
+    QList<QSqlRecord> recs;
+    int ngid;
+
+    if (!req->mRet) {
+        this->log_output(LT_USER, "添加联系人组失败：" + req->mErrorString);
+    } else {
+        ngid = req->mExtraValue.toInt();
+        recs = req->mResults;
+
+        this->m_contact_model->onGroupsRetrived(recs);
+    }
+
+    qDebug()<<recs<<req->mExtraValue;
+
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
+bool SipPhone::onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->m_call_history_model->onNewCallHistoryArrived(req->mResults);    
+    
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
+
+bool SipPhone::onGetAllContactsDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
+bool SipPhone::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
+bool SipPhone::onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req)
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+
+
+    this->mRequests.remove(req->mReqno);
+    return true;
+}
+
 
 // TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
 // log is utf8 codec

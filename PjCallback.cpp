@@ -526,7 +526,8 @@ PjsipCallFront::~PjsipCallFront()
 }
 
 int PjsipCallFront::mystart(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg,
-          pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg)
+          pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg,
+                pjsua_transport_id *tcp_tp_id, pjsua_transport_id *udp_tp_id)
 {
     m_ua_cfg = ua_cfg;
     m_log_cfg = log_cfg;
@@ -534,6 +535,9 @@ int PjsipCallFront::mystart(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg,
     
     m_tcp_tp_cfg = tcp_tp_cfg;
     m_udp_tp_cfg = udp_tp_cfg;
+
+    m_tcp_tp_id = tcp_tp_id;
+    m_udp_tp_id = udp_tp_id;
 
     this->start();
 
@@ -598,7 +602,7 @@ void PjsipCallFront::run()
         pjsua_transport_config_default(&cfg);
         cfg.port = 15678; // if not set , use random big port 
         // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
-        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &udp_tp_id);
+        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, m_udp_tp_id);
         if (status != PJ_SUCCESS) {
             pjsua_perror(__FILE__, "Error creating udp transport", status);
             // error_exit("Error creating transport", status);
@@ -607,7 +611,7 @@ void PjsipCallFront::run()
         // TCP transport
         pjsua_transport_config_default(&cfg);
         cfg.port = 56789;
-        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &tcp_tp_id);
+        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, m_tcp_tp_id);
         if (status != PJ_SUCCESS) {
             pjsua_perror(__FILE__, "Error creating tcp transport", status);
             // error_exit("Error creating transport", status);

@@ -111,6 +111,7 @@ private: // pstn
 
     QWidget *mdyn_widget;
     bool mdyn_visible;
+    QGraphicsOpacityEffect *mdyn_oe;
 
     QStatusBar *m_status_bar;
     int m_dialpanel_layout_index;

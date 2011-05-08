@@ -130,6 +130,7 @@ void SkypePhone::defaultPstnInit()
     // QObject::connect(this->uiw->checkBox_2, SIGNAL(stateChanged(int)),
     //                  this, SLOT(onInitPstnClient()));
 
+    this->mdyn_oe = new QGraphicsOpacityEffect();
     QObject::connect(this->uiw->toolButton_2, SIGNAL(clicked()),
                      this, SLOT(onShowDialPanel()));
     QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
@@ -551,20 +552,25 @@ void SkypePhone::onDynamicSetVisible()
         curr_opacity = dyn_opacity.toInt();
         if (this->mdyn_visible == true) {
             curr_opacity += 10;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
             if (curr_opacity == 100) {
                 this->mdyn_widget->setVisible(true);
             } else {
-                this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
-                this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                // this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                this->mdyn_oe->setOpacity(curr_opacity*1.0/100);
+                this->mdyn_widget->setGraphicsEffect(this->mdyn_oe);
+                if (curr_opacity == 10) this->mdyn_widget->setVisible(true);
                 QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
             }
         } else {
             curr_opacity -= 10;
+            this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
             if (curr_opacity == 0) {
                 this->mdyn_widget->setVisible(false);
             } else {
-                this->mdyn_widget->setProperty(pname, QVariant(curr_opacity));
-                this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                // this->mdyn_widget->setWindowOpacity(curr_opacity*1.0/100);
+                this->mdyn_oe->setOpacity(curr_opacity*1.0/100);
+                this->mdyn_widget->setGraphicsEffect(this->mdyn_oe);
                 QTimer::singleShot(50, this, SLOT(onDynamicSetVisible()));
             }
         }

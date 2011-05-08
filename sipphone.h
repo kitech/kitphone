@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 869 2011-05-07 09:41:17Z drswinghead $
+// Version: $Id: sipphone.h 874 2011-05-08 08:48:25Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -13,6 +13,7 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <QtGui>
+#include <QtSql>
 
 #include "boost/signals2.hpp"
 #include "boost/smart_ptr.hpp"
@@ -37,6 +38,9 @@ extern "C" {
 class SipAccountList;
 class PjsipCallFront;
 class AsyncDatabase;
+class ContactModel;
+class CallHistoryModel;
+class SqlRequest;
 
 namespace Ui {
     class SipPhone;
@@ -97,10 +101,36 @@ public slots: // sip
     void on2_pjsua_start_done(int seqno, pj_status_t status);
     void on2_make_call_done(int seqno, pj_status_t status, pjsua_call_id call_id);
 
+    void onDatabaseConnected();
+    // database exec callbacks
+    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
+                  const QString &estr, const QVariant &eval);
+
+    void onAddContact();
+    void onModifyContact();
+    void onAddGroup();
+
+    void onShowDialPanel();
+    void onShowLogPanel();
+    void onDynamicSetVisible(QWidget *w, bool visible);
+    void onDynamicSetVisible();
+
+    void customAddContactButtonMenu();
+    void initContactViewContextMenu();
+    void onShowContactViewMenu(const QPoint &pos);
+
+    bool onAddContactDone(boost::shared_ptr<SqlRequest> req);
+    bool onModifyContactDone(boost::shared_ptr<SqlRequest> req);
+    bool onAddGroupDone(boost::shared_ptr<SqlRequest> req);
+    bool onAddCallHistoryDone(boost::shared_ptr<SqlRequest> req);
+
+    bool onGetAllContactsDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req);
+
     void log_output(int type, const QString &log);
 
 private slots:
-    void onFCMakeCallFinished();
     void set_custom_sip_config();
 
 public:
@@ -131,8 +161,8 @@ private: // sip
     pjsua_transport_config m_tcp6_tp_cfg;
     pjsua_transport_config m_udp6_tp_cfg;
 
-    pjsua_transport_id udp_tpid;
-    pjsua_transport_id tcp_tpid;
+    pjsua_transport_id m_udp_tp_id;
+    pjsua_transport_id m_tcp_tp_id;
     pjsua_transport_id tls_tpid;
     pjsua_transport_id ipv6_tpid;
     pjsua_transport_id udp6_tpid;
@@ -142,6 +172,31 @@ private: // sip
 
     PjsipCallFront *m_invoker;
     pjsua_call_id m_curr_call_id;
+
+    ///////////////////////
+    QWidget *mdyn_widget;
+    bool mdyn_visible;
+    QGraphicsOpacityEffect *mdyn_oe;
+
+    QStatusBar *m_status_bar;
+    int m_dialpanel_layout_index;
+    QLayoutItem *m_dialpanel_layout_item;
+    int m_call_state_layout_index;
+    QLayoutItem *m_call_state_layout_item;
+    int m_log_list_layout_index;
+    QLayoutItem *m_log_list_layout_item;
+
+    QMenu *m_contact_view_ctx_menu;
+
+    // AsyncDatabase *m_adb;
+    boost::shared_ptr<AsyncDatabase> m_adb;
+    ContactModel *m_contact_model;
+
+    CallHistoryModel *m_call_history_model;
+
+    //// sql reqno <---> sql reqclass
+    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
+    
 private:
     Ui::SipPhone *uiw;
 };

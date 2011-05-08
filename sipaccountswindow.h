@@ -12,6 +12,8 @@
 #include <QtCore>
 #include <QtGui>
 
+#include "boost/smart_ptr.hpp"
+
 namespace Ui {
     class SipAccountsWindow;
 }

@@ -180,7 +180,8 @@ protected:
 
 public slots:
     int mystart(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg,
-              pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg);
+                pjsua_transport_config *tcp_tp_cfg, pjsua_transport_config *udp_tp_cfg,
+                pjsua_transport_id *tcp_tp_id, pjsua_transport_id *udp_tp_id);
 
     int invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri);
 
@@ -200,6 +201,9 @@ private:
     pjsua_media_config *m_media_cfg;
     pjsua_transport_config *m_tcp_tp_cfg;
     pjsua_transport_config *m_udp_tp_cfg;
+
+    pjsua_transport_id *m_tcp_tp_id;
+    pjsua_transport_id *m_udp_tp_id;
 };
 
 #endif /*PJCALLBACK_H_*/

@@ -343,7 +343,7 @@ void SipPhone::defaultSipInit()
                      this, SLOT(on2_pjsua_start_done(int, pj_status_t)));
     QObject::connect(this->m_invoker, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)),
                      this, SLOT(on2_make_call_done(int, pj_status_t, pjsua_call_id)));
-    QObject::connect(this->m_invoker, SIGNAL(started()), this, SLOT(on3_invoker_started()));
+    QObject::connect(this->m_invoker, SIGNAL(realStarted()), this, SLOT(on3_invoker_started()));
     this->m_invoker->start();
 
 	// QObject::connect(pjcb, SIGNAL(sig_new_connection(void *)),

@@ -603,6 +603,7 @@ void PjsipCallFront::run()
                      this, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)));
 
     qLogx()<<"";
+    emit this->realStarted();
     this->exec();
 }
 

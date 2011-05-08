@@ -46,8 +46,14 @@ public:
     }
 };
 
-// 不错
-#define qLogx() XQDebug(FileLog::instance()->stream())<<"["<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")<<"]"<<__FILE__<<__LINE__<<__FUNCTION__
+// 很不错
+#ifdef WIN32
+#include <windows.h>
+#define qLogx() XQDebug(FileLog::instance()->stream())<<"["<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")<<"]"<<__FILE__<<__LINE__<<__FUNCTION__<<QString("T%1").arg(GetCurrentThreadId())
+#else
+#include <syscall.h>
+#define qLogx() XQDebug(FileLog::instance()->stream())<<"["<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")<<"]"<<__FILE__<<__LINE__<<__FUNCTION__<<QString("T%1").arg(syscall(__NR_gettid))
+#endif
 
 #endif /* _LOG_H_ */
 

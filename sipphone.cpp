@@ -16,6 +16,8 @@
 #include <QtCore>
 #include <QtNetwork>
 
+#include "boost/signals2.hpp"
+
 #include "pjsip.h"
 #include <pjsua-lib/pjsua.h>
 #include <pjsua-lib/pjsua_internal.h>
@@ -306,191 +308,43 @@ void init_sip_client () {
     // QObject::connect(this->ui->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangupSip()));
 }
 
+QString my_pjsua_strerror(pj_status_t status)
+{
+    char errmsg[PJ_ERR_MSG_SIZE];
+
+    pj_strerror(status, errmsg, sizeof(errmsg));
+
+    return QString(errmsg);
+}
+
 void SipPhone::defaultSipInit()
 {
     // should do sth. here
+    int qid_pj_status_t_id = qRegisterMetaType<pj_status_t>("pj_status_t");
     int qid_pjsua_call_id = qRegisterMetaType<pjsua_call_id>("pjsua_call_id");
     int qid_pjsua_acc_id = qRegisterMetaType<pjsua_acc_id>("pjsua_acc_id");
     int qid_pjsua_transport_id = qRegisterMetaType<pjsua_transport_id>("pjsua_transport_id");
+    int qid_pjsua_config = qRegisterMetaType<pjsua_config>("pjsua_config");
+    int qid_pjsua_logging_config = qRegisterMetaType<pjsua_logging_config>("pjsua_logging_config");
+    int qid_pjsua_media_config = qRegisterMetaType<pjsua_media_config>("pjsua_media_config");
+    int qid_pjsua_transport_config = qRegisterMetaType<pjsua_transport_config>("pjsua_transport_config");
     Q_UNUSED(qid_pjsua_acc_id);
     Q_UNUSED(qid_pjsua_call_id);
     Q_UNUSED(qid_pjsua_transport_id);
 
-   pjsua_config         ua_cfg;
-   pjsua_logging_config log_cfg;
-   pjsua_media_config   media_cfg;
-   pj_status_t status;
-
-   // Must create pjsua before anything else!
-   status = pjsua_create();
-   if (status != PJ_SUCCESS) {
-       pjsua_perror(__FILE__, "Error initializing pjsua", status);
-       return;
-   }
-
-   PJSipEventThread *thread = new PJSipEventThread();
-   thread->start();
-   // TODO should detect if thread start successful, if not, below operation is not usable
-
-   // 
-   this->init_sip_client_ui_element();
-
-   // Initialize configs with default settings.
-   pjsua_config_default(&ua_cfg);
-   pjsua_logging_config_default(&log_cfg);
-   pjsua_media_config_default(&media_cfg);
-
-   // ua_cfg.thread_cnt = 0;
-   // At the very least, application would want to override
-   // the call callbacks in pjsua_config:
-   // ua_cfg.cb.on_incoming_call = ...
-   // ua_cfg.cb.on_call_state = ..
-   // ua_cfg.cb.on_incoming_call = &on_incoming_call;
-   // ua_cfg.cb.on_call_state = &on_call_state;
-   // ua_cfg.cb.on_call_media_state = &on_call_media_state;
-   ua_cfg.cb.on_incoming_call = PjCallback::on_incoming_call_wrapper;
-   ua_cfg.cb.on_call_state = PjCallback::on_call_state_wrapper;
-   ua_cfg.cb.on_call_media_state = PjCallback::on_call_media_state_wrapper;
-   ua_cfg.nat_type_in_sdp = 1;
-
-   ua_cfg.cb.on_nat_detect = PjCallback::on_nat_detect_wrapper;
-
-   ua_cfg.stun_host = pj_str(TURN_SERVER ":" TURN_PORT);
-   ua_cfg.stun_srv[ua_cfg.stun_srv_cnt++] = pj_str(TURN_SERVER ":" TURN_PORT);
-
-   /////// media config 
-   media_cfg.snd_auto_close_time = 1;
-   // Customize other settings (or initialize them from application specific
-   // configuration file):
-
-   // media_cfg.enable_turn = PJ_TRUE;
-   // media_cfg.turn_server = pj_str("turn.qtchina.net:34780");
-   // media_cfg.turn_conn_type = PJ_TURN_TP_UDP;
-
-   // media_cfg.turn_auth_cred.type = PJ_STUN_AUTH_CRED_STATIC;
-   // media_cfg.turn_auth_cred.data.static_cred.realm = pj_str("pjsip.org");
-   // media_cfg.turn_auth_cred.data.static_cred.username = pj_str("100");
-
-   // media_cfg.turn_auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
-   // media_cfg.turn_auth_cred.data.static_cred.data = pj_str("100");
-
-   
-
-   // media_cfg.
-
-   // Initialize pjsua
-   status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
-   if (status != PJ_SUCCESS) {
-         pjsua_perror(__FILE__, "Error initializing pjsua", status);
-         return;
-   }
-
-   pjsua_var.mconf_cfg.samples_per_frame = 8000; // pjsua_var from 
-
-   /* Add UDP transport. */
-   {
-       pjsua_transport_config cfg;
-       pjsua_transport_config rtp_cfg;
-       
-       // 创建指定端口的RTP/RTCP层media后端
-       pjsua_transport_config_default(&rtp_cfg);
-       rtp_cfg.port = 8050;
-       status = pjsua_media_transports_create(&rtp_cfg);
-
-       // SIP 层初始化，可指定端口
-       pjsua_transport_config_default(&cfg);
-       cfg.port = 15678; // if not set , use random big port 
-       // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
-       status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
-       if (status != PJ_SUCCESS) {
-           pjsua_perror(__FILE__, "Error creating udp transport", status);
-           // error_exit("Error creating transport", status);
-       }
-
-       // TCP transport
-       pjsua_transport_config_default(&cfg);
-       cfg.port = 56789;
-       status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &this->tcp_tpid);
-       if (status != PJ_SUCCESS) {
-           pjsua_perror(__FILE__, "Error creating tcp transport", status);
-           // error_exit("Error creating transport", status);
-       }
-   }
-
-   /* Initialization is done, now start pjsua */
-   status = pjsua_start();
-   if (status != PJ_SUCCESS) {
-       pjsua_perror(__FILE__, "Error starting pjsua", status);
-   }
-   // error_exit("Error starting pjsua", status);
-
-   // NON-standard SIP Extension
-   pjsip_cfg()->endpt.allow_port_in_fromto_hdr = PJ_TRUE;
-
-   status = pjsua_detect_nat_type();
-   if (status != PJ_SUCCESS) {
-       pjsua_perror(__FILE__, "Error starting pjsua", status);
-       qLogx()<<status;
-   }
-   
-   // 
-    // 
-    pjsua_codec_info infos[20];
-    unsigned int info_count;
-
-    info_count = 20;
-    
-    status = pjsua_enum_codecs(infos, &info_count);
-    if (status == PJ_SUCCESS) {
-        for (int i = 0; i < info_count; i ++) {
-            QString codec_idname = QString((infos[i].codec_id).ptr);
-            qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
-            this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
-        }
-    }
-
-    pjmedia_aud_dev_info auids[128];
-    pjmedia_snd_dev_info sndids[128];
-    unsigned int auid_count = 128;
-    unsigned int sndid_count = 128;
-
-    status = pjsua_enum_aud_devs(auids, &auid_count);
-    qDebug()<<"found aud dev count:"<<auid_count;
-    status = pjsua_enum_snd_devs(sndids, &sndid_count);
-    qDebug()<<"found snd dev count:"<<sndid_count;
-
-    for (int i = 0 ; i < sndid_count; i ++) {
-        QString name;
-        qDebug()<<"aud:"<<QString(auids[i].name)<<" snd:"<<QString(sndids[i].name);
-    }
-    
-    int cap_dev = -1, pb_dev = -1;
-    status = pjsua_get_snd_dev(&cap_dev, &pb_dev);
-    qDebug()<<"curr snd dev:"<<"status="<<status<<" cap="<<cap_dev<<" pb="<<pb_dev;
-    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
-
-    // status = pjsua_set_snd_dev(0, 0);
-    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
-}
-
-void SipPhone::init_sip_client_ui_element()
-{
-    int qid_pjsua_call_id = qRegisterMetaType<pjsua_call_id>("pjsua_call_id");
-    int qid_pjsua_acc_id = qRegisterMetaType<pjsua_acc_id>("pjsua_acc_id");
-    Q_UNUSED(qid_pjsua_call_id);
-    Q_UNUSED(qid_pjsua_acc_id);
-
-    ::globalPjCallback = new PjCallback();
-    PjCallback *pjcb = (PjCallback *)globalPjCallback;
-	QObject::connect(pjcb, SIGNAL(sig_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
-                     this, SLOT(on1_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
-                     Qt::QueuedConnection);
-	QObject::connect(pjcb, SIGNAL(sig_call_media_state(pjsua_call_id, pjsua_call_info *)),
-                     this, SLOT(on1_call_media_state(pjsua_call_id, pjsua_call_info *)),
-                     Qt::QueuedConnection);
-	QObject::connect(pjcb, SIGNAL(sig_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
-                     this, SLOT(on1_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
-                     Qt::QueuedConnection);
+    qLogx()<<"";
+    // ::globalPjCallback = new PjCallback(); // 移动到invoker线程中
+    this->m_invoker = new PjsipCallFront();
+    QObject::connect(this->m_invoker, SIGNAL(invoke_pjsua_create_result(int, pj_status_t)),
+                     this, SLOT(on2_pjsua_create_done(int, pj_status_t)));
+    QObject::connect(this->m_invoker, SIGNAL(invoke_pjsua_init_result(int, pj_status_t)),
+                     this, SLOT(on2_pjsua_init_done(int, pj_status_t)));
+    QObject::connect(this->m_invoker, SIGNAL(invoke_pjsua_start_result(int, pj_status_t)),
+                     this, SLOT(on2_pjsua_start_done(int, pj_status_t)));
+    QObject::connect(this->m_invoker, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)),
+                     this, SLOT(on2_make_call_done(int, pj_status_t, pjsua_call_id)));
+    QObject::connect(this->m_invoker, SIGNAL(started()), this, SLOT(on3_invoker_started()));
+    this->m_invoker->start();
 
 	// QObject::connect(pjcb, SIGNAL(sig_new_connection(void *)),
     //                  this, SLOT(on1_new_connection(void *)),
@@ -500,8 +354,169 @@ void SipPhone::init_sip_client_ui_element()
     //                  this, SLOT(on1_put_frame(QTcpSocket *, QByteArray)),
     //                  Qt::QueuedConnection);
 
-    // wc = new WavClient(0);
-    // app_init();
+    // pjsua_config         ua_cfg;
+    // pjsua_logging_config log_cfg;
+    // pjsua_media_config   media_cfg;
+    // pj_status_t status;
+
+    // // Must create pjsua before anything else!
+    // status = pjsua_create();
+    // if (status != PJ_SUCCESS) {
+    //     pjsua_perror(__FILE__, "Error initializing pjsua", status);
+    //     return;
+    // }
+
+    // PJSipEventThread *thread = new PJSipEventThread();
+    // thread->start();
+    // // TODO should detect if thread start successful, if not, below operation is not usable
+
+    // // 
+    this->init_sip_client_ui_element();
+
+    // // Initialize configs with default settings.
+    // pjsua_config_default(&ua_cfg);
+    // pjsua_logging_config_default(&log_cfg);
+    // pjsua_media_config_default(&media_cfg);
+
+    // // ua_cfg.thread_cnt = 0;
+    // // At the very least, application would want to override
+    // // the call callbacks in pjsua_config:
+    // // ua_cfg.cb.on_incoming_call = ...
+    // // ua_cfg.cb.on_call_state = ..
+    // // ua_cfg.cb.on_incoming_call = &on_incoming_call;
+    // // ua_cfg.cb.on_call_state = &on_call_state;
+    // // ua_cfg.cb.on_call_media_state = &on_call_media_state;
+    // ua_cfg.cb.on_incoming_call = PjCallback::on_incoming_call_wrapper;
+    // ua_cfg.cb.on_call_state = PjCallback::on_call_state_wrapper;
+    // ua_cfg.cb.on_call_media_state = PjCallback::on_call_media_state_wrapper;
+    // ua_cfg.nat_type_in_sdp = 1;
+
+    // ua_cfg.cb.on_nat_detect = PjCallback::on_nat_detect_wrapper;
+
+    // ua_cfg.stun_host = pj_str(TURN_SERVER ":" TURN_PORT);
+    // ua_cfg.stun_srv[ua_cfg.stun_srv_cnt++] = pj_str(TURN_SERVER ":" TURN_PORT);
+
+    // /////// media config 
+    // media_cfg.snd_auto_close_time = 1;
+    // Customize other settings (or initialize them from application specific
+    // configuration file):
+
+    // media_cfg.enable_turn = PJ_TRUE;
+    // media_cfg.turn_server = pj_str("turn.qtchina.net:34780");
+    // media_cfg.turn_conn_type = PJ_TURN_TP_UDP;
+
+    // media_cfg.turn_auth_cred.type = PJ_STUN_AUTH_CRED_STATIC;
+    // media_cfg.turn_auth_cred.data.static_cred.realm = pj_str("pjsip.org");
+    // media_cfg.turn_auth_cred.data.static_cred.username = pj_str("100");
+
+    // media_cfg.turn_auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
+    // media_cfg.turn_auth_cred.data.static_cred.data = pj_str("100");
+
+   
+
+    // media_cfg.
+
+    // Initialize pjsua
+    // status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
+    // if (status != PJ_SUCCESS) {
+    //     pjsua_perror(__FILE__, "Error initializing pjsua", status);
+    //     return;
+    // }
+    // reqno = this->m_invoker->invoke_pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
+    // qLogx()<<reqno;
+
+    // pjsua_var.mconf_cfg.samples_per_frame = 8000; // pjsua_var from 
+
+    // /* Add UDP transport. */
+    // {
+    //     pjsua_transport_config cfg;
+    //     pjsua_transport_config rtp_cfg;
+       
+    //     // 创建指定端口的RTP/RTCP层media后端
+    //     pjsua_transport_config_default(&rtp_cfg);
+    //     rtp_cfg.port = 8050;
+    //     status = pjsua_media_transports_create(&rtp_cfg);
+
+    //     // SIP 层初始化，可指定端口
+    //     pjsua_transport_config_default(&cfg);
+    //     cfg.port = 15678; // if not set , use random big port 
+    //     // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
+    //     status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
+    //     if (status != PJ_SUCCESS) {
+    //         pjsua_perror(__FILE__, "Error creating udp transport", status);
+    //         // error_exit("Error creating transport", status);
+    //     }
+
+    //     // TCP transport
+    //     pjsua_transport_config_default(&cfg);
+    //     cfg.port = 56789;
+    //     status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &this->tcp_tpid);
+    //     if (status != PJ_SUCCESS) {
+    //         pjsua_perror(__FILE__, "Error creating tcp transport", status);
+    //         // error_exit("Error creating transport", status);
+    //     }
+    // }
+
+    /* Initialization is done, now start pjsua */
+    // reqno = this->m_invoker->invoke_pjsua_start();
+    // qLogx()<<reqno;
+    // status = pjsua_start();
+    // if (status != PJ_SUCCESS) {
+    //     pjsua_perror(__FILE__, "Error starting pjsua", status);
+    // }
+    // error_exit("Error starting pjsua", status);
+
+    // NON-standard SIP Extension
+    // pjsip_cfg()->endpt.allow_port_in_fromto_hdr = PJ_TRUE;
+
+    // status = pjsua_detect_nat_type();
+    // if (status != PJ_SUCCESS) {
+    //     pjsua_perror(__FILE__, "Error starting pjsua", status);
+    //     qLogx()<<status;
+    // }
+   
+    // 
+    // pjsua_codec_info infos[20];
+    // unsigned int info_count;
+
+    // info_count = 20;
+    
+    // status = pjsua_enum_codecs(infos, &info_count);
+    // if (status == PJ_SUCCESS) {
+    //     for (int i = 0; i < info_count; i ++) {
+    //         QString codec_idname = QString((infos[i].codec_id).ptr);
+    //         qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
+    //         this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
+    //     }
+    // }
+
+    // pjmedia_aud_dev_info auids[128];
+    // pjmedia_snd_dev_info sndids[128];
+    // unsigned int auid_count = 128;
+    // unsigned int sndid_count = 128;
+
+    // status = pjsua_enum_aud_devs(auids, &auid_count);
+    // qDebug()<<"found aud dev count:"<<auid_count;
+    // status = pjsua_enum_snd_devs(sndids, &sndid_count);
+    // qDebug()<<"found snd dev count:"<<sndid_count;
+
+    // for (int i = 0 ; i < sndid_count; i ++) {
+    //     QString name;
+    //     qDebug()<<"aud:"<<QString(auids[i].name)<<" snd:"<<QString(sndids[i].name);
+    // }
+    
+    // int cap_dev = -1, pb_dev = -1;
+    // status = pjsua_get_snd_dev(&cap_dev, &pb_dev);
+    // qDebug()<<"curr snd dev:"<<"status="<<status<<" cap="<<cap_dev<<" pb="<<pb_dev;
+    // qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+
+    // // status = pjsua_set_snd_dev(0, 0);
+    // qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+}
+
+void SipPhone::init_sip_client_ui_element()
+{
+
     // QObject::connect(this->ui->pushButton, SIGNAL(clicked()), this, SLOT(onCall()));
     // QObject::connect(this->uiw->pushButton, SIGNAL(clicked()), this, SLOT(onCallSip()));
     // QObject::connect(this->ui->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangup()));
@@ -526,6 +541,85 @@ void SipPhone::init_sip_client_ui_element()
     QObject::connect(this->uiw->toolButton_24, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
     QObject::connect(this->uiw->toolButton_25, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
 
+}
+
+void SipPhone::on3_invoker_started()
+{
+    qLogx()<<"";
+
+    pj_thread_desc initdec;
+    pj_thread_t* thread = 0;
+    pj_status_t status;
+
+    qLogx()<<"ready register pjsip thread by Qt";
+    if (!pj_thread_is_registered()) {
+        status = pj_thread_register("KitPhoneMainUiThread_run", initdec, &thread);
+        if (status != PJ_SUCCESS) {
+            qLogx()<<"pj_thread_register faild:"<<status;
+            Q_ASSERT(status == PJ_SUCCESS);
+            return;
+        }
+    }
+    PJ_CHECK_STACK();
+    qLogx()<<"registerred pjsip thread:"<<thread;
+
+    this->m_invoker->dump_info(thread);
+    
+
+    PjCallback *pjcb = (PjCallback *)globalPjCallback;
+	QObject::connect(pjcb, SIGNAL(sig_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
+                     this, SLOT(on1_call_state(pjsua_call_id, pjsip_event *, pjsua_call_info *)),
+                     Qt::QueuedConnection);
+	QObject::connect(pjcb, SIGNAL(sig_call_media_state(pjsua_call_id, pjsua_call_info *)),
+                     this, SLOT(on1_call_media_state(pjsua_call_id, pjsua_call_info *)),
+                     Qt::QueuedConnection);
+	QObject::connect(pjcb, SIGNAL(sig_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
+                     this, SLOT(on1_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
+                     Qt::QueuedConnection);
+
+
+
+    // Initialize configs with default settings.
+    pjsua_config_default(&m_ua_cfg);
+    pjsua_logging_config_default(&m_log_cfg);
+    pjsua_media_config_default(&m_media_cfg);
+
+    // ua_cfg.thread_cnt = 0;
+    // At the very least, application would want to override
+    // the call callbacks in pjsua_config:
+    // ua_cfg.cb.on_incoming_call = ...
+    // ua_cfg.cb.on_call_state = ..
+    // ua_cfg.cb.on_incoming_call = &on_incoming_call;
+    // ua_cfg.cb.on_call_state = &on_call_state;
+    // ua_cfg.cb.on_call_media_state = &on_call_media_state;
+    m_ua_cfg.cb.on_incoming_call = PjCallback::on_incoming_call_wrapper;
+    m_ua_cfg.cb.on_call_state = PjCallback::on_call_state_wrapper;
+    m_ua_cfg.cb.on_call_media_state = PjCallback::on_call_media_state_wrapper;
+    m_ua_cfg.nat_type_in_sdp = 1;
+
+    m_ua_cfg.cb.on_nat_detect = PjCallback::on_nat_detect_wrapper;
+
+    m_ua_cfg.stun_host = pj_str(TURN_SERVER ":" TURN_PORT);
+    m_ua_cfg.stun_srv[m_ua_cfg.stun_srv_cnt++] = pj_str(TURN_SERVER ":" TURN_PORT);
+
+    /////// media config 
+    m_media_cfg.snd_auto_close_time = 1;
+    // Customize other settings (or initialize them from application specific
+    // configuration file):
+
+    m_media_cfg.enable_turn = PJ_TRUE;
+    m_media_cfg.turn_server = pj_str("turn.qtchina.net:34780");
+    m_media_cfg.turn_conn_type = PJ_TURN_TP_UDP;
+
+    m_media_cfg.turn_auth_cred.type = PJ_STUN_AUTH_CRED_STATIC;
+    m_media_cfg.turn_auth_cred.data.static_cred.realm = pj_str("pjsip.org");
+    m_media_cfg.turn_auth_cred.data.static_cred.username = pj_str("100");
+
+    m_media_cfg.turn_auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
+    m_media_cfg.turn_auth_cred.data.static_cred.data = pj_str("100");
+
+    int reqno = this->m_invoker->invoke_pjsua_init(&m_ua_cfg, &m_log_cfg, &m_media_cfg);
+    qLogx()<<reqno;
 }
 
 void SipPhone::onManageSipAccounts()
@@ -764,34 +858,36 @@ void SipPhone::onHangupSip()
 void SipPhone::on1_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call_info *pci)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id;
-    pjsua_call_info ci;
+    // pjsua_call_info ci;
  
     PJ_UNUSED_ARG(e);
  
-    pjsua_call_get_info(call_id, &ci);
+    // pjsua_call_get_info(call_id, &ci);
     PJ_LOG(3, (__FILE__, "Call %d state=%.*s", call_id,
-              (int)ci.state_text.slen,
-              ci.state_text.ptr));
+              (int)pci->state_text.slen,
+              pci->state_text.ptr));
 
+    free(pci);
 }
 
 void SipPhone::on1_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id;
-    pjsua_call_info ci;
+    // pjsua_call_info ci;
     pj_status_t status;
  
-    pjsua_call_get_info(call_id, &ci);
+    // pjsua_call_get_info(call_id, &ci);
  
-    if (ci.media_status == PJSUA_CALL_MEDIA_ACTIVE) {
+    if (pci->media_status == PJSUA_CALL_MEDIA_ACTIVE) {
         // When media is active, connect call to sound device.
-        pjsua_conf_connect(ci.conf_slot, 0);
-        pjsua_conf_connect(0, ci.conf_slot);
+        pjsua_conf_connect(pci->conf_slot, 0);
+        pjsua_conf_connect(0, pci->conf_slot);
 
         // test port_info
         pjsua_conf_port_info cpi;
-        pjsua_conf_get_port_info(ci.conf_slot, &cpi);
-        qDebug()<<"conf port info: port number="<<cpi.slot_id<<",name='"<<cpi.name.ptr<<"', chan cnt="<<cpi.channel_count
+        pjsua_conf_get_port_info(pci->conf_slot, &cpi);
+        qLogx()<<"conf port info: port number="<<cpi.slot_id<<",name='"<<cpi.name.ptr
+                <<"', chan cnt="<<cpi.channel_count
                 <<", clock rate="<<cpi.clock_rate;
 
         // pjsua_conf_connect(ci.conf_slot, pjsua_recorder_get_conf_port(g_rec_id));
@@ -807,15 +903,15 @@ void SipPhone::on1_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci)
 
         // pjsua_switcher_get_port(g_rec_id, &mp);
         // n_port = pjsua_switcher_get_net_port(mp);
-        qDebug()<<"got wav server port :"<<n_port;
+        qLogx()<<"got wav server port :"<<n_port;
         // wc->setPort(n_port);
         // wc->arun();
         
         if (ms == NULL) {
-            qDebug()<<"pjmedia_session is null.\n";
+            qLogx()<<"pjmedia_session is null.\n";
         } else {
             status = pjmedia_session_enum_streams(ms, &stream_count, msi);
-            qDebug()<<"enum stream count:"<<stream_count;
+            qLogx()<<"enum stream count:"<<stream_count;
             
             status = pjmedia_session_get_port(ms, 0, &mp);
             Q_ASSERT(status == PJ_SUCCESS);
@@ -841,11 +937,14 @@ void SipPhone::on1_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci)
 
     // pjsua_dump(PJ_TRUE);
     // pjsua_call_dump(call_id, ...);
+
+    free(pci);
 }
 
 void SipPhone::on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id;
+    pj_status_t status;
     pjsua_call_info ci;
  
     PJ_UNUSED_ARG(acc_id);
@@ -858,7 +957,7 @@ void SipPhone::on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjs
               ci.remote_info.ptr));
  
     /* Automatically answer incoming calls with 200/OK */
-    pjsua_call_answer(call_id, 200, NULL, NULL);
+    status = pjsua_call_answer(call_id, 200, NULL, NULL);
 
 }
 
@@ -1036,18 +1135,36 @@ void SipPhone::onCallSipNew()
     qLogx()<<"call peer: "<<sipu;
     // char *sipu = "<SIP:99008668056013552776960@202.108.29.234:5060;transport=UDP>";
     pj_str_t uri = pj_str(sipu);
-    status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
-    if (status != PJ_SUCCESS) {
-        if (status == 469996) {
-            this->log_output(LT_USER, "无法打开声音设备。");
-        } else {
-            pjsua_perror(__FILE__, "Error making call", status);
-            //error_exit("Error making call", status);
-        }
-    }
+
+    // boost::function<pj_status_t()> _ff = boost::bind(pjsua_call_make_call, acc_id, &uri, 0, (void*)0, nullptr, nullptr);
+    // status = _ff();
+
+    // status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
+    // if (status != PJ_SUCCESS) {
+    //     if (status == 469996) {
+    //         this->log_output(LT_USER, "无法打开声音设备。");
+    //     } else {
+    //         pjsua_perror(__FILE__, "Error making call", status);
+    //         //error_exit("Error making call", status);
+    //     }
+    // }
+
+    int reqno = this->m_invoker->invoke_make_call(acc_id, QString(sipu));
+
     free(sipu);
 
-    qLogx()<<"oncall slot returned";
+    {
+        // ../src/pj/os_core_unix.c：643：pj_thread_this: 断言“!"Calling pjlib from unknown/external thread. 
+        // You must " "register external threads with pj_thread_register() " 
+        // "before calling any pjlib functions."”失败。
+        // QFutureWatcher<pj_status_t> fwatcher;
+        // QObject::connect(&fwatcher, SIGNAL(finished()), this, SLOT(onFCMakeCallFinished()));
+
+        // QFuture<pj_status_t> future = QtConcurrent::run(boost::bind(pjsua_call_make_call, acc_id, &uri, 0, (void*)0, nullptr, nullptr));
+        // fwatcher.setFuture(future);
+    }
+
+    qLogx()<<"oncall slot returned"<<reqno;
 }
 
 void SipPhone::onHangupSipNew()
@@ -1212,6 +1329,178 @@ void SipPhone::onDigitButtonClicked()
     // if (in call state) it's dtmf digit
 }
 
+// not used
+void SipPhone::on2_pjsua_create_done(int seqno, pj_status_t rstatus)
+{
+    qLogx()<<seqno<<rstatus;
+}
+
+void SipPhone::on2_pjsua_init_done(int seqno, pj_status_t rstatus)
+{
+    qLogx()<<seqno<<rstatus;
+
+    pj_status_t status;
+
+    pjsua_var.mconf_cfg.samples_per_frame = 8000; // pjsua_var from 
+
+    /* Add UDP transport. */
+    {
+        pjsua_transport_config cfg;
+        pjsua_transport_config rtp_cfg;
+       
+        // 创建指定端口的RTP/RTCP层media后端
+        pjsua_transport_config_default(&rtp_cfg);
+        rtp_cfg.port = 8050;
+        status = pjsua_media_transports_create(&rtp_cfg);
+
+        // SIP 层初始化，可指定端口
+        pjsua_transport_config_default(&cfg);
+        cfg.port = 15678; // if not set , use random big port 
+        // cfg.public_addr = pj_str("123.1.2.3"); // 与上面的port一起可用于穿透，指定特定的公共端口!!!
+        status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, &this->udp_tpid);
+        if (status != PJ_SUCCESS) {
+            pjsua_perror(__FILE__, "Error creating udp transport", status);
+            // error_exit("Error creating transport", status);
+        }
+
+        // TCP transport
+        pjsua_transport_config_default(&cfg);
+        cfg.port = 56789;
+        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, &this->tcp_tpid);
+        if (status != PJ_SUCCESS) {
+            pjsua_perror(__FILE__, "Error creating tcp transport", status);
+            // error_exit("Error creating transport", status);
+        }
+    }
+
+    /* Initialization is done, now start pjsua */
+    int reqno = this->m_invoker->invoke_pjsua_start();
+    qLogx()<<reqno;
+
+}
+
+void SipPhone::on2_pjsua_start_done(int seqno, pj_status_t rstatus)
+{
+    qLogx()<<seqno<<rstatus;
+
+    pj_status_t status;
+
+    // NON-standard SIP Extension
+    pjsip_cfg()->endpt.allow_port_in_fromto_hdr = PJ_TRUE;
+
+    status = pjsua_detect_nat_type();
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(__FILE__, "Error starting pjsua", status);
+        qLogx()<<status;
+    }
+   
+    pjsua_codec_info infos[20];
+    unsigned int info_count;
+
+    info_count = 20;
+    
+    status = pjsua_enum_codecs(infos, &info_count);
+    if (status == PJ_SUCCESS) {
+        for (int i = 0; i < info_count; i ++) {
+            QString codec_idname = QString((infos[i].codec_id).ptr);
+            qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
+            this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
+        }
+    }
+
+    pjmedia_aud_dev_info auids[128];
+    pjmedia_snd_dev_info sndids[128];
+    unsigned int auid_count = 128;
+    unsigned int sndid_count = 128;
+
+    status = pjsua_enum_aud_devs(auids, &auid_count);
+    qDebug()<<"found aud dev count:"<<auid_count;
+    status = pjsua_enum_snd_devs(sndids, &sndid_count);
+    qDebug()<<"found snd dev count:"<<sndid_count;
+
+    for (int i = 0 ; i < sndid_count; i ++) {
+        QString name;
+        qDebug()<<"aud:"<<QString(auids[i].name)<<" snd:"<<QString(sndids[i].name);
+    }
+    
+    int cap_dev = -1, pb_dev = -1;
+    status = pjsua_get_snd_dev(&cap_dev, &pb_dev);
+    qDebug()<<"curr snd dev:"<<"status="<<status<<" cap="<<cap_dev<<" pb="<<pb_dev;
+    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+
+    // status = pjsua_set_snd_dev(0, 0);
+    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+
+}
+
+void SipPhone::on2_make_call_done(int seqno, pj_status_t rstatus, pjsua_call_id call_id)
+{
+    qLogx()<<seqno<<rstatus<<call_id;
+
+    if (rstatus != PJ_SUCCESS) {
+        pjsua_perror(__FILE__, "Error make call", rstatus);
+        this->log_output(LT_USER, QString(tr("Error make call: %1")).arg(rstatus));
+    } else {
+        this->m_curr_call_id = call_id;
+    }
+}
+
+void SipPhone::onFCMakeCallFinished() 
+{
+    QFutureWatcher<pj_status_t> *pwatcher = static_cast<QFutureWatcher<pj_status_t>*>(sender());
+    QFuture<pj_status_t> future = pwatcher->future();
+    pj_status_t status = future.result();
+    
+    qLogx()<<status;
+}
+
+// TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
+// log is utf8 codec
+void SipPhone::log_output(int type, const QString &log)
+{
+    QListWidgetItem *witem = nullptr;
+    QString log_time = QDateTime::currentDateTime().toString("hh:mm:ss");
+
+    int debug = 1;
+
+    QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
+    QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
+
+    if (type == LT_USER) {
+        // TODO 怎么确定是属于呼叫日志呢。恐怕还是得在相应的地方执行才行。
+        this->uiw->label_11->setText(u16_log);
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
+        this->uiw->listWidget->addItem(witem);
+    } else if (type == LT_DEBUG && debug) {
+        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
+        this->uiw->listWidget->addItem(witem);
+    } else {
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<type<<log;
+    }
+
+    // 清除多余日志
+    static int max_log_count = 30;
+    if (debug == 1) {
+        max_log_count += 200;
+    }
+    if (this->uiw->listWidget->count() > max_log_count) {
+        int rm_count = this->uiw->listWidget->count() - max_log_count;
+        // 从最老的日志开始删除
+        for (int i = 0; i < rm_count; i++) {
+            witem = this->uiw->listWidget->takeItem(i);
+            delete witem;
+        }
+        // 从最新的开始
+        // for (int i = rm_count - 1; i >= 0; i--) {
+        //     witem = this->uiw->listWidget->takeItem(max_log_count+i);
+        //     delete witem;
+        // }
+    }
+
+    qLogx()<<type<<u16_log;
+}
+
+
 
 ////////////////////////////////
 PJSipEventThread::PJSipEventThread(QObject *parent)
@@ -1269,48 +1558,3 @@ void PJSipEventThread::dump_info(pj_thread_t *thread)
     qLogx()<<"pj_getpid:"<<pj_getpid();
 }
 
-// TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
-// log is utf8 codec
-void SipPhone::log_output(int type, const QString &log)
-{
-    QListWidgetItem *witem = nullptr;
-    QString log_time = QDateTime::currentDateTime().toString("hh:mm:ss");
-
-    int debug = 1;
-
-    QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
-    QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
-
-    if (type == LT_USER) {
-        // TODO 怎么确定是属于呼叫日志呢。恐怕还是得在相应的地方执行才行。
-        this->uiw->label_11->setText(u16_log);
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
-        this->uiw->listWidget->addItem(witem);
-    } else if (type == LT_DEBUG && debug) {
-        witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
-        this->uiw->listWidget->addItem(witem);
-    } else {
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<type<<log;
-    }
-
-    // 清除多余日志
-    static int max_log_count = 30;
-    if (debug == 1) {
-        max_log_count += 200;
-    }
-    if (this->uiw->listWidget->count() > max_log_count) {
-        int rm_count = this->uiw->listWidget->count() - max_log_count;
-        // 从最老的日志开始删除
-        for (int i = 0; i < rm_count; i++) {
-            witem = this->uiw->listWidget->takeItem(i);
-            delete witem;
-        }
-        // 从最新的开始
-        // for (int i = rm_count - 1; i >= 0; i--) {
-        //     witem = this->uiw->listWidget->takeItem(max_log_count+i);
-        //     delete witem;
-        // }
-    }
-
-    qLogx()<<type<<u16_log;
-}

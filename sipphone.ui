@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>347</width>
+    <width>352</width>
     <height>871</height>
    </rect>
   </property>
@@ -614,7 +614,7 @@
          <item>
           <widget class="QLabel" name="label_5">
            <property name="text">
-            <string>99008668056013552776960</string>
+            <string>call no here................</string>
            </property>
            <property name="textInteractionFlags">
             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
@@ -624,7 +624,7 @@
          <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
-            <string>Others</string>
+            <string>Group: Others</string>
            </property>
            <property name="textInteractionFlags">
             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>

@@ -2,7 +2,8 @@
 #define PJCALLBACK_H_
 
 #include <QObject>
-#include <QtNetwork>
+#include <QThread>
+// #include <QtNetwork>
 
 extern "C" {
 	#include <pjlib.h>
@@ -27,9 +28,9 @@ public: void on_##x(y) {                                                \
     emit sig_##x(z);                                                    \
                         }                                               
 
-class PjCallback : public QObject {
-Q_OBJECT
-
+class PjCallback : public QObject
+{
+    Q_OBJECT;
 public:
 	PjCallback();
 	virtual ~PjCallback();
@@ -114,14 +115,20 @@ public:
     static void on_exceed_max_call_count_wrapper(int payload);
 
 
-    void on_new_connection(void *m_port);
-    static void on_new_connection_wrapper(void *m_port);
+    // void on_new_connection(void *m_port);
+    // static void on_new_connection_wrapper(void *m_port);
 
-    void on_new_incoming_connection(void *m_port);
-    static void on_new_incoming_connection_wrapper(void *m_port);
+    // void on_new_incoming_connection(void *m_port);
+    // static void on_new_incoming_connection_wrapper(void *m_port);
 
-    void on_put_frame(QTcpSocket *sock, QByteArray fba);
-    static void on_put_frame_wrapper(QTcpSocket *sock,QByteArray fba);
+    // void on_put_frame(QTcpSocket *sock, QByteArray fba);
+    // static void on_put_frame_wrapper(QTcpSocket *sock,QByteArray fba);
+
+public slots:
+    void on_pjsua_create_impl(int reqno);
+    void on_pjsua_init_impl(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    void on_pjsua_start_impl(int reqno);
+    void on_make_call_impl(int reqno, pjsua_acc_id acc_id, const QString &sip_uri);
 
 signals:
 	/* this signal forwards the log message a-synchronous to the GUI thread */
@@ -132,10 +139,10 @@ signals:
     void sig_user_added(int payload, pjsua_call_id call_id, int);
     void sig_exceed_max_call_count(int payload);
 
-    void sig_new_connection(void *m_port);
-    void sig_new_incoming_connection(void *m_port);
+    // void sig_new_connection(void *m_port);
+    // void sig_new_incoming_connection(void *m_port);
 
-    void sig_put_frame(QTcpSocket *sock, QByteArray fba);
+    // void sig_put_frame(QTcpSocket *sock, QByteArray fba);
 
 
 // 	void new_log_message(QString text);
@@ -156,6 +163,46 @@ signals:
 // 	/* this signal forwards the acc_id of the SIP account whose registration status changed */
 // 	void reg_state_signal(int acc_id);
 
+
+    void sig_pjsua_create_done(int reqno, pj_status_t status);
+    void sig_pjsua_init_done(int reqno, pj_status_t status);
+    void sig_pjsua_start_done(int reqno, pj_status_t status);
+    void sig_make_call_done(int reqno, pj_status_t status, pjsua_call_id call_id);
+};
+
+class PjsipCallFront : public QThread
+{
+    Q_OBJECT;
+public:
+    explicit PjsipCallFront(QObject *parent = 0);
+    virtual ~PjsipCallFront();
+
+    void dump_info(pj_thread_t *thread);
+protected:
+    void run();
+
+public slots:
+    int invoke_pjsua_create();
+    int invoke_pjsua_init(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    int invoke_pjsua_start();
+    int invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri);
+
+signals:
+    void invoke_sip_init_result(int reqno, pj_status_t status);
+    void invoke_pjsua_create_result(int reqno, pj_status_t status);
+    void invoke_pjsua_init_result(int reqno, pj_status_t status);
+    void invoke_pjsua_start_result(int reqno, pj_status_t status);
+    void invoke_make_call_result(int reqno, pj_status_t status, pjsua_call_id call_id);
+
+    // signals:
+    void invoke_pjsua_create_fwd(int reqno);
+    void invoke_pjsua_init_fwd(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg);
+    void invoke_pjsua_start_fwd(int reqno);
+    void invoke_make_call_fwd(int reqno, pjsua_acc_id acc_id, QString sip_uri);
+
+private:
+    static int m_reqno;
 };
 
 #endif /*PJCALLBACK_H_*/
+

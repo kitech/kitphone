@@ -14,6 +14,9 @@
 #include <QtNetwork>
 #include <QtGui>
 
+#include "boost/signals2.hpp"
+#include "boost/smart_ptr.hpp"
+
 extern "C" {
 	#include <pjlib.h>
 	#include <pjlib-util.h>
@@ -32,12 +35,14 @@ extern "C" {
 #define TURN_PORT "34780"
 
 class SipAccountList;
+class PjsipCallFront;
+class AsyncDatabase;
 
 namespace Ui {
     class SipPhone;
 };
 
-
+// 还要让它处理异步来自主界面线程的sip调用
 class PJSipEventThread : public QThread
 {
     Q_OBJECT;
@@ -48,9 +53,9 @@ public:
     void run();
 
     void dump_info(pj_thread_t *thread);
+
 private:
     bool quit_loop;
-    
 };
 
 class SipPhone : public QWidget
@@ -62,7 +67,8 @@ public:
 
 public slots: // sip
     void defaultSipInit();
-    
+    void on3_invoker_started();
+
     // ui
     void main_ui_draw_complete();
 
@@ -87,8 +93,18 @@ public slots: // sip
     // void on1_new_connection(void *m_port);
 
     // void on1_put_frame(QTcpSocket *sock, QByteArray fba);
+    
+    // 
+    void on2_pjsua_create_done(int seqno, pj_status_t status);
+    void on2_pjsua_init_done(int seqno, pj_status_t status);
+    void on2_pjsua_start_done(int seqno, pj_status_t status);
+    void on2_make_call_done(int seqno, pj_status_t status, pjsua_call_id call_id);
 
     void log_output(int type, const QString &log);
+
+private slots:
+    void onFCMakeCallFinished();
+
 public:
     enum LOGTYPE {
         LT_USER = 0,
@@ -107,6 +123,16 @@ protected:
 
 private: // sip
     SipAccountList *acc_list;
+    pjsua_config m_ua_cfg;
+    pjsua_logging_config m_log_cfg;
+    pjsua_media_config m_media_cfg;
+    pjsua_transport_config m_tcp_tp_cfg;
+    pjsua_transport_config m_udp_tp_cfg;
+    pjsua_transport_config m_ipv6_tp_cfg;
+    pjsua_transport_config m_tls_tp_cfg;
+    pjsua_transport_config m_tcp6_tp_cfg;
+    pjsua_transport_config m_udp6_tp_cfg;
+
     pjsua_transport_id udp_tpid;
     pjsua_transport_id tcp_tpid;
     pjsua_transport_id tls_tpid;
@@ -116,6 +142,8 @@ private: // sip
     pjsua_transport_id user_tpid;
     pjsua_transport_id sctp_tpid;
 
+    PjsipCallFront *m_invoker;
+    pjsua_call_id m_curr_call_id;
 private:
     Ui::SipPhone *uiw;
 };

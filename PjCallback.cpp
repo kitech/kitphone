@@ -4,7 +4,7 @@
 #include <QMutex>
 
 #include "simplelog.h"
-
+#include "sipphone.h"
 #include "PjCallback.h"
 
 #define THIS_FILE "QjCallback"
@@ -32,14 +32,16 @@ void PjCallback::on_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call
 void PjCallback::on_call_state_wrapper(pjsua_call_id call_id, pjsip_event *e)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id;
+    pj_status_t status;
     pjsua_call_info *pci = (pjsua_call_info*)calloc(1, sizeof(pjsua_call_info));
-    pjsua_call_get_info(call_id, pci);
+
+    status = pjsua_call_get_info(call_id, pci);
     if (pci->state == PJSIP_INV_STATE_DISCONNECTED) {
         qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id<<"GOT DISCONNECTED state";
 	
-	pjsua_acc_id acc_id;
-	acc_id = pjsua_acc_get_default();
-	pjsua_acc_del(acc_id);
+        pjsua_acc_id acc_id;
+        acc_id = pjsua_acc_get_default();
+        pjsua_acc_del(acc_id);
     }
 	/* call the non-static member */
 	if (globalPjCallback) {
@@ -58,8 +60,10 @@ void PjCallback::on_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci
 void PjCallback::on_call_media_state_wrapper(pjsua_call_id call_id)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id;
+    pj_status_t status;
     pjsua_call_info *pci = (pjsua_call_info*)calloc(1, sizeof(pjsua_call_info));
-    pjsua_call_get_info(call_id, pci);
+
+    status = pjsua_call_get_info(call_id, pci);
 	/* call the non-static member */
 	if (globalPjCallback) {
 		PjCallback *myCb = (PjCallback*) globalPjCallback;
@@ -114,53 +118,53 @@ void PjCallback::on_exceed_max_call_count_wrapper(int payload)
 	}
 }
 
-void PjCallback::on_new_connection(void *m_port)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
-    emit sig_new_connection(m_port);
-}
+// void PjCallback::on_new_connection(void *m_port)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
+//     emit sig_new_connection(m_port);
+// }
 
-// static 
-void PjCallback::on_new_connection_wrapper(void *m_port)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
-	if (globalPjCallback) {
-		PjCallback *myCb = (PjCallback*) globalPjCallback;
-		myCb->on_new_connection(m_port);
-	}
-}
+// // static 
+// void PjCallback::on_new_connection_wrapper(void *m_port)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
+// 	if (globalPjCallback) {
+// 		PjCallback *myCb = (PjCallback*) globalPjCallback;
+// 		myCb->on_new_connection(m_port);
+// 	}
+// }
 
-void PjCallback::on_new_incoming_connection(void *m_port)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
-    emit sig_new_incoming_connection(m_port);
-}
+// void PjCallback::on_new_incoming_connection(void *m_port)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
+//     emit sig_new_incoming_connection(m_port);
+// }
 
-// static 
-void PjCallback::on_new_incoming_connection_wrapper(void *m_port)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
-	if (globalPjCallback) {
-		PjCallback *myCb = (PjCallback*) globalPjCallback;
-		myCb->on_new_incoming_connection(m_port);
-	}
-}
+// // static 
+// void PjCallback::on_new_incoming_connection_wrapper(void *m_port)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<m_port;
+// 	if (globalPjCallback) {
+// 		PjCallback *myCb = (PjCallback*) globalPjCallback;
+// 		myCb->on_new_incoming_connection(m_port);
+// 	}
+// }
 
-void PjCallback::on_put_frame(QTcpSocket *sock, QByteArray fba)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<fba.length();
-    emit sig_put_frame(sock, fba);
-}
+// void PjCallback::on_put_frame(QTcpSocket *sock, QByteArray fba)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<fba.length();
+//     emit sig_put_frame(sock, fba);
+// }
 
-// static 
-void PjCallback::on_put_frame_wrapper(QTcpSocket *sock, QByteArray fba)
-{
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<fba.length();
-	if (globalPjCallback) {
-		PjCallback *myCb = (PjCallback*) globalPjCallback;
-		myCb->on_put_frame(sock, fba);
-	}
-}
+// // static 
+// void PjCallback::on_put_frame_wrapper(QTcpSocket *sock, QByteArray fba)
+// {
+//     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<fba.length();
+// 	if (globalPjCallback) {
+// 		PjCallback *myCb = (PjCallback*) globalPjCallback;
+// 		myCb->on_put_frame(sock, fba);
+// 	}
+// }
 
 
 // void PjCallback::logger_cb(int level, const char *data, int len) {
@@ -484,3 +488,168 @@ void PjCallback::on_nat_detect_wrapper(const pj_stun_nat_detect_result *res) {
 //		myCb->on_pager2(call_id, from, to, contact, mime_type, text, rdata);
 //	}
 //}
+
+void PjCallback::on_pjsua_create_impl(int reqno)
+{
+    qLogx()<<"";
+    pj_status_t status;
+
+    status = pjsua_create();
+
+    emit this->sig_pjsua_create_done(reqno, status);
+}
+
+void PjCallback::on_pjsua_init_impl(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg)
+{
+    qLogx()<<"";
+    pj_status_t status;
+
+    status = pjsua_init(ua_cfg, log_cfg, media_cfg);
+
+    emit this->sig_pjsua_init_done(reqno, status);
+}
+
+void PjCallback::on_pjsua_start_impl(int reqno)
+{
+    qLogx()<<"";
+    pj_status_t status;
+
+    status = pjsua_start();
+
+    emit this->sig_pjsua_start_done(reqno, status);
+}
+
+void PjCallback::on_make_call_impl(int reqno, pjsua_acc_id acc_id, const QString &sip_uri)
+{
+    pj_status_t status;
+    pjsua_call_id call_id;
+    char buf[5120] = {0};
+
+    strncpy(buf, sip_uri.toAscii().data(), sip_uri.length());
+    pj_str_t uri = pj_str(buf);
+    
+    status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, &call_id);
+
+    emit this->sig_make_call_done(reqno, status, call_id);
+}
+
+
+/////////////////////////
+////////////////////////
+int PjsipCallFront::m_reqno = 0;
+PjsipCallFront::PjsipCallFront(QObject *parent)
+    :QThread(parent)
+{
+
+    
+}
+
+PjsipCallFront::~PjsipCallFront()
+{
+}
+
+void PjsipCallFront::run()
+{
+    pj_thread_desc initdec;
+    pj_thread_t* thread = 0;
+    pj_status_t status;
+    int evt_cnt = 0;
+
+    Q_ASSERT(::globalPjCallback == NULL);
+    ::globalPjCallback = new PjCallback();
+
+    status = pjsua_create();
+    Q_ASSERT(status == PJ_SUCCESS);
+
+    PJSipEventThread *ethread = new PJSipEventThread();
+    ethread->start();
+    // TODO should detect if thread start successful, if not, below operation is not usable
+
+    // qLogx()<<"ready register pjsip thread by Qt";
+    // if (!pj_thread_is_registered()) {
+    //     status = pj_thread_register("PjsipInvokerThread_run", initdec, &thread);
+    //     if (status != PJ_SUCCESS) {
+    //         qLogx()<<"pj_thread_register faild:"<<status;
+    //         Q_ASSERT(status == PJ_SUCCESS);
+    //         return;
+    //     }
+    // }
+    // PJ_CHECK_STACK();
+    // qLogx()<<"registerred pjsip thread:"<<thread;
+
+    // this->dump_info(thread);
+
+    PjCallback *myCb = (PjCallback*) globalPjCallback;
+    QObject::connect(this, SIGNAL(invoke_pjsua_create_fwd(int)),
+                     myCb, SLOT(on_pjsua_create_impl(int)));
+    QObject::connect(this, SIGNAL(invoke_pjsua_init_fwd(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)),
+                     myCb, SLOT(on_pjsua_init_impl(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)));
+    QObject::connect(this, SIGNAL(invoke_pjsua_start_fwd(int)),
+                     myCb, SLOT(on_pjsua_start_impl(int)));
+    QObject::connect(this, SIGNAL(invoke_make_call_fwd(int, pjsua_acc_id, const QString&)),
+                     myCb, SLOT(on_make_call_impl(int, pjsua_acc_id, const QString&)));
+
+
+    QObject::connect(myCb, SIGNAL(sig_pjsua_create_done(int, pj_status_t)),
+                     this, SIGNAL(invoke_pjsua_create_result(int, pj_status_t)));
+    QObject::connect(myCb, SIGNAL(sig_pjsua_init_done(int, pj_status_t)),
+                     this, SIGNAL(invoke_pjsua_init_result(int, pj_status_t)));
+    QObject::connect(myCb, SIGNAL(sig_pjsua_start_done(int, pj_status_t)),
+                     this, SIGNAL(invoke_pjsua_start_result(int, pj_status_t)));
+    QObject::connect(myCb, SIGNAL(sig_make_call_done(int, pj_status_t, pjsua_call_id)),
+                     this, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)));
+
+    qLogx()<<"";
+    this->exec();
+}
+
+void PjsipCallFront::dump_info(pj_thread_t *thread)
+{
+    Q_ASSERT(thread != NULL);
+
+    qLogx()<<"pj_thread_is_registered:"<<pj_thread_is_registered();
+    qLogx()<<"pj_thread_get_prio:"<<pj_thread_get_prio(thread);
+    qLogx()<<"pj_thread_get_prio_min:"<<pj_thread_get_prio_min(thread);
+    qLogx()<<"pj_thread_get_prio_max:"<<pj_thread_get_prio_max(thread);
+    qLogx()<<"pj_thread_get_name:"<<pj_thread_get_name(thread);
+    qLogx()<<"pj_getpid:"<<pj_getpid();
+}
+
+int PjsipCallFront::invoke_pjsua_create()
+{
+    int reqno = ++ this->m_reqno;
+
+    emit this->invoke_pjsua_create_fwd(reqno);
+
+    return reqno;
+
+}
+
+int PjsipCallFront::invoke_pjsua_init(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg)
+{
+    int reqno = ++ this->m_reqno;
+
+    emit this->invoke_pjsua_init_fwd(reqno, ua_cfg, log_cfg, media_cfg);
+
+    return reqno;
+
+}
+
+int PjsipCallFront::invoke_pjsua_start()
+{
+    int reqno = ++ this->m_reqno;
+
+    emit this->invoke_pjsua_start_fwd(reqno);
+
+    return reqno;
+}
+
+int PjsipCallFront::invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri)
+{
+    int reqno = ++ this->m_reqno;
+
+    emit this->invoke_make_call_fwd(reqno, acc_id, sip_uri);
+
+    return reqno;
+}
+

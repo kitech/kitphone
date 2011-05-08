@@ -1413,23 +1413,23 @@ void SipPhone::on2_pjsua_start_done(int seqno, pj_status_t rstatus)
     unsigned int auid_count = 128;
     unsigned int sndid_count = 128;
 
-    // status = pjsua_enum_aud_devs(auids, &auid_count);
-    // qDebug()<<"found aud dev count:"<<auid_count;
-    // status = pjsua_enum_snd_devs(sndids, &sndid_count);
-    // qDebug()<<"found snd dev count:"<<sndid_count;
+    status = pjsua_enum_aud_devs(auids, &auid_count);
+    qDebug()<<"found aud dev count:"<<auid_count;
+    status = pjsua_enum_snd_devs(sndids, &sndid_count);
+    qDebug()<<"found snd dev count:"<<sndid_count;
 
-    // for (int i = 0 ; i < sndid_count; i ++) {
-    //     QString name;
-    //     qDebug()<<"aud:"<<QString(auids[i].name)<<" snd:"<<QString(sndids[i].name);
-    // }
+    for (int i = 0 ; i < sndid_count; i ++) {
+        QString name;
+        qDebug()<<"aud:"<<QString(auids[i].name)<<" snd:"<<QString(sndids[i].name);
+    }
     
-    // int cap_dev = -1, pb_dev = -1;
-    // status = pjsua_get_snd_dev(&cap_dev, &pb_dev);
-    // qDebug()<<"curr snd dev:"<<"status="<<status<<" cap="<<cap_dev<<" pb="<<pb_dev;
-    // qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+    int cap_dev = -1, pb_dev = -1;
+    status = pjsua_get_snd_dev(&cap_dev, &pb_dev);
+    qDebug()<<"curr snd dev:"<<"status="<<status<<" cap="<<cap_dev<<" pb="<<pb_dev;
+    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
 
-    // // status = pjsua_set_snd_dev(0, 0);
-    // qDebug()<<"snd ok?"<<pjsua_snd_is_active();
+    // status = pjsua_set_snd_dev(0, 0);
+    qDebug()<<"snd ok?"<<pjsua_snd_is_active();
 
 }
 

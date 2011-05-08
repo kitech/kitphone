@@ -188,6 +188,8 @@ public slots:
     int invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri);
 
 signals:
+    void realStarted();
+
     void invoke_sip_init_result(int reqno, pj_status_t status);
     void invoke_pjsua_create_result(int reqno, pj_status_t status);
     void invoke_pjsua_init_result(int reqno, pj_status_t status);

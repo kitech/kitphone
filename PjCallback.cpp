@@ -563,6 +563,10 @@ void PjsipCallFront::run()
 
     PJSipEventThread *ethread = new PJSipEventThread();
     ethread->start();
+    while (!ethread->isRunning()) {
+        msleep(5);
+    }
+
     // TODO should detect if thread start successful, if not, below operation is not usable
 
     // qLogx()<<"ready register pjsip thread by Qt";

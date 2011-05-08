@@ -1399,14 +1399,14 @@ void SipPhone::on2_pjsua_start_done(int seqno, pj_status_t rstatus)
 
     info_count = 20;
     
-    // status = pjsua_enum_codecs(infos, &info_count);
-    // if (status == PJ_SUCCESS) {
-    //     for (int i = 0; i < info_count; i ++) {
-    //         QString codec_idname = QString((infos[i].codec_id).ptr);
-    //         qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
-    //         this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
-    //     }
-    // }
+    status = pjsua_enum_codecs(infos, &info_count);
+    if (status == PJ_SUCCESS) {
+        for (int i = 0; i < info_count; i ++) {
+            QString codec_idname = QString((infos[i].codec_id).ptr);
+            qLogx()<<"codec info:"<<"p="<<infos[i].priority<<" id="<<(infos[i].codec_id).ptr;
+            this->uiw->comboBox->insertItem(this->uiw->comboBox->count(), codec_idname);
+        }
+    }
 
     pjmedia_aud_dev_info auids[128];
     pjmedia_snd_dev_info sndids[128];

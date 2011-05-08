@@ -94,9 +94,6 @@ public slots: // sip
 
     // void on1_put_frame(QTcpSocket *sock, QByteArray fba);
     
-    // 
-    void on2_pjsua_create_done(int seqno, pj_status_t status);
-    void on2_pjsua_init_done(int seqno, pj_status_t status);
     void on2_pjsua_start_done(int seqno, pj_status_t status);
     void on2_make_call_done(int seqno, pj_status_t status, pjsua_call_id call_id);
 

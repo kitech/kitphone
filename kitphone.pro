@@ -16,7 +16,7 @@ MOC_DIR = tmp
 UI_DIR = tmp
 OBJECTS_DIR = tmp
 
-VERSION = 0.5.5.2
+VERSION = 0.5.5.5
 
 !win32 {
 QMAKE_CXXFLAGS += -g -std=c++0x

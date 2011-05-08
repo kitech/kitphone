@@ -496,48 +496,6 @@ void PjCallback::on_nat_detect_wrapper(const pj_stun_nat_detect_result *res) {
 //	}
 //}
 
-void PjCallback::on_pjsua_create_impl(int reqno)
-{
-    qLogx()<<"";
-    pj_status_t status;
-
-    status = pjsua_create();
-
-    emit this->sig_pjsua_create_done(reqno, status);
-}
-
-void PjCallback::on_pjsua_init_impl(int reqno, pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg)
-{
-    qLogx()<<"";
-    pj_status_t status;
-
-    status = pjsua_init(ua_cfg, log_cfg, media_cfg);
-
-    emit this->sig_pjsua_init_done(reqno, status);
-}
-
-void PjCallback::on_pjsua_transport_create_impl(int reqno, const QVector<int> &types,
-                                                const QVector<pjsua_transport_config*> &tp_cfgs)
-{
-    qLogx()<<"";
-    pj_status_t status;
-    QVector<pj_status_t> statuses;
-    QVector<pjsua_transport_id> tp_ids;
-    
-
-    emit this->sig_pjsua_transport_create_done(reqno, statuses, tp_ids);
-}
-
-void PjCallback::on_pjsua_start_impl(int reqno)
-{
-    qLogx()<<"";
-    pj_status_t status;
-
-    status = pjsua_start();
-
-    emit this->sig_pjsua_start_done(reqno, status);
-}
-
 void PjCallback::on_make_call_impl(int reqno, pjsua_acc_id acc_id, const QString &sip_uri)
 {
     pj_status_t status;
@@ -609,46 +567,12 @@ void PjsipCallFront::run()
     while (!ethread->isRunning()) {
         msleep(5);
     }
-    // sleep(1);
-
-    // TODO should detect if thread start successful, if not, below operation is not usable
-
-    // qLogx()<<"ready register pjsip thread by Qt";
-    // if (!pj_thread_is_registered()) {
-    //     status = pj_thread_register("PjsipInvokerThread_run", initdec, &thread);
-    //     if (status != PJ_SUCCESS) {
-    //         qLogx()<<"pj_thread_register faild:"<<status;
-    //         Q_ASSERT(status == PJ_SUCCESS);
-    //         return;
-    //     }
-    // }
-    // PJ_CHECK_STACK();
-    // qLogx()<<"registerred pjsip thread:"<<thread;
-
-    // this->dump_info(thread);
 
     PjCallback *myCb = (PjCallback*) globalPjCallback;
-    QObject::connect(this, SIGNAL(invoke_pjsua_create_fwd(int)),
-                     myCb, SLOT(on_pjsua_create_impl(int)));
-    QObject::connect(this, SIGNAL(invoke_pjsua_init_fwd(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)),
-                     myCb, SLOT(on_pjsua_init_impl(int, pjsua_config*, pjsua_logging_config*, pjsua_media_config*)));
-    QObject::connect(this, SIGNAL(invoke_pjsua_transport_create_fwd(int, const QVector<int> &, const QVector<pjsua_transport_config*> &)),
-                     myCb, SLOT(on_pjsua_transport_create_impl(int, const QVector<int>&, const QVector<pjsua_transport_config*>&)));
-
-    QObject::connect(this, SIGNAL(invoke_pjsua_start_fwd(int)),
-                     myCb, SLOT(on_pjsua_start_impl(int)));
     QObject::connect(this, SIGNAL(invoke_make_call_fwd(int, pjsua_acc_id, const QString&)),
                      myCb, SLOT(on_make_call_impl(int, pjsua_acc_id, const QString&)));
 
 
-    QObject::connect(myCb, SIGNAL(sig_pjsua_create_done(int, pj_status_t)),
-                     this, SIGNAL(invoke_pjsua_create_result(int, pj_status_t)));
-    QObject::connect(myCb, SIGNAL(sig_pjsua_init_done(int, pj_status_t)),
-                     this, SIGNAL(invoke_pjsua_init_result(int, pj_status_t)));
-    QObject::connect(myCb, SIGNAL(sig_pjsua_transport_create_done(int, const QVector<pj_status_t>&, const QVector<pjsua_transport_id> &)),
-                     this, SIGNAL(invoke_pjsua_transport_create_result(int, const QVector<pj_status_t>&, const QVector<pjsua_transport_id> &)));
-    QObject::connect(myCb, SIGNAL(sig_pjsua_start_done(int, pj_status_t)),
-                     this, SIGNAL(invoke_pjsua_start_result(int, pj_status_t)));
     QObject::connect(myCb, SIGNAL(sig_make_call_done(int, pj_status_t, pjsua_call_id)),
                      this, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)));
 
@@ -708,46 +632,6 @@ void PjsipCallFront::dump_info(pj_thread_t *thread)
     qLogx()<<"pj_thread_get_prio_max:"<<pj_thread_get_prio_max(thread);
     qLogx()<<"pj_thread_get_name:"<<pj_thread_get_name(thread);
     qLogx()<<"pj_getpid:"<<pj_getpid();
-}
-
-int PjsipCallFront::invoke_pjsua_create()
-{
-    int reqno = ++ this->m_reqno;
-
-    emit this->invoke_pjsua_create_fwd(reqno);
-
-    return reqno;
-
-}
-
-int PjsipCallFront::invoke_pjsua_init(pjsua_config *ua_cfg, pjsua_logging_config *log_cfg, pjsua_media_config *media_cfg)
-{
-    int reqno = ++ this->m_reqno;
-
-    emit this->invoke_pjsua_init_fwd(reqno, ua_cfg, log_cfg, media_cfg);
-
-    return reqno;
-
-}
-
-int PjsipCallFront::invoke_pjsua_transport_create(const QVector<int> &types,
-                                                  const QVector<pjsua_transport_config*> &tp_cfgs)
-{
-    int reqno = ++ this->m_reqno;
-
-    emit this->invoke_pjsua_transport_create_fwd(reqno, types, tp_cfgs);
-
-    return reqno;
-}
-
-
-int PjsipCallFront::invoke_pjsua_start()
-{
-    int reqno = ++ this->m_reqno;
-
-    emit this->invoke_pjsua_start_fwd(reqno);
-
-    return reqno;
 }
 
 int PjsipCallFront::invoke_make_call(pjsua_acc_id acc_id, const QString &sip_uri)

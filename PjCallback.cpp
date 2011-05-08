@@ -563,8 +563,10 @@ void PjsipCallFront::run()
 
     PJSipEventThread *ethread = new PJSipEventThread();
     ethread->start();
-
-    sleep(1);
+    while (!ethread->isRunning()) {
+        msleep(5);
+    }
+    // sleep(1);
 
     // TODO should detect if thread start successful, if not, below operation is not usable
 

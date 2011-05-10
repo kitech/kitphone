@@ -1793,11 +1793,15 @@ bail2:
 			if (eff_buf.token_len) {
                 // some compatible hack
                 // no Sec-WebSocket-Protocol field, in some older browser
+                // flash websocket 支持这个                
                 char *ins_hdr = "Sec-WebSocket-Protocol: wso\r\n";
-                if (wsi->state == WSI_STATE_HTTP && eff_buf.token_len > 10) {
-                    if (strstr(eff_buf.token, "Sec-WebSocket-Protocol") == NULL) {
+                if ((wsi->state == WSI_STATE_HTTP || wsi->state == WSI_STATE_HTTP_HEADERS)
+                    && eff_buf.token_len > 10) {
+                    char *pp = strstr(eff_buf.token, "Sec-WebSocket-Protocol");
+                    if (pp == NULL) {
                         char *p1 = strstr(eff_buf.token, "Sec-WebSocket-Key1");
                         if (p1 != NULL) {
+                            // TODO 这个memmove调用偶尔引起程序崩溃,还有哪个值无效引起的。
                             memmove(p1 + strlen(ins_hdr), p1, eff_buf.token_len - (p1 - eff_buf.token));
                             memcpy(p1, ins_hdr, strlen(ins_hdr));
                             eff_buf.token_len += strlen(ins_hdr);
@@ -1805,9 +1809,11 @@ bail2:
                         } else {
                             fprintf(stderr, "Dont known how patch it, very old websocket client.\n");
                         }
+                    } else {
+                        fprintf(stderr, "wsi already has Protocol field, idx=%d, from %s.\n", pp - eff_buf.token, pp);
                     }
                 }
-                fprintf(stderr, "wsi state: %d\n", wsi->state);
+                fprintf(stderr, "wsi state: %d=?%d, %d\n", wsi->state, WSI_STATE_HTTP, eff_buf.token_len);
 				n = libwebsocket_read(context, wsi,
 				     (unsigned char *)eff_buf.token, eff_buf.token_len);
 				if (n < 0)

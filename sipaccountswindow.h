@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:25:31 +0800
-// Version: $Id: sipaccountswindow.h 581 2010-11-21 15:03:14Z drswinghead $
+// Version: $Id: sipaccountswindow.h 875 2011-05-09 10:31:22Z drswinghead $
 // 
 #ifndef _SIPACCOUNTSWINDOW_H_
 #define _SIPACCOUNTSWINDOW_H_

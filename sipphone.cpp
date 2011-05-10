@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 874 2011-05-08 08:48:25Z drswinghead $
+// Version: $Id: sipphone.cpp 875 2011-05-09 10:31:22Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -117,8 +117,9 @@ void SipPhone::main_ui_draw_complete()
         user_account = QString("%1@%2").arg(accs.at(i).userName).arg(accs.at(i).domain);
         this->uiw->comboBox_6->insertItem(0, user_account);
     }
+    this->uiw->comboBox_6->setCurrentIndex(0);
 
-    this->uiw->comboBox_6->view()->setFixedWidth(300);
+    this->uiw->comboBox_6->view()->setFixedWidth(280);
 }
 
 void SipPhone::paintEvent ( QPaintEvent * event )
@@ -615,6 +616,14 @@ void SipPhone::on1_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call_
               (int)pci->state_text.slen,
               pci->state_text.ptr));
 
+    if (pci->state == PJSIP_INV_STATE_CONFIRMED) {
+        this->onSipAnswered();
+    }
+
+    if (pci->state == PJSIP_INV_STATE_DISCONNECTED) {
+        this->onSipDisconnected();
+    }
+
     free(pci);
 }
 
@@ -755,9 +764,12 @@ void SipPhone::onCallSipNew()
         return;
     }
 
+    QString user_account = this->uiw->comboBox_6->currentText();
     QString callee_phone = this->uiw->comboBox_7->currentText();
-    QString sip_server;// = this->uiw->comboBox_2->currentText();
-    sip_server = "202.108.29.234:4060";
+    QString sip_server;// 
+    // sip_server = "202.108.29.234:4060";
+    // sip_server = "202.108.29.229:4060";
+    sip_server = user_account.split("@").at(1);
     // char *sipu = "<SIP:99008668056013552776960@122.228.202.105:4060;transport=UDP>";
     char *sipu = strdup(QString("<SIP:%1@%2;transport=UDP>")
                         .arg(callee_phone).arg(sip_server) .toAscii().data());
@@ -780,11 +792,25 @@ void SipPhone::onCallSipNew()
     free(sipu);
 
     qLogx()<<"oncall slot returned"<<reqno;
+
+    //////// 改变界面
+    this->uiw->label_5->setText(callee_phone);
 }
 
 void SipPhone::onHangupSipNew()
 {
     pjsua_call_hangup_all();    
+}
+
+void SipPhone::onSipAnswered()
+{
+    log_output(LT_USER, QString("呼叫已经建立：%1").arg(this->m_curr_call_id));
+}
+
+void SipPhone::onSipDisconnected()
+{
+    log_output(LT_USER, QString("呼叫结束：%1").arg(this->m_curr_call_id));
+    this->m_curr_call_id = PJSUA_INVALID_ID;
 }
 
 pjsua_acc_id SipPhone::_create_sip_account(QString acc_name)

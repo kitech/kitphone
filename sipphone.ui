@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>358</width>
+    <width>372</width>
     <height>871</height>
    </rect>
   </property>
@@ -167,6 +167,26 @@
      </item>
      <item>
       <widget class="QComboBox" name="comboBox_7">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>13</pointsize>
+         <weight>50</weight>
+         <bold>false</bold>
+         <kerning>true</kerning>
+        </font>
+       </property>
        <property name="toolTip">
         <string>phone number: such as 123-12344556</string>
        </property>
@@ -175,27 +195,17 @@
        </property>
        <item>
         <property name="text">
-         <string>99008668056013552776960</string>
+         <string>9900866805601095588</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>99008664115013552776960</string>
+         <string>99008664115013800138000</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>99008668056010687300662547</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>新建项目</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>新建项目</string>
+         <string>99008668056010687300662546</string>
         </property>
        </item>
       </widget>
@@ -578,7 +588,7 @@
            <bool>true</bool>
           </property>
           <property name="checked">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="autoRaise">
            <bool>true</bool>
@@ -606,15 +616,27 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_8">
         <item>
-         <widget class="QLabel" name="label_8">
+         <widget class="QSlider" name="verticalSlider">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="maximumSize">
            <size>
-            <width>30</width>
-            <height>16777215</height>
+            <width>16777215</width>
+            <height>50</height>
            </size>
           </property>
-          <property name="text">
-           <string>三</string>
+          <property name="singleStep">
+           <number>5</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBothSides</enum>
           </property>
          </widget>
         </item>
@@ -662,18 +684,39 @@
          </layout>
         </item>
         <item>
-         <widget class="QLabel" name="label_9">
-          <property name="maximumSize">
+         <widget class="QSlider" name="verticalSlider_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
            <size>
-            <width>30</width>
-            <height>16777215</height>
+            <width>0</width>
+            <height>50</height>
            </size>
           </property>
-          <property name="layoutDirection">
-           <enum>Qt::LeftToRight</enum>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>50</height>
+           </size>
           </property>
-          <property name="text">
-           <string>三</string>
+          <property name="singleStep">
+           <number>5</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="invertedAppearance">
+           <bool>false</bool>
+          </property>
+          <property name="invertedControls">
+           <bool>false</bool>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBothSides</enum>
           </property>
          </widget>
         </item>

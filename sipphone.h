@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 874 2011-05-08 08:48:25Z drswinghead $
+// Version: $Id: sipphone.h 875 2011-05-09 10:31:22Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -85,6 +85,8 @@ public slots: // sip
     
     void onCallSipNew();
     void onHangupSipNew();
+    void onSipAnswered();
+    void onSipDisconnected();
 
     void onSelectedUserAccountChanged(int idx);
     void onDigitButtonClicked();

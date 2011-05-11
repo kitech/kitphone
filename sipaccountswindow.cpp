@@ -389,6 +389,8 @@ bool SipAccountsWindow::onModifyAccountDone(boost::shared_ptr<SqlRequest> req)
         }
     }
 
+    this->mRequests.remove(req->mReqno);
+
     this->onGetAccountById(req->mCbId);
 
     return true;

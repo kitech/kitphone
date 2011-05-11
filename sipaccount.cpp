@@ -19,97 +19,97 @@ SipAccount::~SipAccount()
 {
 }
 
-QString SipAccount::_getAccountFile()
-{
-    QString acc_db_path;
-    acc_db_path = QCoreApplication::applicationDirPath() + "/accounts.db";
-    return acc_db_path;
-}
-bool SipAccount::save(SipAccount &acc)
-{
-    QString acc_db_path;
+// QString SipAccount::_getAccountFile()
+// {
+//     QString acc_db_path;
+//     acc_db_path = QCoreApplication::applicationDirPath() + "/accounts.db";
+//     return acc_db_path;
+// }
+// bool SipAccount::save(SipAccount &acc)
+// {
+//     QString acc_db_path;
 
-    acc_db_path = this->_getAccountFile();
+//     acc_db_path = this->_getAccountFile();
 
-    QSettings sets(acc_db_path, QSettings::IniFormat);
+//     QSettings sets(acc_db_path, QSettings::IniFormat);
 
-    sets.beginGroup(acc.userName);
-    sets.setValue("user_name", acc.userName);
-    sets.setValue("password", acc.password);
-    sets.setValue("domain", acc.domain);
-    sets.setValue("enabled", acc.enabled);
-    sets.endGroup();
+//     sets.beginGroup(acc.userName);
+//     sets.setValue("user_name", acc.userName);
+//     sets.setValue("password", acc.password);
+//     sets.setValue("domain", acc.domain);
+//     sets.setValue("enabled", acc.enabled);
+//     sets.endGroup();
 
-    sets.sync();
+//     sets.sync();
 
-    return true;
-}
+//     return true;
+// }
 
-bool SipAccount::remove(QString key)
-{
-    QString acc_db_path;
+// bool SipAccount::remove(QString key)
+// {
+//     QString acc_db_path;
 
-    acc_db_path = this->_getAccountFile();
+//     acc_db_path = this->_getAccountFile();
 
-    QSettings sets(acc_db_path, QSettings::IniFormat);
-    QStringList names = sets.childGroups();
+//     QSettings sets(acc_db_path, QSettings::IniFormat);
+//     QStringList names = sets.childGroups();
 
-    if (names.contains(key)) {
-        sets.remove(key);
-        sets.sync();
-        return true;
-    }
-    return false;
-}
+//     if (names.contains(key)) {
+//         sets.remove(key);
+//         sets.sync();
+//         return true;
+//     }
+//     return false;
+// }
 
-SipAccount SipAccount::getAccount(QString key)
-{
-    QString acc_db_path;
+// SipAccount SipAccount::getAccount(QString key)
+// {
+//     QString acc_db_path;
 
-    acc_db_path = this->_getAccountFile();
+//     acc_db_path = this->_getAccountFile();
 
-    QSettings sets(acc_db_path, QSettings::IniFormat);
-    QStringList names = sets.childGroups();
+//     QSettings sets(acc_db_path, QSettings::IniFormat);
+//     QStringList names = sets.childGroups();
 
-    SipAccount acc;
-    if (names.contains(key)) {
-        sets.beginGroup(key);
-        acc.userName = key;
-        acc.password = sets.value("password").toString();
-        acc.domain = sets.value("domain").toString();
-        acc.enabled = sets.value("enabled").toInt();
-        sets.endGroup();
-    }
+//     SipAccount acc;
+//     if (names.contains(key)) {
+//         sets.beginGroup(key);
+//         acc.userName = key;
+//         acc.password = sets.value("password").toString();
+//         acc.domain = sets.value("domain").toString();
+//         acc.enabled = sets.value("enabled").toInt();
+//         sets.endGroup();
+//     }
 
-    return acc;
-}
+//     return acc;
+// }
 
-QVector<SipAccount> SipAccount::listAccounts()
-{
-    QVector<SipAccount> accs;
-    QString acc_db_path;
+// QVector<SipAccount> SipAccount::listAccounts()
+// {
+//     QVector<SipAccount> accs;
+//     QString acc_db_path;
 
-    acc_db_path = this->_getAccountFile();
+//     acc_db_path = this->_getAccountFile();
 
-    QSettings sets(acc_db_path, QSettings::IniFormat);
-    QStringList names = sets.childGroups();
+//     QSettings sets(acc_db_path, QSettings::IniFormat);
+//     QStringList names = sets.childGroups();
     
-    // qDebug()<<"names:"<<names<<sets.status();
+//     // qDebug()<<"names:"<<names<<sets.status();
 
-    SipAccount acc;
-    for (int i = 0 ; i < names.count(); i++) {
-        sets.beginGroup(names.at(i));
-        acc.userName = names.at(i);
-        acc.password = sets.value("password").toString();
-        acc.domain = sets.value("domain").toString();
-        acc.enabled = sets.value("enabled").toInt();
-        sets.endGroup();
+//     SipAccount acc;
+//     for (int i = 0 ; i < names.count(); i++) {
+//         sets.beginGroup(names.at(i));
+//         acc.userName = names.at(i);
+//         acc.password = sets.value("password").toString();
+//         acc.domain = sets.value("domain").toString();
+//         acc.enabled = sets.value("enabled").toInt();
+//         sets.endGroup();
 
-        accs.append(acc);
-    }
+//         accs.append(acc);
+//     }
     
-    return accs;
-}
+//     return accs;
+// }
 
 void SipAccount::dump()
 {
@@ -137,13 +137,13 @@ SipAccountList *SipAccountList::instance()
     return SipAccountList::mInstance;
 }
 
-QVector<SipAccount> SipAccountList::loadAccounts()
-{
-    QVector<SipAccount> accs;
+// QVector<SipAccount> SipAccountList::loadAccounts()
+// {
+//     QVector<SipAccount> accs;
 
-    accs = SipAccount().listAccounts();
+//     accs = SipAccount().listAccounts();
 
-    this->maccs2 = accs;
+//     this->maccs2 = accs;
 
-    return accs;
-}
+//     return accs;
+// }

@@ -58,7 +58,7 @@ public slots:
                           const QString &estr, const QVariant &eval);
 
 public:
-    void reload();
+    // void reload();
 
 private:
     SipAccount accountFromRow(int row);    

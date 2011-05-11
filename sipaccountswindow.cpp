@@ -178,40 +178,40 @@ void SipAccountsWindow::onMakeDefaultAccount()
 }
 
 // depcreated
-void SipAccountsWindow::reload()
-{
-    QTableWidgetItem *item;
-    QVector<SipAccount> accs;
-    SipAccount acc;
-    QCheckBox *cbox;
+// void SipAccountsWindow::reload()
+// {
+//     QTableWidgetItem *item;
+//     QVector<SipAccount> accs;
+//     SipAccount acc;
+//     QCheckBox *cbox;
 
-    // this->uiw->tableWidget->clear();
-    for (int i = this->uiw->tableWidget->rowCount() - 1; i >= 0 ; --i) {
-        this->uiw->tableWidget->removeRow(i);    
-    }
-    accs = SipAccount().listAccounts();
-    // qDebug()<<accs.count();
-    for (int i = 0 ; i < accs.count() ; i++) {
-        acc = accs.at(i);
-        this->uiw->tableWidget->insertRow(i);
-        cbox = new QCheckBox();
-        this->uiw->tableWidget->setCellWidget(i, 0, cbox);
-        cbox->setChecked(false);
-        QObject::connect(cbox, SIGNAL(toggled(bool)),
-                         this, SLOT(onSetLogin(bool)));
+//     // this->uiw->tableWidget->clear();
+//     for (int i = this->uiw->tableWidget->rowCount() - 1; i >= 0 ; --i) {
+//         this->uiw->tableWidget->removeRow(i);    
+//     }
+//     accs = SipAccount().listAccounts();
+//     // qDebug()<<accs.count();
+//     for (int i = 0 ; i < accs.count() ; i++) {
+//         acc = accs.at(i);
+//         this->uiw->tableWidget->insertRow(i);
+//         cbox = new QCheckBox();
+//         this->uiw->tableWidget->setCellWidget(i, 0, cbox);
+//         cbox->setChecked(false);
+//         QObject::connect(cbox, SIGNAL(toggled(bool)),
+//                          this, SLOT(onSetLogin(bool)));
 
-        this->uiw->tableWidget->setItem(i, 1, new QTableWidgetItem());
-        this->uiw->tableWidget->item(i, 1)->setText(QString::number(i+1));
-        item = this->uiw->tableWidget->item(i, 2);
-        item = new QTableWidgetItem();
-        item->setText(acc.userName);
-        this->uiw->tableWidget->setItem(i, 2, item);
-        item = this->uiw->tableWidget->item(i, 3);
-        item = new QTableWidgetItem();
-        item->setText(acc.domain);
-        this->uiw->tableWidget->setItem(i, 3, item);
-    }
-}
+//         this->uiw->tableWidget->setItem(i, 1, new QTableWidgetItem());
+//         this->uiw->tableWidget->item(i, 1)->setText(QString::number(i+1));
+//         item = this->uiw->tableWidget->item(i, 2);
+//         item = new QTableWidgetItem();
+//         item->setText(acc.userName);
+//         this->uiw->tableWidget->setItem(i, 2, item);
+//         item = this->uiw->tableWidget->item(i, 3);
+//         item = new QTableWidgetItem();
+//         item->setText(acc.domain);
+//         this->uiw->tableWidget->setItem(i, 3, item);
+//     }
+// }
 
 void SipAccountsWindow::onSetLogin(bool checked)
 {

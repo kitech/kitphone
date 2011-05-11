@@ -112,7 +112,7 @@ void SipPhone::main_ui_draw_complete()
     this->acc_list = SipAccountList::instance();
 
     QString user_account;
-    QVector<SipAccount> accs = this->acc_list->loadAccounts();
+    QVector<SipAccount> accs;//  = this->acc_list->loadAccounts(); TODO, replace by
     for (int i = accs.count()-1; i >= 0; i--) {
         user_account = QString("%1@%2").arg(accs.at(i).userName).arg(accs.at(i).domain);
         this->uiw->comboBox_6->insertItem(0, user_account);
@@ -432,7 +432,7 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
 
     if (reg) {
         acc_id = this->_find_account_from_pjacc(user_name);
-        sip_acc = sip_acc.getAccount(user_name);
+        // sip_acc = sip_acc.getAccount(user_name); // todo, depcreated
         Q_ASSERT(sip_acc.userName.isEmpty() == false);
 
         pjsua_acc_config_default(&cfg);

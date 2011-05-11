@@ -29,10 +29,14 @@ extern "C" {
 	#include <pjsua-lib/pjsua.h>
 }
 
-#define VOIP_SERVER "voip.qtchina.net"
-#define SIP_SERVER "sip.qtchina.net"
+#define VOIP_SERVER "202.108.12.212"
+#define SIP_SERVER "202.108.29.234"
+#define TURN_SERVER "211.100.41.6"
+
+//#define VOIP_SERVER "voip.qtchina.net"
+//#define SIP_SERVER "sip.qtchina.net"
 // #define TURN_SERVER "turn.qtchina.net"
-#define TURN_SERVER "turn.qtchina.net"
+//#define TURN_SERVER "turn.qtchina.net"
 #define TURN_PORT "34780"
 
 class SipAccountList;

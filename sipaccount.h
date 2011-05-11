@@ -20,15 +20,17 @@ public:
     explicit SipAccount();
     virtual ~SipAccount();
 
+    /*
     bool save(SipAccount &acc);
     bool remove(QString key);
     SipAccount getAccount(QString key);
 
     QVector<SipAccount> listAccounts();
+    */
 
     void dump();
 private:
-    QString _getAccountFile();
+    // QString _getAccountFile();
 
 public:
     int    enabled;

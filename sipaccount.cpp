@@ -12,6 +12,7 @@
 SipAccount::SipAccount()
 {
     this->enabled = 0;
+    this->uid = -1;
 }
 
 SipAccount::~SipAccount()

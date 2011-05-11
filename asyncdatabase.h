@@ -37,7 +37,7 @@ public:
 
     bool mRet;
     QString mErrorString;
-    QVariant mExtraValue;
+    QVariant mExtraValue; // 一向用于last insert id
     QList<QSqlRecord> mResults;
     
     // functor, boost type

@@ -11,8 +11,14 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <QtSql>
 
 #include "boost/smart_ptr.hpp"
+
+#include "sipaccount.h"
+
+class AsyncDatabase;
+class SqlRequest;
 
 namespace Ui {
     class SipAccountsWindow;
@@ -22,7 +28,7 @@ class SipAccountsWindow : public QDialog
 {
     Q_OBJECT;
 public:
-    explicit SipAccountsWindow(QWidget *parent = 0);
+    explicit SipAccountsWindow(boost::shared_ptr<AsyncDatabase> adb, QWidget *parent = 0);
     virtual ~SipAccountsWindow();
 
 public slots:
@@ -35,8 +41,27 @@ public slots:
     void onMakeDefaultAccount();
 
     void onSetLogin(bool checked);
+
+    void onGetAllAccounts();
+    void onGetAccountById(int uid);
+
+    bool onNewAccountDone(boost::shared_ptr<SqlRequest> req);
+    bool onRemoveAccountDone(boost::shared_ptr<SqlRequest> req);
+    bool onModifyAccountDone(boost::shared_ptr<SqlRequest> req);
+    bool onMakeDefaultAccountDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetAllAccountsDone(boost::shared_ptr<SqlRequest> req);
+
+    bool onAccountListArrived(const QList<QSqlRecord> & results);
+
+    // database exec callbacks
+    void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, 
+                          const QString &estr, const QVariant &eval);
+
 public:
     void reload();
+
+private:
+    SipAccount accountFromRow(int row);    
 
 signals:
     void accountWantRegister(QString userName, bool reg);
@@ -44,6 +69,10 @@ signals:
 
 private:
     Ui::SipAccountsWindow *uiw;
+
+    boost::shared_ptr<AsyncDatabase> m_adb;
+    //// sql reqno <---> sql reqclass
+    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
 };
 
 #endif /* _SIPACCOUNTSWINDOW_H_ */

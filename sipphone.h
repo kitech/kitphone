@@ -80,8 +80,6 @@ public slots: // sip
     void onManageSipAccounts();
     void onRegisterAccount(QString user_name, bool reg);
     void onRemoveAccount(QString user_name);
-    void onCallSip();
-    void onHangupSip();
     
     void onCallSipNew();
     void onHangupSipNew();
@@ -192,13 +190,13 @@ private: // sip
 
     // AsyncDatabase *m_adb;
     boost::shared_ptr<AsyncDatabase> m_adb;
+    //// sql reqno <---> sql reqclass
+    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
+
     ContactModel *m_contact_model;
 
     CallHistoryModel *m_call_history_model;
 
-    //// sql reqno <---> sql reqclass
-    QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
-    
 private:
     Ui::SipPhone *uiw;
 };

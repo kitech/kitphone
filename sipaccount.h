@@ -32,9 +32,14 @@ private:
 
 public:
     int    enabled;
+    int uid;
     QString userName;
     QString password;
     QString domain;
+    QString displayName;
+    QString ctime;
+    QString mtime;
+    int status;
 
 private:
     

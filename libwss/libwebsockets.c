@@ -1793,7 +1793,8 @@ bail2:
 			if (eff_buf.token_len) {
                 // some compatible hack
                 // no Sec-WebSocket-Protocol field, in some older browser
-                // flash websocket 支持这个                
+                // flash websocket 支持这个
+                // 总结一下还有哪些浏览器不支持这个field的，如果都没有问题，则去掉这个引起问题的部分。
                 char *ins_hdr = "Sec-WebSocket-Protocol: wso\r\n";
                 if ((wsi->state == WSI_STATE_HTTP || wsi->state == WSI_STATE_HTTP_HEADERS)
                     && eff_buf.token_len > 10) {

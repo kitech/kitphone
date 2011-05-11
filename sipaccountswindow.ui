@@ -45,6 +45,21 @@
        <string>Domain (IP:port)</string>
       </property>
      </column>
+     <column>
+      <property name="text">
+       <string>ctime</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>mtime</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>password</string>
+      </property>
+     </column>
     </widget>
    </item>
    <item>

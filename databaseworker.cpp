@@ -157,14 +157,14 @@ bool DatabaseWorker::connectDatabase()
       serv_addr VARCHAR(100),
       account_status INTEGER,
       account_ctime VARCHAR(100),
-      account_etime VARCHAR(100)
+      account_mtime VARCHAR(100)
       );
      */
 
     if (!m_database.tables().contains(TABLE_ACCOUNTS)) {
         has_new_created_table = true;
         // some data
-        QString sql = QString("CREATE TABLE %1 (aid INTEGER PRIMARY KEY AUTOINCREMENT, account_name VARCHAR(100), account_password VARCHAR(100), display_name VARCHAR(100), serv_addr VARCHAR(100), account_status INTEGER, account_ctime VARCHAR(100), account_etime VARCHAR(100));").arg(TABLE_ACCOUNTS);
+        QString sql = QString("CREATE TABLE %1 (aid INTEGER PRIMARY KEY AUTOINCREMENT, account_name VARCHAR(100), account_password VARCHAR(100), display_name VARCHAR(100), serv_addr VARCHAR(100), account_status INTEGER, account_ctime VARCHAR(100), account_mtime VARCHAR(100));").arg(TABLE_ACCOUNTS);
         // m_database.exec( "create table item(id int, name varchar);" );
         q = m_database.exec(sql);
         qDebug()<<TABLE_HISTORIES<<q.lastQuery()<<q.lastError();
@@ -258,6 +258,13 @@ void DatabaseWorker::slotExecute(const QString& query, int reqno)
                 Q_ASSERT(eret);
                 while(dbq.next()) {
                     recs.push_back(dbq.record());                    
+                }
+            } else if (qelms.at(2) == TABLE_ACCOUNTS) {
+                sql = QString("SELECT * FROM %1 WHERE aid=%2").arg(TABLE_ACCOUNTS).arg(eval.toInt());
+                eret = dbq.exec(sql);
+                Q_ASSERT(eret);
+                while(dbq.next()) {
+                    recs.push_back(dbq.record());
                 }
             }
         }

@@ -23,14 +23,17 @@ class SipAccountPropertiesWindow : public QDialog
 {
     Q_OBJECT;
 public:
-    explicit SipAccountPropertiesWindow(QString uname = QString(), QWidget *parent = 0);
+    // explicit SipAccountPropertiesWindow(QString uname = QString(), QWidget *parent = 0);
+    explicit SipAccountPropertiesWindow(SipAccount &acc, QWidget *parent = 0);
     virtual ~SipAccountPropertiesWindow();
 
     SipAccount getAccount();
-    bool setAccount(QString uname);
+    // bool setAccount(QString uname);
+    bool setAccount();
 
 private:
     Ui::SipAccountPropertiesWindow *uiw;
+    SipAccount macc;
 };
 
 #endif /* _SIPACCOUNTPROPERTIESWINDOW_H_ */

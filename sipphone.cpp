@@ -242,6 +242,8 @@ void SipPhone::defaultSipInit()
 
     this->set_custom_sip_config();
 
+    this->m_curr_call_id = PJSUA_INVALID_ID;
+
     // ::globalPjCallback = new PjCallback(); // 移动到invoker线程中
     this->m_invoker = new PjsipCallFront();
     QObject::connect(this->m_invoker, SIGNAL(invoke_make_call_result(int, pj_status_t, pjsua_call_id)),
@@ -305,12 +307,6 @@ void SipPhone::set_custom_sip_config()
 
 void SipPhone::init_sip_client_ui_element()
 {
-
-    // QObject::connect(this->ui->pushButton, SIGNAL(clicked()), this, SLOT(onCall()));
-    // QObject::connect(this->uiw->pushButton, SIGNAL(clicked()), this, SLOT(onCallSip()));
-    // QObject::connect(this->ui->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangup()));
-    // QObject::connect(this->uiw->pushButton_2, SIGNAL(clicked()), this, SLOT(onHangupSip()));
-
     QObject::connect(this->uiw->pushButton_11, SIGNAL(clicked()), this, SLOT(onCallSipNew()));
     QObject::connect(this->uiw->toolButton_10, SIGNAL(clicked()), this, SLOT(onHangupSipNew()));
 
@@ -373,7 +369,7 @@ void SipPhone::on3_invoker_started(pj_status_t rstatus)
 
 void SipPhone::onManageSipAccounts()
 {
-    SipAccountsWindow *acc_win = new SipAccountsWindow();
+    SipAccountsWindow *acc_win = new SipAccountsWindow(this->m_adb);
     QObject::connect(acc_win, SIGNAL(accountWantRegister(QString, bool)),
                      this, SLOT(onRegisterAccount(QString, bool)));
     QObject::connect(acc_win, SIGNAL(accountWantRemove(QString)),
@@ -417,6 +413,10 @@ int SipPhone::_find_account_from_pjacc(QString acc_name)
     return -1;
 }
 
+/*
+  TODO 只有一个用户名还不行，不能确定所要找的sip账号
+  要支持不同服务器上注册相同的用户名。
+ */
 void SipPhone::onRegisterAccount(QString user_name, bool reg)
 {
     pjsua_acc_id acc_id;
@@ -468,27 +468,6 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
         } else {
             qDebug()<<"User not exist, or not valid";
         }
-        // acc_cnt = sizeof(acc_ids);
-        // status = pjsua_enum_accs(acc_ids, &acc_cnt);
-        // if (status == PJ_SUCCESS) {
-        //     for (int i = 0; i < acc_cnt; ++i) {
-        //         acc_id = acc_ids[i];
-        //         status = pjsua_acc_get_info(acc_id, &acc_info);
-        //         if (status != PJ_SUCCESS) {
-        //             continue;
-        //         }
-        //         acc_uri = QString::fromAscii(acc_info.acc_uri.ptr, acc_info.acc_uri.slen);
-        //         QString sip_uri_exp_str = "SIP:([a-z].*)@([0-9a-z-_\\.].*):([0-9]{0,6})";
-        //         QRegExp sip_uri_exp(sip_uri_exp_str, Qt::CaseInsensitive);
-        //         if (sip_uri_exp.exactMatch(acc_uri)) {
-        //             qDebug()<<sip_uri_exp.capturedTexts();
-        //             if (sip_uri_exp.cap(1) == user_name) {
-        //                 status = pjsua_acc_set_registration(acc_id, 0); // unregister
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
     }
 }
 
@@ -506,103 +485,6 @@ void SipPhone::onRemoveAccount(QString user_name)
     }
 }
 
-void SipPhone::onCallSip()
-{
-    pjsua_acc_id acc_id;
-    pj_status_t status;
-
-    // set codec
-    pjsua_codec_info cids[100];
-    unsigned int cid_cnt = 100;
-    QString selected_codec;
-    
-    // selected_codec = this->uiw->comboBox_11->currentText();
-    status = pjsua_enum_codecs(cids, &cid_cnt);
-    for (int i = 0; i < cid_cnt; i++) {
-        if (QString(cids[i].codec_id.ptr) == selected_codec) {
-            status = pjsua_codec_set_priority(&cids[i].codec_id, 200);
-            qLogx()<<"Using codec for this call,"<<selected_codec;
-        } else {
-            status = pjsua_codec_set_priority(&cids[i].codec_id, 0);
-        }
-    }
-
-    // if (this->uiw->comboBox_12->currentIndex() == 0) {
-    //     // UDP mode
-    //     status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_FALSE);
-    //     status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_TRUE);
-    // } else {
-    //     // TCP mode
-    //     status = pjsua_transport_set_enable(this->m_tcp_tp_id, PJ_TRUE);
-    //     status = pjsua_transport_set_enable(this->m_udp_tp_id, PJ_FALSE);
-    // }
-    // qDebug()<<"Using transport: "<< this->uiw->comboBox_12->currentText();
-
-    /* Register to SIP server by creating SIP account. */
-    {
-        pjsua_acc_config cfg;
-
-        pjsua_acc_config_default(&cfg);
-        // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
-        cfg.id = pj_str(SIP_USER " <sip:" SIP_USER "@"  "192.168.15.53:5678>");
-        // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok
-        // cfg.reg_timeout = 800000000;
-        // cfg.publish_enabled = PJ_FALSE;
-        // cfg.auth_pref.initial_auth = 0; // no use
-        // cfg.reg_retry_interval = 0;
-        cfg.cred_count = 1;
-        cfg.cred_info[0].realm = pj_str(SIP_DOMAIN);
-        cfg.cred_info[0].scheme = pj_str("digest");
-        cfg.cred_info[0].username = pj_str(SIP_USER);
-        cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
-        cfg.cred_info[0].data = pj_str(SIP_PASSWD);
-
-        status = pjsua_acc_add(&cfg, PJ_TRUE, &acc_id);
-        if (status != PJ_SUCCESS) {
-            pjsua_perror(__FILE__, "Error adding account", status);
-            //   error_exit("Error adding account", status);
-        }
-    }
-    QString callee_phone;// = this->uiw->comboBox->currentText();
-    QString sip_server;// = this->uiw->comboBox_2->currentText();
-    // char *sipu = "<SIP:99008668056013552776960@122.228.202.105:4060;transport=UDP>";
-    char *sipu = strdup(QString("<SIP:%1@%2;transport=UDP>")
-                        .arg(callee_phone).arg(sip_server) .toAscii().data());
-    qLogx()<<"call peer: "<<sipu;
-    // char *sipu = "<SIP:99008668056013552776960@202.108.29.234:5060;transport=UDP>";
-    pj_str_t uri = pj_str(sipu);
-    status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
-    if (status != PJ_SUCCESS) {
-        pjsua_perror(__FILE__, "Error making call", status);
-        //error_exit("Error making call", status);
-    }
-    free(sipu);
-
-    qLogx()<<"oncall slot returned";
-}
-
-void SipPhone::onHangupSip()
-{
-    pj_status_t status;
-
-    // 枚举当前的 call
-    if (pjsua_call_get_count() == 1) {
-        pjsua_call_id cids[100];
-        unsigned int call_count = 0;
-
-        status = pjsua_enum_calls(cids, &call_count);
-        qLogx()<<"active calls:"<<call_count;
-
-        status = pjsua_call_hangup(cids[0], 0, NULL, NULL);
-    } else if (pjsua_call_get_count() == 0) {
-        qLogx()<<"No active call";
-    } else {
-        qLogx()<<"Why has more than 1 calls";
-    }
-
-    // pjsua_call_hangup_all();
-}
-
 // sip
 void SipPhone::on1_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call_info *pci)
 {
@@ -617,11 +499,12 @@ void SipPhone::on1_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call_
               pci->state_text.ptr));
 
     if (pci->state == PJSIP_INV_STATE_CONFIRMED) {
-        this->onSipAnswered();
+        log_output(LT_USER, QString("呼叫已经建立：%1").arg(this->m_curr_call_id));
     }
 
     if (pci->state == PJSIP_INV_STATE_DISCONNECTED) {
-        this->onSipDisconnected();
+        log_output(LT_USER, QString("呼叫结束：%1").arg(this->m_curr_call_id));
+        this->m_curr_call_id = PJSUA_INVALID_ID;
     }
 
     free(pci);
@@ -724,12 +607,19 @@ void SipPhone::onCallSipNew()
     pjsua_acc_id acc_id;
     pj_status_t status;
 
+    // check call state
+    if (this->m_curr_call_id != PJSUA_INVALID_ID) {
+        this->log_output(LT_USER, QString(tr("正在呼叫中：%1，请不要重复呼叫。")).arg(this->m_curr_call_id));
+        return;
+    }
+
+    //////
     // set codec
     pjsua_codec_info cids[100];
     unsigned int cid_cnt = 100;
     QString selected_codec;
     char tbuf[200];
-    
+
     selected_codec = this->uiw->comboBox->currentText();
     status = pjsua_enum_codecs(cids, &cid_cnt);
     for (int i = 0; i < cid_cnt; i++) {
@@ -940,6 +830,9 @@ void SipPhone::onSelectedUserAccountChanged(int idx)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<idx;
     qLogx()<<this->uiw->comboBox_6->currentText();
+
+    // TODO
+    // 得到该账号的注册状态，更新对应的状态图标
 }
 
 void SipPhone::onDigitButtonClicked()
@@ -968,6 +861,9 @@ void SipPhone::onDigitButtonClicked()
     this->uiw->comboBox_7->setEditText(num + bdmap[btn]);
     
     // if (in call state) it's dtmf digit
+    if (this->m_curr_call_id != PJSUA_INVALID_ID) {
+        
+    }
 }
 
 void SipPhone::on2_pjsua_start_done(int seqno, pj_status_t rstatus)

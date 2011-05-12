@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:35:35 +0800
-// Version: $Id: sipaccountpropertieswindow.cpp 581 2010-11-21 15:03:14Z drswinghead $
+// Version: $Id: sipaccountpropertieswindow.cpp 876 2011-05-11 14:25:21Z drswinghead $
 // 
 
 #include "simplelog.h"

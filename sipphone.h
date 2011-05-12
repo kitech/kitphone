@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 875 2011-05-09 10:31:22Z drswinghead $
+// Version: $Id: sipphone.h 876 2011-05-11 14:25:21Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -39,7 +39,7 @@ extern "C" {
 //#define TURN_SERVER "turn.qtchina.net"
 #define TURN_PORT "34780"
 
-class SipAccountList;
+class SipAccount;
 class PjsipCallFront;
 class AsyncDatabase;
 class ContactModel;
@@ -131,6 +131,10 @@ public slots: // sip
     bool onGetAllContactsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req);
+    bool onGetAllAccountsDone(boost::shared_ptr<SqlRequest> req);
+
+    void onAccountAdded(SipAccount &acc);
+    void onAccountRemoved(SipAccount &acc);
 
     void log_output(int type, const QString &log);
 
@@ -154,7 +158,7 @@ protected:
     virtual void 	showEvent ( QShowEvent * event );
 
 private: // sip
-    SipAccountList *acc_list;
+    // SipAccountList *acc_list;
     pjsua_config m_ua_cfg;
     pjsua_logging_config m_log_cfg;
     pjsua_media_config m_media_cfg;

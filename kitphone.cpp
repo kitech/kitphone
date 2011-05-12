@@ -29,13 +29,13 @@ KitPhone::KitPhone(QWidget *parent)
     QVBoxLayout *vlout = static_cast<QVBoxLayout*>(lout);
 
     //////////////////
-    // this->uiw_skype = new SkypePhone();
-    // vlout->addWidget(this->uiw_skype);
-    // this->uiw_skype->init_status_bar(this->statusBar());
+    this->uiw_skype = new SkypePhone();
+    vlout->addWidget(this->uiw_skype);
+    this->uiw_skype->init_status_bar(this->statusBar());
 
     ///////////////////
-    this->uiw_sip = new SipPhone();
-    vlout->addWidget(this->uiw_sip);
+    // this->uiw_sip = new SipPhone();
+    // vlout->addWidget(this->uiw_sip);
 }
 
 KitPhone::~KitPhone()

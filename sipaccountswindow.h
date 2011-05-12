@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:25:31 +0800
-// Version: $Id: sipaccountswindow.h 875 2011-05-09 10:31:22Z drswinghead $
+// Version: $Id: sipaccountswindow.h 876 2011-05-11 14:25:21Z drswinghead $
 // 
 #ifndef _SIPACCOUNTSWINDOW_H_
 #define _SIPACCOUNTSWINDOW_H_
@@ -65,7 +65,10 @@ private:
 
 signals:
     void accountWantRegister(QString userName, bool reg);
-    void accountWantRemove(QString userName);
+    // void accountWantRemove(QString userName);
+    void accountAdded(SipAccount &acc);
+    // void accountModified(SipAccount &acc); // 删掉，添加两步
+    void accountRemoved(SipAccount &acc);
 
 private:
     Ui::SipAccountsWindow *uiw;
@@ -73,6 +76,8 @@ private:
     boost::shared_ptr<AsyncDatabase> m_adb;
     //// sql reqno <---> sql reqclass
     QHash<int, boost::shared_ptr<SqlRequest> > mRequests;
+
+    bool m_list_inited;
 };
 
 #endif /* _SIPACCOUNTSWINDOW_H_ */

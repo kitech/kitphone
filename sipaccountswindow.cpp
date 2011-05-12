@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:28:31 +0800
-// Version: $Id: sipaccountswindow.cpp 803 2011-03-29 03:46:13Z drswinghead $
+// Version: $Id: sipaccountswindow.cpp 876 2011-05-11 14:25:21Z drswinghead $
 // 
 
 #include "boost/signals2.hpp"
@@ -25,6 +25,7 @@ SipAccountsWindow::SipAccountsWindow(boost::shared_ptr<AsyncDatabase> adb, QWidg
 {
     this->uiw->setupUi(this);
 
+    this->m_list_inited = false;
     this->m_adb = adb;
     QObject::connect(this->m_adb.get(), SIGNAL(results(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)),
                      this, SLOT(onSqlExecuteDone(const QList<QSqlRecord>&, int, bool, const QString&, const QVariant&)));
@@ -74,7 +75,7 @@ void SipAccountsWindow::onNewAccount()
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
 
     SipAccount acc;
-    boost::scoped_ptr<SipAccountPropertiesWindow> prop_win(new SipAccountPropertiesWindow(acc));
+    boost::scoped_ptr<SipAccountPropertiesWindow> prop_win(new SipAccountPropertiesWindow(acc, this));
     if (prop_win->exec() == QDialog::Accepted) {
         acc = prop_win->getAccount();
         QDateTime nowtime = QDateTime::currentDateTime();
@@ -141,7 +142,7 @@ void SipAccountsWindow::onModifyAccount()
     // qDebug()<<"current row:"<<row;
     acc = this->accountFromRow(row);
 
-    boost::scoped_ptr<SipAccountPropertiesWindow> prop_win(new SipAccountPropertiesWindow(acc));
+    boost::scoped_ptr<SipAccountPropertiesWindow> prop_win(new SipAccountPropertiesWindow(acc, this));
     // SipAccountPropertiesWindow *prop_win = new SipAccountPropertiesWindow(acc);
     if (prop_win->exec() == QDialog::Accepted) {
         acc = prop_win->getAccount();
@@ -288,15 +289,7 @@ bool SipAccountsWindow::onAccountListArrived(const QList<QSqlRecord> & results)
     // qLogx()<<results;
     for (int i = 0; i < results.count(); ++i) {
         rec = results.at(i);
-        acc.uid = rec.value("aid").toInt();
-        acc.userName = rec.value("account_name").toString();
-        acc.password = rec.value("account_password").toString();
-        acc.displayName = rec.value("display_name").toString();
-        acc.domain = rec.value("serv_addr").toString();
-        acc.ctime = rec.value("account_ctime").toString();
-        acc.mtime = rec.value("account_mtime").toString();
-        acc.status = rec.value("account_status").toInt();
-
+        acc = SipAccount::fromSqlRecord(rec);
         int row_count = this->uiw->tableWidget->rowCount();
         QCheckBox *cbox;
         QTableWidgetItem *item;
@@ -332,7 +325,14 @@ bool SipAccountsWindow::onAccountListArrived(const QList<QSqlRecord> & results)
         item->setText(acc.password);
         this->uiw->tableWidget->setItem(row_count, 6, item);
 
-        acc.dump();
+        if (this->m_list_inited == true) {
+            emit this->accountAdded(acc);
+        }
+        // acc.dump();
+    }
+
+    if (!this->m_list_inited) {
+        this->m_list_inited = true;
     }
 
     return true;
@@ -341,10 +341,16 @@ bool SipAccountsWindow::onAccountListArrived(const QList<QSqlRecord> & results)
 bool SipAccountsWindow::onNewAccountDone(boost::shared_ptr<SqlRequest> req)
 {
     qLogx()<<req;
+
+    QSqlRecord rec;
     QList<QSqlRecord> results = req->mResults;
 
     bool bok = this->onAccountListArrived(results);
-    
+
+    // rec = results.at(0);
+    // SipAccount acc = SipAccount::fromSqlRecord(rec);
+    // emit this->accountAdded(acc);
+
     this->mRequests.remove(req->mReqno);
 
     return true;
@@ -357,6 +363,7 @@ bool SipAccountsWindow::onRemoveAccountDone(boost::shared_ptr<SqlRequest> req)
     QWidget *tbox;
     QString user_name;
     QTableWidgetItem *item;
+    SipAccount acc;
 
     for (int i = 0 ; i < this->uiw->tableWidget->rowCount(); i ++) {
         // tbox = this->uiw->tableWidget->cellWidget(i, 0);
@@ -364,7 +371,9 @@ bool SipAccountsWindow::onRemoveAccountDone(boost::shared_ptr<SqlRequest> req)
         //   
         item = this->uiw->tableWidget->item(i, 1);
         if (req->mCbId == item->text().toInt()) {
+            acc = this->accountFromRow(i);
             this->uiw->tableWidget->removeRow(i);
+            emit this->accountRemoved(acc);
             break;
         }
     }
@@ -377,6 +386,7 @@ bool SipAccountsWindow::onModifyAccountDone(boost::shared_ptr<SqlRequest> req)
     QWidget *tbox;
     QString user_name;
     QTableWidgetItem *item;
+    SipAccount acc;
 
     for (int i = 0 ; i < this->uiw->tableWidget->rowCount(); i ++) {
         // tbox = this->uiw->tableWidget->cellWidget(i, 0);
@@ -384,7 +394,9 @@ bool SipAccountsWindow::onModifyAccountDone(boost::shared_ptr<SqlRequest> req)
         //   
         item = this->uiw->tableWidget->item(i, 1);
         if (req->mCbId == item->text().toInt()) {
+            acc = this->accountFromRow(i);
             this->uiw->tableWidget->removeRow(i);
+            emit this->accountRemoved(acc);
             break;
         }
     }

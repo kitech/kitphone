@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 875 2011-05-09 10:31:22Z drswinghead $
+// Version: $Id: sipphone.cpp 876 2011-05-11 14:25:21Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -57,7 +57,7 @@ SipPhone::SipPhone(QWidget *parent)
     this->uiw->setupUi(this);
 
     this->first_paint_event = true;
-    this->acc_list = NULL;
+    // this->acc_list = NULL;
 
     QObject::connect(this->uiw->pushButton_5, SIGNAL(clicked()), 
                      this, SLOT(onManageSipAccounts()));
@@ -87,7 +87,7 @@ SipPhone::SipPhone(QWidget *parent)
 
 SipPhone::~SipPhone()
 {
-    delete this->acc_list;
+    // delete this->acc_list;
     delete uiw;
 }
 
@@ -109,17 +109,17 @@ void SipPhone::main_ui_draw_complete()
     QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
                      this, SLOT(onShowLogPanel()));
 
-    this->acc_list = SipAccountList::instance();
+    // this->acc_list = SipAccountList::instance();
 
-    QString user_account;
-    QVector<SipAccount> accs;//  = this->acc_list->loadAccounts(); TODO, replace by
-    for (int i = accs.count()-1; i >= 0; i--) {
-        user_account = QString("%1@%2").arg(accs.at(i).userName).arg(accs.at(i).domain);
-        this->uiw->comboBox_6->insertItem(0, user_account);
-    }
-    this->uiw->comboBox_6->setCurrentIndex(0);
+    // QString user_account;
+    // QVector<SipAccount> accs;//  = this->acc_list->loadAccounts(); TODO, replace by
+    // for (int i = accs.count()-1; i >= 0; i--) {
+    //     user_account = QString("%1@%2").arg(accs.at(i).userName).arg(accs.at(i).domain);
+    //     this->uiw->comboBox_6->insertItem(0, user_account);
+    // }
+    // this->uiw->comboBox_6->setCurrentIndex(0);
 
-    this->uiw->comboBox_6->view()->setFixedWidth(280);
+    // this->uiw->comboBox_6->view()->setFixedWidth(280);
 }
 
 void SipPhone::paintEvent ( QPaintEvent * event )
@@ -369,11 +369,15 @@ void SipPhone::on3_invoker_started(pj_status_t rstatus)
 
 void SipPhone::onManageSipAccounts()
 {
-    SipAccountsWindow *acc_win = new SipAccountsWindow(this->m_adb);
+    SipAccountsWindow *acc_win = new SipAccountsWindow(this->m_adb, this);
     QObject::connect(acc_win, SIGNAL(accountWantRegister(QString, bool)),
                      this, SLOT(onRegisterAccount(QString, bool)));
-    QObject::connect(acc_win, SIGNAL(accountWantRemove(QString)),
-                     this, SLOT(onRemoveAccount(QString)));
+    // QObject::connect(acc_win, SIGNAL(accountWantRemove(QString)),
+    //                  this, SLOT(onRemoveAccount(QString)));
+    QObject::connect(acc_win, SIGNAL(accountAdded(SipAccount&)),
+                     this, SLOT(onAccountAdded(SipAccount &)));
+    QObject::connect(acc_win, SIGNAL(accountRemoved(SipAccount&)),
+                     this, SLOT(onAccountRemoved(SipAccount &)));
     if (acc_win->exec() == QDialog::Accepted) {
 
     }
@@ -1099,6 +1103,7 @@ void SipPhone::onDatabaseConnected()
     boost::shared_ptr<SqlRequest> req1(new SqlRequest());
     boost::shared_ptr<SqlRequest> req2(new SqlRequest());
     boost::shared_ptr<SqlRequest> req3(new SqlRequest());
+    boost::shared_ptr<SqlRequest> req4(new SqlRequest());
 
     QTreeView *ctv = this->uiw->treeView; // contact 联系人表
     QTreeView *htv = this->uiw->treeView_2; // 呼叫历史表
@@ -1118,6 +1123,16 @@ void SipPhone::onDatabaseConnected()
     htv->setColumnWidth(0, 100);
     htv->setColumnWidth(1, 160);
     
+    {
+        // get accounts list
+        req4->mCbFunctor = boost::bind(&SipPhone::onGetAllAccountsDone, this, _1);
+        req4->mCbObject = this;
+        req4->mCbSlot = SLOT(onGetAllAccountsDone(boost::shared_ptr<SqlRequest>));
+        req4->mSql = QString("SELECT * FROM kp_accounts WHERE 1=1");
+        req4->mReqno = this->m_adb->execute(req4->mSql);
+        this->mRequests.insert(req4->mReqno, req4);
+    }
+
     {
         // get contacts list
         req1->mCbFunctor = boost::bind(&SipPhone::onGetAllContactsDone, this, _1);
@@ -1290,6 +1305,58 @@ bool SipPhone::onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req)
     return true;
 }
 
+bool SipPhone::onGetAllAccountsDone(boost::shared_ptr<SqlRequest> req)
+{
+    qLogx()<<req->mReqno;
+
+    // this->acc_list = SipAccountList::instance();
+    QList<QSqlRecord> results = req->mResults;
+    QSqlRecord rec;
+    QString user_name;
+    QString serv_addr;
+    QString user_account;
+
+    // QVector<SipAccount> accs;//  = this->acc_list->loadAccounts(); TODO, replace by
+    // for (int i = accs.count()-1; i >= 0; i--) {
+    for (int i = results.count() -1; i >= 0; --i) {
+        rec = results.at(i);
+        user_name = rec.value("account_name").toString();
+        serv_addr = rec.value("serv_addr").toString();
+        user_account = QString("%1@%2").arg(user_name).arg(serv_addr);
+        this->uiw->comboBox_6->insertItem(0, user_account);
+    }
+    this->uiw->comboBox_6->setCurrentIndex(0);
+
+    this->uiw->comboBox_6->view()->setFixedWidth(280);
+
+    this->mRequests.remove(req->mReqno);
+
+    return true;
+}
+
+void SipPhone::onAccountAdded(SipAccount &acc)
+{
+    QString user_account;
+    user_account = QString("%1@%2").arg(acc.userName).arg(acc.domain);
+    this->uiw->comboBox_6->insertItem(0, user_account);
+    this->uiw->comboBox_6->setCurrentIndex(0);
+}
+
+void SipPhone::onAccountRemoved(SipAccount &acc)
+{
+    QString user_account;
+    QString tmp_account;
+
+    user_account = QString("%1@%2").arg(acc.userName).arg(acc.domain);
+
+    for (int i = 0; i < this->uiw->comboBox_6->count(); i++) {
+        tmp_account = this->uiw->comboBox_6->itemText(i);
+        if (tmp_account == user_account) {
+            this->uiw->comboBox_6->removeItem(i);
+            break;
+        }
+    }
+}
 
 // TODO 所有明文字符串需要使用翻译方式获取，而不是直接写在源代码中
 // log is utf8 codec

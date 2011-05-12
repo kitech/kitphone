@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-21 16:56:01 +0800
-// Version: $Id: sipaccount.cpp 803 2011-03-29 03:46:13Z drswinghead $
+// Version: $Id: sipaccount.cpp 876 2011-05-11 14:25:21Z drswinghead $
 // 
 
 #include "sipaccount.h"
@@ -111,6 +111,21 @@ SipAccount::~SipAccount()
 //     return accs;
 // }
 
+SipAccount SipAccount::fromSqlRecord(QSqlRecord &rec)
+{
+    SipAccount acc;
+
+    acc.uid = rec.value("aid").toInt();
+    acc.displayName = acc.userName = rec.value("account_name").toString();
+    acc.password = rec.value("account_password").toString();
+    acc.domain = rec.value("serv_addr").toString();
+    acc.ctime = rec.value("account_ctime").toString();
+    acc.ctime = rec.value("account_mtime").toString();
+    acc.status = rec.value("account_status").toInt();
+
+    return acc;
+}
+
 void SipAccount::dump()
 {
     qDebug()<<"Sip account:";
@@ -120,22 +135,22 @@ void SipAccount::dump()
 
 ////////////////////////
 
-SipAccountList *SipAccountList::mInstance = NULL;
-SipAccountList::SipAccountList(QObject *parent)
-    : QObject(parent)
-{}
-SipAccountList::~SipAccountList()
-{
-}
+// SipAccountList *SipAccountList::mInstance = NULL;
+// SipAccountList::SipAccountList(QObject *parent)
+//     : QObject(parent)
+// {}
+// SipAccountList::~SipAccountList()
+// {
+// }
 
-SipAccountList *SipAccountList::instance()
-{
-    if (SipAccountList::mInstance == NULL) {
-        SipAccountList::mInstance  = new SipAccountList();
-    }
+// SipAccountList *SipAccountList::instance()
+// {
+//     if (SipAccountList::mInstance == NULL) {
+//         SipAccountList::mInstance  = new SipAccountList();
+//     }
 
-    return SipAccountList::mInstance;
-}
+//     return SipAccountList::mInstance;
+// }
 
 // QVector<SipAccount> SipAccountList::loadAccounts()
 // {

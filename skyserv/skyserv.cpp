@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL:
 // Created: 2010-07-03 15:35:48 +0800
-// Version: $Id: skyserv.cpp 865 2011-05-06 06:15:31Z drswinghead $
+// Version: $Id: skyserv.cpp 877 2011-05-12 12:46:14Z drswinghead $
 //
 
 #include <sys/socket.h>
@@ -566,25 +566,33 @@ void SkyServ::onNewRouteCallArrived(QString callerName, QString calleeName, QStr
     unsigned short ws_port = 0;
     QString ws_ipaddr;
 
-    boost::shared_ptr<call_meta_info> cmi;
-    {
-        Q_ASSERT(this->nWebSocketNameMap.leftContains(callerName));
-        cmi = this->nWebSocketNameMap.findLeft(callerName).value();
-        // cmi->caller_name = callerName;
-        cmi->callee_name = calleeName;
-        cmi->skype_call_id = skypeCallID;
-        cmi->callee_phone = calleePhone; // no use?
-        cmi->call_state = CallState::CS_CALL_ARRIVED;
-        cmi->mtime = QDateTime::currentDateTime();
+    // boost::shared_ptr<call_meta_info> cmi;
+    // {
+    //     Q_ASSERT(this->nWebSocketNameMap.leftContains(callerName));
+    //     cmi = this->nWebSocketNameMap.findLeft(callerName).value();
+    //     // cmi->caller_name = callerName;
+    //     cmi->callee_name = calleeName;
+    //     cmi->skype_call_id = skypeCallID;
+    //     cmi->callee_phone = calleePhone; // no use?
+    //     cmi->call_state = CallState::CS_CALL_ARRIVED;
+    //     cmi->mtime = QDateTime::currentDateTime();
 
-        if (this->nSkypeCallMap.leftContains(skypeCallID)) {
-            // how to do
-            Q_ASSERT(!this->nSkypeCallMap.leftContains(skypeCallID));
-        } else {
-            this->nSkypeCallMap.insert(skypeCallID, cmi);
-        }
-    }
-
+    //     if (this->nSkypeCallMap.leftContains(skypeCallID)) {
+    //         // how to do
+    //         Q_ASSERT(!this->nSkypeCallMap.leftContains(skypeCallID));
+    //     } else {
+    //         this->nSkypeCallMap.insert(skypeCallID, cmi);
+    //     }
+    // }
+    call_meta_info *cmi;
+    cmi = this->find_call_meta_info_by_caller_name(callerName);
+    Q_ASSERT(cmi != NULL);
+    cmi->callee_name = calleeName;
+    cmi->skype_call_id = skypeCallID;
+    cmi->callee_phone = calleePhone; // no use?
+    cmi->call_state = CallState::CS_CALL_ARRIVED;
+    cmi->mtime = QDateTime::currentDateTime();
+    
 
     if (this->quit_cleaning) {
         qDebug()<<"server is quiting, retry later.";
@@ -628,7 +636,8 @@ void SkyServ::onNewRouteCallArrived(QString callerName, QString calleeName, QStr
         // this->wsProxy.insert(callerName, wsc->refit());
         // Q_ASSERT(this->wsProxy.leftContains(callerName));
         // Q_ASSERT(this->wsProxy.rightContains(wsc->refit()));
-        this->nWebSocketProxyMap.insert(wsc, cmi);
+        // this->nWebSocketProxyMap.insert(wsc, cmi);
+        cmi->ws_proxy = wsc;
 
         cmi->call_state = CallState::CS_ROUTER_CONNECTING_SWITCHER;
         cmi->ws_proxy = wsc;
@@ -653,10 +662,11 @@ void SkyServ::onRouteCallTransferred(int skypeCallID, QString callerName, QStrin
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<callerName<<calleeName<<skypeCallID;
     int ret = 0;
-    // QString gateway = this->activeGateways.value(skypeCallID);
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
 
     QString gateway = cmi->switcher_name;
 
@@ -683,8 +693,11 @@ void SkyServ::onRouteCallMissed(int skypeCallID, QString callerName, QString cal
     int ret = 0;
     // QString gateway = this->activeGateways.value(skypeCallID);
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
     cmi->call_state = CallState::CS_CALL_MISSED;
     cmi->mtime = QDateTime::currentDateTime();
 
@@ -705,8 +718,11 @@ void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString ca
     QStringList router_names;
     int ret;
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
     cmi->call_state = CallState::CS_CALL_REFUSED;
     cmi->mtime = QDateTime::currentDateTime();
 
@@ -724,9 +740,10 @@ void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString ca
         ret = this->db->removeCallPair(callerName);
         if (ret) {}
 
-        this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
-        this->nWebSocketNameMap.removeLeft(callerName);
-        this->nWebSocketProxyMap.removeRight(cmi);
+        // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
+        // this->nWebSocketNameMap.removeLeft(callerName);
+        // this->nWebSocketProxyMap.removeRight(cmi);
+        // this->remove_call_meta_info(callerName);
     } else {
     }
 }
@@ -738,19 +755,29 @@ void SkyServ::onNewForwardCallArrived(QString callerName, QString calleeName, in
     QString caller_ipaddr;
     QString record_file_name;
 
-    Q_ASSERT(this->nWebSocketNameMap.leftContains(callerName));
-    boost::shared_ptr<call_meta_info> cmi = this->nWebSocketNameMap.findLeft(callerName).value();
+    // Q_ASSERT(this->nWebSocketNameMap.leftContains(callerName));
+    // boost::shared_ptr<call_meta_info> cmi = this->nWebSocketNameMap.findLeft(callerName).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
 
-    if (this->nSkypeCallMap.leftContains(skypeCallID)) {
-        Q_ASSERT(!this->nSkypeCallMap.leftContains(skypeCallID));
-    } else {
+    {
         cmi->callee_name = calleeName;
         cmi->skype_call_id = skypeCallID;
         cmi->call_state = CallState::CS_CALL_ARRIVED;
         cmi->mtime = QDateTime::currentDateTime();
 
-        this->nSkypeCallMap.insert(skypeCallID, cmi);
     }
+
+    // if (this->nSkypeCallMap.leftContains(skypeCallID)) {
+    //     Q_ASSERT(!this->nSkypeCallMap.leftContains(skypeCallID));
+    // } else {
+    //     cmi->callee_name = calleeName;
+    //     cmi->skype_call_id = skypeCallID;
+    //     cmi->call_state = CallState::CS_CALL_ARRIVED;
+    //     cmi->mtime = QDateTime::currentDateTime();
+
+    //     this->nSkypeCallMap.insert(skypeCallID, cmi);
+    // }
 
     if (this->quit_cleaning) {
         qDebug()<<"server is quiting, retry later.";
@@ -796,8 +823,11 @@ void SkyServ::onSkypeForwardCallAnswered(int skypeCallID, QString callerName, QS
     QString callee_phone;
     QString caller_ipaddr;
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
     cmi->call_state = CallState::CS_CALL_ANSWERED;
     cmi->mtime = QDateTime::currentDateTime();
 
@@ -843,8 +873,12 @@ void SkyServ::onSkypeForwardCallHold(int skypeCallID, QString callerName, QStrin
     int skype_call_id = skypeCallID;
     int sip_call_id = -1;
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
 
     sip_call_id = cmi->sip_call_id;
     // Q_ASSERT(this->mSkypeSipCallMap.leftContains(skype_call_id));
@@ -874,8 +908,12 @@ void SkyServ::onSkypeForwardCallUnhold(int skypeCallID, QString callerName, QStr
     int skype_call_id = skypeCallID;
     int sip_call_id = -1;
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
+
     cmi->call_state = CallState::CS_CALL_ANSWERED;
     cmi->mtime = QDateTime::currentDateTime();
 
@@ -902,8 +940,10 @@ void SkyServ::onSkypeForwardCallDtmfArrived(int skypeCallID, QString callerName,
     int skype_call_id = skypeCallID;
     int sip_call_id = -1;
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
 
     sip_call_id = cmi->sip_call_id;
     // Q_ASSERT(this->mSkypeSipCallMap.leftContains(skype_call_id));
@@ -964,59 +1004,36 @@ void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int sky
                       router_names << elm.first;
                   });
 
-    Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-    boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    Q_ASSERT(cmi != NULL);
+
 
     // if (this->mSkype->handlerName() == "liuguangzhao01") {
     if (router_names.contains(this->mSkype->handlerName())) {
         // ctrl router, do nothing
         this->send_ws_command_108(calleeName, contactName, skypeCallID, 123, QString("abcd"));
-        // this->wsMap.removeLeft(contactName);
-        this->nWebSocketNameMap.removeLeft(contactName);
-        this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
-    } else {
-        // Q_ASSERT(this->mSkypeSipCallMap.leftContains(skype_call_id));
-        // if (this->mSkypeSipCallMap.leftContains(skype_call_id)) {
-        //     sip_call_curr_id = this->mSkypeSipCallMap.findLeft(skype_call_id).value();
-        //     if (sip_call_curr_id == SSCM_WAIT_SIP_CALL_ID) {
-        //         this->mSkypeSipCallMap.insert(skype_call_id, SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID);
-        //     } else if (sip_call_curr_id == SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID) {
-        //         // not possible
-        //         Q_ASSERT(1 == 2);
-        //     } else if (sip_call_curr_id == SSCM_HANGUP_FROM_SIP) {
-        //         // do nothing
-        //         this->mSkypeSipCallMap.removeLeft(skypeCallID);
-        //     } else if (sip_call_curr_id >= 0) {
-        //         // send hangup cmd to sip proc
-        //         sip_call_id = sip_call_curr_id;
-        //         cmdlen = 0;
-        //         wbuf = new_rpc_command(12, &cmdlen, "dd", skype_call_id, sip_call_id);
-        //         this->skype_sip_rpc_peer->write(wbuf, 2*sizeof(int) + cmdlen);
-        //         free(wbuf);
-        //         this->mSkypeSipCallMap.removeLeft(skypeCallID);
-        //     } else {
-        //         // dont known what happended
-        //     }
-        // } else {
-        //     // maybe hangup from sip
-        // }
 
+        // this->nWebSocketNameMap.removeLeft(contactName);
+        // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
+        // this->remove_call_meta_info(contactName);
+    } else {
         // release gateway resouce
         ret = this->db->releaseGateway(calleeName, contactName);
         ret2 = this->db->removeCallPair(calleeName);
         this->send_ws_command_108(calleeName, contactName, skypeCallID, 123, QString("abcd"));
-        // this->wsMap.removeLeft(contactName);
-        // this->wsProxy.removeLeft(contactName);
 
         {
             cmi->skype_call_id = -1;
             cmi->call_state = CallState::CS_CALL_FINISHED;
             cmi->mtime = cmi->etime = QDateTime::currentDateTime();
             
-            this->nSkypeCallMap.removeLeft(skypeCallID);
+            //this->nSkypeCallMap.removeLeft(skypeCallID);
             // this->nWebSocketNameMap.removeLeft(contactName);
             // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
         }
+        // this->remove_call_meta_info(contactName);
         
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Release gateway result:"<<ret<<ret2;
     }
@@ -1116,20 +1133,22 @@ void SkyServ::onSipCallFinished(int sip_call_id, int status_code, int skype_call
     // this->mSkypeSipCallMap.removeLeft(skype_call_id);
     //}
 
-    boost::shared_ptr<call_meta_info> cmi;
-    if (this->nSipCallMap.leftContains(sip_call_id)) {
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
+    // boost::shared_ptr<call_meta_info> cmi;
+    call_meta_info *cmi = this->find_call_meta_info_by_sip_call_id(sip_call_id);
+    // if (this->nSipCallMap.leftContains(sip_call_id)) {
+    //     cmi = this->nSipCallMap.findLeft(sip_call_id).value();
 
-        if (cmi->skype_call_id != -1) {
-            Q_ASSERT(cmi->skype_call_id == skype_call_id);
-        }
+    //     if (cmi->skype_call_id != -1) {
+    //         Q_ASSERT(cmi->skype_call_id == skype_call_id);
+    //     }
 
-        cmi->sip_call_id = -1;
-        cmi->call_state = CallState::CS_SWITCHER_SIP_HANGUP;
-        cmi->mtime = QDateTime::currentDateTime();
+    //     cmi->sip_call_id = -1;
+    //     cmi->call_state = CallState::CS_SWITCHER_SIP_HANGUP;
+    //     cmi->mtime = QDateTime::currentDateTime();
         
-        this->nSipCallMap.removeLeft(sip_call_id);
-    }
+    //     this->nSipCallMap.removeLeft(sip_call_id);
+    // }
+    
 }
 
 void SkyServ::onSipCallExceedMaxCount(int skype_call_id)
@@ -1142,28 +1161,28 @@ void SkyServ::onSipCallOutgoingMediaServerReady(int sip_call_id, unsigned short 
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<port;
 
-    boost::shared_ptr<call_meta_info> cmi;
+    // boost::shared_ptr<call_meta_info> cmi;
 
-    if (!this->nSipCallMap.leftContains(sip_call_id)) {
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
-        // Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        cmi = this->find_call_meta_info_by_caller_name(QString(), sip_call_id, -1);
-        if (cmi == boost::shared_ptr<call_meta_info>()) {
-            Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        }
-    } else {
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-    }
-    if (!this->nSkypeCallMap.leftContains(skype_call_id)) {
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
-        // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-        cmi = this->find_call_meta_info_by_caller_name(QString(), -1, skype_call_id);
-        if (cmi == boost::shared_ptr<call_meta_info>()) {
-            Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-        }
-    } else {
-        cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
-    }
+    // if (!this->nSipCallMap.leftContains(sip_call_id)) {
+    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
+    //     // Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
+    //     // cmi = this->find_call_meta_info_by_caller_name(QString(), sip_call_id, -1);
+    //     if (cmi == boost::shared_ptr<call_meta_info>()) {
+    //         Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
+    //     }
+    // } else {
+    //     cmi = this->nSipCallMap.findLeft(sip_call_id).value();
+    // }
+    // if (!this->nSkypeCallMap.leftContains(skype_call_id)) {
+    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
+    //     // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    //     // cmi = this->find_call_meta_info_by_caller_name(QString(), -1, skype_call_id);
+    //     if (cmi == boost::shared_ptr<call_meta_info>()) {
+    //         Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    //     }
+    // } else {
+    //     cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    // }
     // if (!this->mSkypeSipCallMap.rightContains(sip_call_id)) {
     //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
     //     Q_ASSERT(this->mSkypeSipCallMap.rightContains(sip_call_id));
@@ -1172,6 +1191,11 @@ void SkyServ::onSipCallOutgoingMediaServerReady(int sip_call_id, unsigned short 
     //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
     //     Q_ASSERT(this->mSkypeSipCallMap.findRight(sip_call_id).value() == skype_call_id);
     // }
+
+    call_meta_info *cmi = this->find_call_meta_info_by_sip_call_id(sip_call_id);
+    if (cmi == NULL) {
+        
+    }
 
     int ok = this->mSkype->setCallMediaInputPort(QString::number(skype_call_id), port);
     if (!ok) {}
@@ -1183,28 +1207,28 @@ void SkyServ::onSipCallIncomingMediaServerReady(int sip_call_id, unsigned short 
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<port;
 
-    boost::shared_ptr<call_meta_info> cmi;
+    // boost::shared_ptr<call_meta_info> cmi;
 
-    if (!this->nSipCallMap.leftContains(sip_call_id)) {
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
-        // Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        cmi = this->find_call_meta_info_by_caller_name(QString(), sip_call_id, -1);
-        if (cmi == boost::shared_ptr<call_meta_info>()) {
-            Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        }
-    } else {
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-    }
-    if (!this->nSkypeCallMap.leftContains(skype_call_id)) {
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
-        // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-        cmi = this->find_call_meta_info_by_caller_name(QString(), -1, skype_call_id);
-        if (cmi == boost::shared_ptr<call_meta_info>()) {
-            Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-        }
-    } else {
-        cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
-    }
+    // if (!this->nSipCallMap.leftContains(sip_call_id)) {
+    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
+    //     // Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
+    //     // cmi = this->find_call_meta_info_by_caller_name(QString(), sip_call_id, -1);
+    //     if (cmi == boost::shared_ptr<call_meta_info>()) {
+    //         Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
+    //     }
+    // } else {
+    //     cmi = this->nSipCallMap.findLeft(sip_call_id).value();
+    // }
+    // if (!this->nSkypeCallMap.leftContains(skype_call_id)) {
+    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
+    //     // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    //     // cmi = this->find_call_meta_info_by_caller_name(QString(), -1, skype_call_id);
+    //     if (cmi == boost::shared_ptr<call_meta_info>()) {
+    //         Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    //     }
+    // } else {
+    //     cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    // }
 
     // if (!this->mSkypeSipCallMap.rightContains(sip_call_id)) {
     //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id is lost???";        
@@ -1214,6 +1238,8 @@ void SkyServ::onSipCallIncomingMediaServerReady(int sip_call_id, unsigned short 
     //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why sip call id mapped error skype call id???";
     //     Q_ASSERT(this->mSkypeSipCallMap.findRight(sip_call_id).value() == skype_call_id);
     // }
+
+    call_meta_info *cmi = this->find_call_meta_info_by_sip_call_id(sip_call_id);
 
     int ok = this->mSkype->setCallMediaOutputPort(QString::number(skype_call_id), port);
 
@@ -1248,7 +1274,8 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
     char *wbuf;
     QString caller_name, callee_name;
     bool ok = false;
-    boost::shared_ptr<call_meta_info> cmi;
+    // boost::shared_ptr<call_meta_info> cmi;
+    call_meta_info *cmi = NULL;
 
     args = QString(cmdbuf).split(",");
     switch (cmdno) {
@@ -1257,39 +1284,17 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
         skype_call_id = args.at(0).toInt();
         sip_call_id = args.at(1).toInt();
 
-        // // when and why this assert faild
-        // Q_ASSERT(this->mSkypeSipCallMap.leftContains(skype_call_id));
-
-        // sip_call_curr_id = this->mSkypeSipCallMap.findLeft(skype_call_id).value();
-        // if (sip_call_curr_id == SSCM_WAIT_SIP_CALL_ID) {
-        //     // sip call id 计数从0开始？已经确认是从0开始的, >=0 的值。
-        //     if (sip_call_id >= 0) {
-        //         this->mSkypeSipCallMap.insert(skype_call_id, sip_call_id);
-        //     } else {
-        //         // should hangup skype now
-        //         this->onSipCallFinished(SSCM_HANGUP_FROM_SIP, 0, skype_call_id);
-        //     }
-        // } else if (sip_call_curr_id == SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID) {
-        //     // send hangup cmd to sip proc
-        //     cmdlen = 0;
-        //     wbuf = new_rpc_command(12, &cmdlen, "dd", skype_call_id, sip_call_id);
-        //     this->skype_sip_rpc_peer->write(wbuf, 2*sizeof(int) + cmdlen);
-        //     free(wbuf);
-        // } else if (sip_call_curr_id >= 0) {
-        //     // why recieve more than once??
-        // } else {
-        //     Q_ASSERT(1 == 2);
-        // }
-
         ////////
-        Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
-        cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+        // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+        // cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+        cmi = this->find_call_meta_info_by_sip_call_id(skype_call_id);
+        Q_ASSERT(cmi != NULL);
         sip_call_curr_id = cmi->sip_call_id;
         if (sip_call_curr_id == SSCM_WAIT_SIP_CALL_ID) {
             // sip call id 计数从0开始？已经确认是从0开始的, >=0 的值。
             if (sip_call_id >= 0) {
                 //// this->mSkypeSipCallMap.insert(skype_call_id, sip_call_id);
-                this->nSipCallMap.insert(sip_call_id, cmi);
+                // this->nSipCallMap.insert(sip_call_id, cmi);
             } else {
                 // should hangup skype now
                 this->onSipCallFinished(SSCM_HANGUP_FROM_SIP, 0, skype_call_id);
@@ -1337,11 +1342,6 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
 
         this->onSipCallIncomingMediaServerReady(sip_call_id, n_port, skype_call_id);
 
-        ////////
-        Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        // cmi = this->nSkypeCallMap.findLeft(sip_call_id).value();
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-        
         break;
     case 17:
         skype_call_id = args.at(0).toInt();
@@ -1351,9 +1351,6 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
         this->onSipCallOutgoingMediaServerReady(sip_call_id, n_port, skype_call_id);
 
         ////////
-        Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-
         break;
     case 19: // sip call state
         skype_call_id = args.at(0).toInt();
@@ -1370,11 +1367,6 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
             }
         }
 
-        ////////
-        // Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        // cmi = this->nSkypeCallMap.findLeft(sip_call_id).value();
-        // cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-
         break;
     case 21:
         skype_call_id = args.at(0).toInt();
@@ -1383,11 +1375,6 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
 
         if (sip_media_state) {}
 
-        ////////
-        Q_ASSERT(this->nSipCallMap.leftContains(sip_call_id));
-        // cmi = this->nSkypeCallMap.findLeft(sip_call_id).value();
-        cmi = this->nSipCallMap.findLeft(sip_call_id).value();
-    
         break;
     default:
         qDebug()<<"Uknown cmdno:"<<cmdno<<cmdbuf;
@@ -1475,33 +1462,20 @@ void SkyServ::onWSConnectionClosed(qint64 cseq)
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<cseq<<" websocket closed.";
     QString key;
 
-    // // 临时解决，有崩溃的大bug
-    // // key = this->wsMap.findRight(cseq).value();
-    // if (this->wsMap.rightContains(cseq)) {
-    //     key = this->wsMap.findRight(cseq).value();
-    // } else {
-    //     if (this->wsProxy.leftContains(key)) {
-    //         // WebSocketClient *wsc = this->wsProxy.findLeft(key).value();
-    //         // this->wsProxy.removeLeft(key);
-    //         //if (wsc != NULL) { 
-    //         //wsc->disconnectFromServer();
-    //         //  delete wsc;
-    //         //}
-    //     }
-    // }
-
-    // this->wsMap.removeRight(cseq);
-    // this->wsProxy.removeLeft(key);
-
     {
         // 必须删除，否则会导致调用无效的ws连接
-        Q_ASSERT(this->nWebSocketSeqMap.leftContains(cseq));
-        boost::shared_ptr<call_meta_info> cmi = this->nWebSocketSeqMap.findLeft(cseq).value();
+        // Q_ASSERT(this->nWebSocketSeqMap.leftContains(cseq));
+        // boost::shared_ptr<call_meta_info> cmi = this->nWebSocketSeqMap.findLeft(cseq).value();
+        call_meta_info *cmi = this->find_call_meta_info_by_conn_seq(cseq);
+        Q_ASSERT(cmi != NULL);
+
         cmi->conn_seq = -1;
         cmi->mtime = QDateTime::currentDateTime();
 
-        this->nWebSocketNameMap.removeLeft(cmi->caller_name);
-        this->nWebSocketSeqMap.removeLeft(cseq);
+        // this->nWebSocketNameMap.removeLeft(cmi->caller_name);
+        // this->nWebSocketSeqMap.removeLeft(cseq);
+
+        this->remove_call_meta_info(cmi->caller_name);
     }
 }
 
@@ -1525,25 +1499,11 @@ void SkyServ::onNewWSConnection(QString path, qint64 cseq)
     }
     QString handle_name = elems.at(0);
     QString phone = elems.at(1);
-    // if (this->wsMap.leftContains(handle_name)) {
-    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why already in map???";
-    // }
-    // this->wsMap.insert(handle_name, sock);
-    // this->wsMap.insert(handle_name, cseq);
-
-    if (this->nWebSocketNameMap.leftContains(handle_name)) {
-        boost::shared_ptr<call_meta_info> cmi = this->nWebSocketNameMap.findLeft(handle_name).value();
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why already in name map???"<<cmi->conn_seq<<cseq;
-    }
-
-    if (this->nWebSocketSeqMap.leftContains(cseq)) {
-        boost::shared_ptr<call_meta_info> cmi = this->nWebSocketNameMap.findLeft(handle_name).value();
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why already in seq map???"<<cmi->conn_seq<<cseq;
-    }
 
     {
         // boost::shared_ptr<call_meta_info> cmi(new call_meta_info());
-        boost::shared_ptr<call_meta_info> cmi = boost::make_shared<call_meta_info>();
+        // boost::shared_ptr<call_meta_info> cmi = boost::make_shared<call_meta_info>();
+        call_meta_info *cmi = new call_meta_info();
         cmi->caller_name = handle_name;
         // cmi->callee_name = calleeName;
         // cmi->skype_call_id = skypeCallID;
@@ -1552,17 +1512,19 @@ void SkyServ::onNewWSConnection(QString path, qint64 cseq)
         cmi->call_state = CallState::CS_WS_CONNECTED;
         cmi->mtime = cmi->ctime = QDateTime::currentDateTime();
 
-        if (this->nWebSocketNameMap.leftContains(handle_name)) {
-            // how to do
-        } else {
-            this->nWebSocketNameMap.insert(handle_name, cmi);
-        }
+        this->add_call_meta_info(handle_name, cmi);
 
-        if (this->nWebSocketSeqMap.leftContains(cseq)) {
-            // how to do
-        } else {
-            this->nWebSocketSeqMap.insert(cseq, cmi);
-        }
+        // if (this->nWebSocketNameMap.leftContains(handle_name)) {
+        //     // how to do
+        // } else {
+        //     this->nWebSocketNameMap.insert(handle_name, cmi);
+        // }
+
+        // if (this->nWebSocketSeqMap.leftContains(cseq)) {
+        //     // how to do
+        // } else {
+        //     this->nWebSocketSeqMap.insert(cseq, cmi);
+        // }
     }
 }
 
@@ -1992,29 +1954,40 @@ bool SkyServ::send_ws_command_common(QString caller_name, QString cmdstr)
     qint64 cseq = 0;
     int ilen = 0;
 
-    boost::shared_ptr<call_meta_info> cmi;
-    if (!this->nWebSocketNameMap.leftContains(caller_name)) {
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why no ws map found???"<<caller_name<<cmdstr;
-        cmi = this->find_call_meta_info_by_caller_name(caller_name);
-        if (cmi == boost::shared_ptr<call_meta_info>()) {
-            qLogx()<<"still can not find call map in all state map???";
-        } else {
-            cseq = cmi->conn_seq;
-            if (cseq == -1) {
-                qLogx()<<"found call meta info, but websocket handle is invalid -1";
-            } else {
-                cmdline = cmdstr;
-                ilen = this->scn_ws_serv2->wssend(cseq, cmdline.toAscii().data(), cmdline.length());
-                if (ilen) {}
-            }
-        }
-    } else {
-        cmi = this->nWebSocketNameMap.findLeft(caller_name).value();
+    // boost::shared_ptr<call_meta_info> cmi;
+    // if (!this->nWebSocketNameMap.leftContains(caller_name)) {
+    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why no ws map found???"<<caller_name<<cmdstr;
+    //     // cmi = this->find_call_meta_info_by_caller_name(caller_name);
+    //     if (cmi == boost::shared_ptr<call_meta_info>()) {
+    //         qLogx()<<"still can not find call map in all state map???";
+    //     } else {
+    //         cseq = cmi->conn_seq;
+    //         if (cseq == -1) {
+    //             qLogx()<<"found call meta info, but websocket handle is invalid -1";
+    //         } else {
+    //             cmdline = cmdstr;
+    //             ilen = this->scn_ws_serv2->wssend(cseq, cmdline.toAscii().data(), cmdline.length());
+    //             if (ilen) {}
+    //         }
+    //     }
+    // } else {
+    //     cmi = this->nWebSocketNameMap.findLeft(caller_name).value();
+    //     cseq = cmi->conn_seq;
+
+    //     cmdline = cmdstr;
+    //     ilen = this->scn_ws_serv2->wssend(cseq, cmdline.toAscii().data(), cmdline.length());
+    //     if (ilen) {}
+    // }
+
+    call_meta_info *cmi = this->find_call_meta_info_by_caller_name(caller_name);
+    if (cmi != NULL) {
         cseq = cmi->conn_seq;
 
         cmdline = cmdstr;
         ilen = this->scn_ws_serv2->wssend(cseq, cmdline.toAscii().data(), cmdline.length());
         if (ilen) {}
+    } else {
+        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why no ws map found???"<<caller_name<<cmdstr;
     }
     
     return true;
@@ -2038,19 +2011,9 @@ void SkyServ::on_ws_proxy_connected(QString rpath)
     QString handle_name = elems.at(0);
     QString phone = elems.at(1);
 
-    Q_ASSERT(this->nWebSocketProxyMap.leftContains(belm));
-
-    // if (this->wsProxy.leftContains(handle_name)) {
-    //     // qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why already in ws proxy map???,don't worry, auto delete now";
-    //     // WebSocketClient *wsc2 = this->wsProxy.findLeft(handle_name).value();
-    //     // this->wsProxy.removeLeft(handle_name);
-    //     // if (wsc2 != NULL) {
-    //     //     wsc2->disconnectFromServer();
-    //     //     delete wsc2;
-    //     // }
-    // }
-
-    // this->wsProxy.insert(handle_name, boost::shared_ptr<WebSocketClient>(wsc));
+    // Q_ASSERT(this->nWebSocketProxyMap.leftContains(belm));
+    call_meta_info *cmi = this->find_call_meta_info_by_ws_client(wsc);
+    Q_ASSERT(cmi != NULL);
 }
 
 // 之前的代码，不能再把这个指针初始化一次，否则，就会出问题了。
@@ -2074,17 +2037,12 @@ void SkyServ::on_ws_proxy_message(QByteArray msg)
     };
 
 
-    Q_ASSERT(this->nWebSocketProxyMap.leftContains(belm));
-    boost::shared_ptr<call_meta_info> cmi = this->nWebSocketProxyMap.findLeft(belm).value();
+    // Q_ASSERT(this->nWebSocketProxyMap.leftContains(belm));
+    // boost::shared_ptr<call_meta_info> cmi = this->nWebSocketProxyMap.findLeft(belm).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_ws_client(wsc);
+    Q_ASSERT(cmi != NULL);
 
     QString caller_name;
-
-    // caller_name = this->wsProxy.findRight(belm).value();
-    // if (!this->wsMap.leftContains(caller_name)) {
-    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why not in ws map???";
-    //     return;
-    // }
-    // qint64 cseq = this->wsMap.findLeft(caller_name).value();
 
     qint64 cseq = cmi->conn_seq;
     // send to proxy's client
@@ -2097,136 +2055,281 @@ void SkyServ::on_ws_proxy_send_message(QString caller_name, QString msg)
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<caller_name<<msg;
 
     boost::shared_ptr<WebSocketClient> wsc;
-    boost::shared_ptr<call_meta_info> cmi;
-    if (this->nWebSocketNameMap.leftContains(caller_name)) {
-        cmi = this->nWebSocketNameMap.findLeft(caller_name).value();
+    // boost::shared_ptr<call_meta_info> cmi;
+    call_meta_info *cmi = this->find_call_meta_info_by_caller_name(caller_name);
+
+    if (cmi != NULL) {
         // boost::shared_ptr<WebSocketClient> wsc = this->wsProxy.findLeft(caller_name).value();
         // Q_ASSERT(wsc != NULL);
         wsc = cmi->ws_proxy;
-        Q_ASSERT(wsc);
+        if (!wsc) {
+            // 为什么会有这种情况，这是在什么时候关闭的呢，还是开始的时候就没有创建成功？
+            qLogx()<<"PWS disappeared already."<<caller_name;
+            Q_ASSERT(wsc);
+        }
 
         // send to proxy's server
         int iret = wsc->sendMessage(msg.toAscii());
         if (iret) {}
 
     }
-
-    // if (!this->wsProxy.leftContains(caller_name)) {
-    //     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Why not in ws proxy map???";
-    //     return;
-    // }
-
 }
 
-boost::shared_ptr<call_meta_info> SkyServ::find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id, int skype_call_id)
+// boost::shared_ptr<call_meta_info> SkyServ::find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id, int skype_call_id)
+// {
+//     boost::shared_ptr<call_meta_info> ci;
+//     boost::shared_ptr<call_meta_info> tci;
+//     bool item_found = false;
+
+//     auto iter_b = this->nSkypeCallMap.leftBegin();
+//     auto iter_e = this->nSkypeCallMap.leftEnd();
+
+//     auto lamba_ff = [&iter_b, &iter_e, &ci, &caller_name] () -> bool {
+//         bool item_found = false;
+
+//         for (;iter_b != iter_e; iter_b++) {
+//             ci = iter_b.value();
+//             if (ci->caller_name == caller_name) {
+//                 item_found = true;
+//                 break;
+//             }
+//         }
+
+//         return item_found;
+//     };
+
+//     // call like this, 但是由于参数类型不一致的问题，这还不能用。
+//     // if (lamba_ff()) {
+//     //     return ci;
+//     // }
+
+//     for (;iter_b != iter_e; iter_b++) {
+//         tci = iter_b.value();
+//         if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
+//             || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
+//             || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
+//             ci = tci;
+//             item_found = true;
+//             break;
+//         }
+//     }
+//     if (item_found) {
+//         return ci;
+//     }
+
+//     auto iter_b2 = this->nSipCallMap.leftBegin();
+//     auto iter_e2 = this->nSipCallMap.leftEnd();
+//     for (;iter_b2 != iter_e2; iter_b2++) {
+//         tci = iter_b2.value();
+//         if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
+//             || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
+//             || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
+
+//             ci = tci;
+//             item_found = true;
+//             break;
+//         }
+//     }
+//     if (item_found) {
+//         return ci;
+//     }
+
+//     auto iter_b3 = this->nWebSocketNameMap.leftBegin();
+//     auto iter_e3 = this->nWebSocketNameMap.leftEnd();
+//     for (;iter_b3 != iter_e3; iter_b3++) {
+//         tci = iter_b3.value();
+//         if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
+//             || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
+//             || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
+
+//             ci = tci;
+//             item_found = true;
+//             break;
+//         }
+//     }
+//     if (item_found) {
+//         return ci;
+//     }
+
+//     auto iter_b4 = this->nWebSocketSeqMap.leftBegin();
+//     auto iter_e4 = this->nWebSocketSeqMap.leftEnd();
+//     for (;iter_b4 != iter_e4; iter_b3++) {
+//         tci = iter_b4.value();
+//         if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
+//             || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
+//             || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
+
+//             ci = tci;
+//             item_found = true;
+//             break;
+//         }
+//     }
+//     if (item_found) {
+//         return ci;
+//     }
+
+//     auto iter_b5 = this->nWebSocketProxyMap.leftBegin();
+//     auto iter_e5 = this->nWebSocketProxyMap.leftEnd();
+//     for (;iter_b5 != iter_e5; iter_b5++) {
+//         tci = iter_b5.value();
+//         if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
+//             || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
+//             || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
+
+//             ci = tci;
+//             item_found = true;
+//             break;
+//         }
+//     }
+//     if (item_found) {
+//         return ci;
+//     }
+
+//     return ci;
+// }
+
+call_meta_info *SkyServ::find_call_meta_info_by_caller_name(QString caller_name)
 {
-    boost::shared_ptr<call_meta_info> ci;
-    boost::shared_ptr<call_meta_info> tci;
-    bool item_found = false;
+    call_meta_info *cmd = NULL;
 
-    auto iter_b = this->nSkypeCallMap.leftBegin();
-    auto iter_e = this->nSkypeCallMap.leftEnd();
+    this->mutex_ncmi.lock();
 
-    auto lamba_ff = [&iter_b, &iter_e, &ci, &caller_name] () -> bool {
-        bool item_found = false;
-
-        for (;iter_b != iter_e; iter_b++) {
-            ci = iter_b.value();
-            if (ci->caller_name == caller_name) {
-                item_found = true;
-                break;
-            }
-        }
-
-        return item_found;
-    };
-
-    // call like this, 但是由于参数类型不一致的问题，这还不能用。
-    // if (lamba_ff()) {
-    //     return ci;
-    // }
-
-    for (;iter_b != iter_e; iter_b++) {
-        tci = iter_b.value();
-        if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
-            || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
-            || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
-            ci = tci;
-            item_found = true;
-            break;
-        }
-    }
-    if (item_found) {
-        return ci;
+    if (this->ncmis.contains(caller_name)) {
+        cmd = this->ncmis.value(caller_name);
     }
 
-    auto iter_b2 = this->nSipCallMap.leftBegin();
-    auto iter_e2 = this->nSipCallMap.leftEnd();
-    for (;iter_b2 != iter_e2; iter_b2++) {
-        tci = iter_b2.value();
-        if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
-            || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
-            || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
-
-            ci = tci;
-            item_found = true;
-            break;
-        }
-    }
-    if (item_found) {
-        return ci;
-    }
-
-    auto iter_b3 = this->nWebSocketNameMap.leftBegin();
-    auto iter_e3 = this->nWebSocketNameMap.leftEnd();
-    for (;iter_b3 != iter_e3; iter_b3++) {
-        tci = iter_b3.value();
-        if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
-            || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
-            || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
-
-            ci = tci;
-            item_found = true;
-            break;
-        }
-    }
-    if (item_found) {
-        return ci;
-    }
-
-    auto iter_b4 = this->nWebSocketSeqMap.leftBegin();
-    auto iter_e4 = this->nWebSocketSeqMap.leftEnd();
-    for (;iter_b4 != iter_e4; iter_b3++) {
-        tci = iter_b4.value();
-        if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
-            || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
-            || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
-
-            ci = tci;
-            item_found = true;
-            break;
-        }
-    }
-    if (item_found) {
-        return ci;
-    }
-
-    auto iter_b5 = this->nWebSocketProxyMap.leftBegin();
-    auto iter_e5 = this->nWebSocketProxyMap.leftEnd();
-    for (;iter_b5 != iter_e5; iter_b5++) {
-        tci = iter_b5.value();
-        if ((!caller_name.isEmpty() && tci->caller_name == caller_name)
-            || (sip_call_id != -1 && tci->sip_call_id == sip_call_id)
-            || (skype_call_id != -1 && tci->skype_call_id == skype_call_id)) {
-
-            ci = tci;
-            item_found = true;
-            break;
-        }
-    }
-    if (item_found) {
-        return ci;
-    }
-
-    return ci;
+    this->mutex_ncmi.unlock();
+    return cmd;
 }
+
+call_meta_info *SkyServ::find_call_meta_info_by_skype_call_id(int skype_call_id)
+{
+    call_meta_info *cmd = NULL;
+    call_meta_info *tcmd = NULL;
+    
+    
+    this->mutex_ncmi.lock();
+
+    auto cmd_iter = this->ncmis.begin();
+    for (;cmd_iter != this->ncmis.end(); cmd_iter++) {
+        tcmd = cmd_iter.value();
+        if (tcmd->skype_call_id == skype_call_id) {
+            cmd = tcmd;
+            break;
+        }
+    }
+
+    this->mutex_ncmi.unlock();
+
+    return cmd;
+
+}
+
+call_meta_info *SkyServ::find_call_meta_info_by_sip_call_id(int sip_call_id)
+{
+    call_meta_info *cmd = NULL;
+    call_meta_info *tcmd = NULL;
+        
+    this->mutex_ncmi.lock();
+
+    auto cmd_iter = this->ncmis.begin();
+    for (;cmd_iter != this->ncmis.end(); cmd_iter++) {
+        tcmd = cmd_iter.value();
+        if (tcmd->sip_call_id == sip_call_id) {
+            cmd = tcmd;
+            break;
+        }
+    }
+
+    this->mutex_ncmi.unlock();
+
+    return cmd;
+
+}
+
+call_meta_info *SkyServ::find_call_meta_info_by_conn_seq(int conn_seq)
+{
+    call_meta_info *cmd = NULL;
+    call_meta_info *tcmd = NULL;
+        
+    this->mutex_ncmi.lock();
+
+    auto cmd_iter = this->ncmis.begin();
+    for (;cmd_iter != this->ncmis.end(); cmd_iter++) {
+        tcmd = cmd_iter.value();
+        if (tcmd->conn_seq == conn_seq) {
+            cmd = tcmd;
+            break;
+        }
+    }
+
+    this->mutex_ncmi.unlock();
+
+    return cmd;
+
+}
+
+call_meta_info *SkyServ::find_call_meta_info_by_ws_client(WebSocketClient *ws_client)
+{
+    call_meta_info *cmd = NULL;
+    call_meta_info *tcmd = NULL;
+        
+    this->mutex_ncmi.lock();
+
+    auto cmd_iter = this->ncmis.begin();
+    for (;cmd_iter != this->ncmis.end(); cmd_iter++) {
+        tcmd = cmd_iter.value();
+        if (tcmd->ws_proxy.get() == ws_client) {
+            cmd = tcmd;
+            break;
+        }
+    }
+
+    this->mutex_ncmi.unlock();
+
+    return cmd;
+
+}
+
+bool SkyServ::remove_call_meta_info(QString caller_name)
+{
+    call_meta_info *cmi = NULL;
+    call_meta_info *tcmi = NULL;
+        
+    this->mutex_ncmi.lock();
+
+    if (this->ncmis.contains(caller_name)) {
+        cmi = this->ncmis.value(caller_name);
+        this->ncmis.remove(caller_name);
+        delete cmi;
+        cmi = NULL;
+    } else {
+        qLogx()<<"not in cmis:"<<caller_name;
+    }
+
+    this->mutex_ncmi.unlock();
+
+    return true;
+}
+
+bool SkyServ::add_call_meta_info(QString caller_name, call_meta_info *cmi)
+{
+    call_meta_info *tcmi = NULL;
+        
+    this->mutex_ncmi.lock();
+
+    if (this->ncmis.contains(caller_name)) {
+        cmi = this->ncmis.value(caller_name);
+        qLogx()<<"already has cmi:"<<caller_name<<" remove it first:"<<cmi;
+        this->ncmis.remove(caller_name);
+        delete cmi;
+        cmi = NULL;
+    } else {
+    }
+    this->ncmis.insert(caller_name, cmi);
+
+    this->mutex_ncmi.unlock();
+
+    return true;
+}
+

@@ -11,7 +11,9 @@
 #include <resolv.h>
 #include <errno.h>
 
-#include "../utils.h"
+
+#include "simplelog.h"
+// #include "../utils.h"
 #include "md5.h"
 
 #include "websocket.h"
@@ -615,11 +617,19 @@ bool WebSocketClient::sendMessage(QByteArray msg)
     Q_ASSERT(this->m_sock != NULL);
 
     ok = this->m_sock->putChar(0x00);
-    Q_ASSERT(ok);
+    if (!ok) {
+        qLogx()<<"Send ws msg faild:"<<this->m_sock->errorString();
+        Q_ASSERT(ok);
+        return false;
+    }
     // wlen = this->m_sock->write((const char *)buf, len);
     wlen = this->m_sock->write(msg);
     ok = this->m_sock->putChar(0xff);
-    Q_ASSERT(ok);
+    if (!ok) {
+        qLogx()<<"Send ws msg faild:"<<this->m_sock->errorString();
+        Q_ASSERT(ok);
+        return false;
+    }
     
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<msg;
     // return wlen;
@@ -967,7 +977,8 @@ unsigned short WebSocketServer2::serverPort()
 	for (n = 0; n < FD_HASHTABLE_MODULUS; n++) {
 		for (m = 0; m < this->serv_ctx->fd_hashtable[n].length; m++) {
 			wsi = this->serv_ctx->fd_hashtable[n].wsi[m];
-            qlog("%d,%d, %p, %d, %d\n", n, m, wsi, wsi->sock, wsi->mode);
+            // qlog("%d,%d, %p, %d, %d\n", n, m, wsi, wsi->sock, wsi->mode);
+            qLogx()<<n<<m<<wsi<<wsi->sock<<wsi->mode;
             if (wsi->mode == LWS_CONNMODE_SERVER_LISTENER) {
 
                 addr_size = sizeof(serv_addr);
@@ -1174,7 +1185,8 @@ int WebSocketServer2::lws_new_connection_established(libwebsocket *wsi)
 int WebSocketServer2::lws_connection_closed(libwebsocket *wsi)
 {
     // qDebug()<<"backend ws close event:"<<wsi;
-    qlog("backend ws close event: %p", wsi);
+    // qlog("backend ws close event: %p", wsi);
+    qLogx()<<"backed ws close event:"<<wsi;
     qint64 cseq = 0;
     if (this->outer_conns.leftContains(wsi)) {
         cseq = this->outer_conns.findLeft(wsi).value();
@@ -1597,7 +1609,8 @@ bool WebSocketServer2::listen(unsigned short port)
     this->serv_ctx = libwebsocket_create_context(port, NULL, protocols, NULL, NULL, NULL, -1, -1, 0);
     Q_ASSERT(this->serv_ctx != NULL);
 
-    qlog("server listen port: %d\n", this->serverPort()); 
+    // qlog("server listen port: %d\n", this->serverPort()); 
+    qLogx()<<"server listen port:"<<this->serverPort();
 
     this->start();
     

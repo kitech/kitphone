@@ -1802,11 +1802,12 @@ bail2:
                     if (pp == NULL) {
                         char *p1 = strstr(eff_buf.token, "Sec-WebSocket-Key1");
                         if (p1 != NULL) {
+                            fprintf(stderr, "Older client, patching hdr: %s, from %p to %p, len=%d\n",
+                                    ins_hdr, p1 + strlen(ins_hdr), p1, eff_buf.token_len-(p1-eff_buf.token));
                             // TODO 这个memmove调用偶尔引起程序崩溃,还有哪个值无效引起的。
                             memmove(p1 + strlen(ins_hdr), p1, eff_buf.token_len - (p1 - eff_buf.token));
                             memcpy(p1, ins_hdr, strlen(ins_hdr));
                             eff_buf.token_len += strlen(ins_hdr);
-                            fprintf(stderr, "Older client, patch hdr: %s\n", ins_hdr);
                         } else {
                             fprintf(stderr, "Dont known how patch it, very old websocket client.\n");
                         }

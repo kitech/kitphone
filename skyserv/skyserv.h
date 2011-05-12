@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-07-03 15:35:54 +0800
-// Version: $Id: skyserv.h 865 2011-05-06 06:15:31Z drswinghead $
+// Version: $Id: skyserv.h 877 2011-05-12 12:46:14Z drswinghead $
 // 
 
 #ifndef SKYSERV_H
@@ -67,6 +67,7 @@ public:
         this->skype_call_id = -1;
         this->sip_call_id = -1;
         this->conn_seq = -1;
+        
         this->call_state = CallState::CS_NONE;
         this->ctime = this->mtime = QDateTime::currentDateTime();
     }
@@ -79,6 +80,8 @@ public:
     QString switcher_name;    // 对于router,需要知道把这个呼叫转到哪个switcher上了。
     int skype_call_id;
     int sip_call_id;
+    // -2 关闭值，-1 初始化值，0-n，真正的连接号
+    // 怎么感觉不太好呢，使用智能指针，连这个ws_proxy什么时候断开连接都不知道。
     qint64 conn_seq; // 替代裸指针 libwebsocket *,由于会客户端先触发关闭，所以收到关闭消息再处理不迟。
     boost::shared_ptr<WebSocketClient> ws_proxy;
     enum CallState call_state;
@@ -107,6 +110,8 @@ inline uint qHash(const boost::shared_ptr<call_meta_info> &key)
 
 ////////////////////
 //////
+// TODO:
+// ws ddos攻击 处理：系统识别攻击来源，丢弃来源的任何请求
 ////////////////////////
 class SkyServ : public QObject
 {
@@ -221,7 +226,16 @@ private slots:
     void on_ws_proxy_send_message(QString caller_name, QString msg);
 
 private:
-    boost::shared_ptr<call_meta_info> find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id=-1, int skype_call_id=-1);
+    // boost::shared_ptr<call_meta_info> find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id=-1, int skype_call_id=-1);
+
+    call_meta_info *find_call_meta_info_by_caller_name(QString caller_name);
+    call_meta_info *find_call_meta_info_by_skype_call_id(int skype_call_id);
+    call_meta_info *find_call_meta_info_by_sip_call_id(int sip_call_id);
+    call_meta_info *find_call_meta_info_by_conn_seq(int conn_seq);
+    call_meta_info *find_call_meta_info_by_ws_client(WebSocketClient *ws_client);
+    // call_meta_info *find_call_meta_info_by_caller_name(QString caller_name);
+    bool remove_call_meta_info(QString caller_name);
+    bool add_call_meta_info(QString caller_name, call_meta_info *cmi);
 
 private:
     QDateTime start_time; // 启动时间
@@ -256,14 +270,20 @@ private:
       router中不会用到sipcall成员，
       此call_meta_info的销毁，对于router，必须是在proxy关闭时，或者中间出错没有呼叫到switcher而中断时
       对于switcher,其是在任何出错，结束时销毁。一般会收到skype hangup,在这关闭
+      是否能重用这个meta值，如果在某用户前一次使用没能正确回收所有的信息，下次该用户再发起新的请求，
+      这个遗留的meta info对象可否重用。
+      会不会产生一个用户会话过程，出现了两个不同的meta info对象?
      */
-    KBiHash<int, boost::shared_ptr<call_meta_info> > nSkypeCallMap;  // skype call id -> meta info
-    KBiHash<int, boost::shared_ptr<call_meta_info> > nSipCallMap; // sip call id -> meta info
-    KBiHash<QString, boost::shared_ptr<call_meta_info> > nWebSocketNameMap;  // caller name -> meta info 
-    KBiHash<qint64, boost::shared_ptr<call_meta_info> > nWebSocketSeqMap; // ws conn seq -> meta info
-    // KBiHash<QString, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // caller name -> meta info // 与上一个重复
-    KBiHash<boost::shared_ptr<WebSocketClient>, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->meta info
+    // KBiHash<int, boost::shared_ptr<call_meta_info> > nSkypeCallMap;  // skype call id -> meta info
+    // KBiHash<int, boost::shared_ptr<call_meta_info> > nSipCallMap; // sip call id -> meta info
+    // KBiHash<QString, boost::shared_ptr<call_meta_info> > nWebSocketNameMap;  // caller name -> meta info 
+    // KBiHash<qint64, boost::shared_ptr<call_meta_info> > nWebSocketSeqMap; // ws conn seq -> meta info
+    // // KBiHash<QString, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // caller name -> meta info // 与上一个重复
+    // KBiHash<boost::shared_ptr<WebSocketClient>, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->met info
     // KBiHash<WebSocketClient*, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->meta info
+
+    QHash<QString, call_meta_info*> ncmis; // call meta data
+    QMutex mutex_ncmi;
     
     // next next way, 再下一种试用的方法
     boost::tuple<QString, QString, QString, int, int, qint64, boost::shared_ptr<WebSocketClient> > call_meta_info_b;

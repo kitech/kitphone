@@ -38,8 +38,9 @@ SkypePhone::SkypePhone(QWidget *parent)
     this->m_dialpanel_layout_index = 2;
     this->m_dialpanel_layout_item = this->layout()->itemAt(this->m_dialpanel_layout_index);
     // this->m_dialpanel_layout_item->widget()->setVisible(false);
-    this->m_call_state_layout_index = 3;
-    this->m_call_state_layout_item = this->layout()->itemAt(this->m_call_state_layout_index);
+    int call_state_layout_index = 3;
+    QLayoutItem *call_state_layout_item = this->layout()->itemAt(call_state_layout_index);
+    this->m_call_state_widget = call_state_layout_item->widget();
     // this->m_call_state_layout_item->widget()->setVisible(false);
     this->m_log_list_layout_index = 6;
     this->m_log_list_layout_item = this->layout()->itemAt(this->m_log_list_layout_index);
@@ -152,6 +153,11 @@ void SkypePhone::defaultPstnInit()
 
     this->customAddContactButtonMenu();
     this->initContactViewContextMenu();
+    this->initHistoryViewContextMenu();
+
+    // this->m_dialpanel_layout_item->widget()->setVisible(false);
+    // this->m_call_state_layout_item->widget()->setVisible(false);
+    this->m_call_state_widget->setVisible(false);
 
     this->uiw->label_11->installEventFilter(this);
 }
@@ -194,6 +200,7 @@ void SkypePhone::initContactViewContextMenu()
 
     action = new QAction(tr("&Call..."), this);
     this->m_contact_view_ctx_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onPlaceCallFromContactList()));
     
     this->m_contact_view_ctx_menu->addSeparator();
 
@@ -211,6 +218,29 @@ void SkypePhone::initContactViewContextMenu()
 
     QObject::connect(this->uiw->treeView, SIGNAL(customContextMenuRequested(const QPoint &)),
                      this, SLOT(onShowContactViewMenu(const QPoint &)));
+}
+
+void SkypePhone::initHistoryViewContextMenu()
+{
+    QAction *action;
+
+    this->m_history_view_ctx_menu = new QMenu(this);
+    
+    action = new QAction(tr("&Call..."), this);
+    this->m_history_view_ctx_menu->addAction(action);
+    QObject::connect(action, SIGNAL(triggered()), this, SLOT(onPlaceCallFromHistory()));
+
+    this->m_history_view_ctx_menu->addSeparator();
+
+    action = new QAction(tr("&Delete"), this);
+    this->m_history_view_ctx_menu->addAction(action);
+
+    action = new QAction(tr("Delete &All Calls"), this);
+    this->m_history_view_ctx_menu->addAction(action);
+
+    QObject::connect(this->uiw->treeView_2, SIGNAL(customContextMenuRequested(const QPoint &)),
+                     this, SLOT(onShowHistoryViewMenu(const QPoint &)));
+
 }
 
 // maybe called twice or more
@@ -341,12 +371,17 @@ void SkypePhone::onCallPstn()
     if (sender() != NULL) {
         // init call by user
         this->m_conn_ws_retry_times = this->m_conn_ws_max_retry_times;
+        // 显示呼叫状态窗口
+        this->onDynamicSetVisible(this->m_call_state_widget, true);
     } else {
         // retry call by robot
         if (--this->m_conn_ws_retry_times >= 0) {
             qDebug()<<"retry conn ws: "<< (this->m_conn_ws_max_retry_times-this->m_conn_ws_retry_times);
         } else {
             qDebug()<<"retry conn ws exceed max retry:"<<this->m_conn_ws_max_retry_times;
+            this->onDynamicSetVisible(this->m_call_state_widget, false);
+            // 关闭网络连续，如果有的话。
+            this->wscli.reset();
             return;
         }
     }
@@ -373,7 +408,6 @@ void SkypePhone::onCallPstn()
     if (this->m_conn_ws_max_retry_times == this->m_conn_ws_max_retry_times) {
 
         boost::shared_ptr<SqlRequest> req(new SqlRequest());
-        // boost::shared_ptr<PhoneContact> pc;
 
         req->mCbFunctor = boost::bind(&SkypePhone::onAddCallHistoryDone, this, _1);
         req->mCbObject = this;
@@ -389,25 +423,6 @@ void SkypePhone::onCallPstn()
 
         qLogx()<<req->mSql;
     }
-
-   // QString num = this->uiw->comboBox_3->currentText();
-    
-   //  SkypePackage sp;
-   //  sp.seq = SkypeCommand::nextID().toInt();
-   //  sp.type = SkypePackage::SPT_GW_SELECT;
-   //  sp.data = num;
-
-   //  QString spStr = sp.toString();
-   //  qDebug()<<spStr;
-   //  // bool ok = this->mSkype->sendPackage(this->uiw->lineEdit->text(), spStr);
-   //  // if (!ok) {
-   //  //     qDebug()<<"maybe stream dosn't created, try create stream first";
-   //  // }
-    
-   //  this->mtun->setPhoneNumber(num);
-   //  // QString callee_name = QString("%1,%2").arg("liuguangzhao01").arg(num);
-   //  QString callee_name = QString("%1").arg("liuguangzhao01");
-   //  this->mSkype->callFriend(callee_name);
 }
 
 void SkypePhone::onHangupPstn()
@@ -421,14 +436,102 @@ void SkypePhone::onShowDialPanel()
     if (this->m_dialpanel_layout_item->widget()->isVisible()) {
         
     }
-    this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
-    // this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
-    //                           !this->m_dialpanel_layout_item->widget()->isVisible());
+    // this->m_dialpanel_layout_item->widget()->setVisible(!this->m_dialpanel_layout_item->widget()->isVisible());
+    this->onDynamicSetVisible(this->m_dialpanel_layout_item->widget(),
+                              !this->m_dialpanel_layout_item->widget()->isVisible());
 }
 
 void SkypePhone::onShowLogPanel()
 {
     this->m_log_list_layout_item->widget()->setVisible(!this->m_log_list_layout_item->widget()->isVisible());
+}
+
+/*
+  正常流程，把信息取出来，号码显示在号码输入框，模拟点击呼叫按钮
+ */
+void SkypePhone::onPlaceCallFromContactList()
+{
+    qLogx()<<"";
+
+    QItemSelectionModel *ism = this->uiw->treeView->selectionModel();
+
+    if (!ism->hasSelection()) {
+        return;
+    }
+
+    QModelIndex cidx, idx;
+    cidx = ism->currentIndex();
+    idx = ism->model()->index(cidx.row(), 1, cidx.parent());
+
+    if (this->m_contact_model->hasChildren(idx)) {
+        qLogx()<<"select node is group node";
+        // group node
+        return ;
+    }
+    
+    ContactInfoNode *cnode = static_cast<ContactInfoNode*>(idx.internalPointer());
+    
+    QString phone_number = this->m_contact_model->data(idx).toString();
+    qLogx()<<phone_number;
+
+    this->uiw->comboBox_3->setEditText(phone_number);
+
+    if (this->uiw->pushButton_4->isEnabled()) {
+        this->uiw->pushButton_4->click();
+    } else {
+        
+    }
+}
+
+void SkypePhone::onPlaceCallFromHistory()
+{
+    qLogx()<<"";
+
+    QItemSelectionModel *ism = this->uiw->treeView_2->selectionModel();
+
+    if (!ism->hasSelection()) {
+        return;
+    }
+
+    QModelIndex cidx, idx;
+    cidx = ism->currentIndex();
+    idx = ism->model()->index(cidx.row(), 1, cidx.parent());
+
+    QString phone_number = this->m_call_history_model->data(idx).toString();
+    qLogx()<<phone_number;
+
+    this->uiw->comboBox_3->setEditText(phone_number);
+
+    if (this->uiw->pushButton_4->isEnabled()) {
+        this->uiw->pushButton_4->click();
+    } else {
+        
+    }
+}
+
+void SkypePhone::onDeleteCallHistory() 
+{
+    qLogx()<<"";
+
+    QItemSelectionModel *ism = this->uiw->treeView_2->selectionModel();
+
+    if (!ism->hasSelection()) {
+        return;
+    }
+
+    QModelIndex cidx, idx;
+    cidx = ism->currentIndex();
+    idx = ism->model()->index(cidx.row(), 1, cidx.parent());
+
+    QString phone_number = this->m_call_history_model->data(idx).toString();
+    qLogx()<<phone_number;
+
+
+}
+
+void SkypePhone::onDeleteAllCallHistory()
+{
+
 }
 
 void SkypePhone::onAddContact()
@@ -531,6 +634,19 @@ void SkypePhone::onShowContactViewMenu(const QPoint &pos)
     this->m_contact_view_ctx_menu->popup(this->uiw->treeView->mapToGlobal(pos));
 }
 
+void SkypePhone::onShowHistoryViewMenu(const QPoint &pos)
+{
+    ContactInfoNode *cin = NULL;
+    QModelIndex idx = this->uiw->treeView_2->indexAt(pos);
+    // qDebug()<<idx<<idx.parent();
+    if (idx.parent().isValid()) {
+        // leaf contact node
+    } else {
+
+    }
+    this->m_history_view_ctx_menu->popup(this->uiw->treeView_2->mapToGlobal(pos));
+}
+
 void SkypePhone::onDynamicSetVisible(QWidget *w, bool visible)
 {
     Q_ASSERT(w != NULL);
@@ -599,12 +715,19 @@ void SkypePhone::onWSConnected(QString path)
 
 void SkypePhone::onWSError(int error, const QString &errmsg)
 {
-    qDebug()<<error<<errmsg;
+    qLogx()<<error<<errmsg;
+    if (error == WebSocketClient::EWS_HANDSHAKE) {
+        log_output(LT_USER, tr("网络协议错误，重试连接服务器。。。"));
+        this->onCallPstn();
+    } else {
+        
+    }
 }
 
 void SkypePhone::onWSDisconnected()
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    // 如果区别被服务器异常关闭，还是客户端主动关闭呢。
 }
 
 void SkypePhone::onWSMessage(QByteArray msg)
@@ -633,6 +756,12 @@ void SkypePhone::onWSMessage(QByteArray msg)
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
         this->log_output(LT_USER, log_msg);
+
+        this->onDynamicSetVisible(this->m_call_state_widget, false);
+
+        // 关闭网络连续，如果有的话。
+        this->wscli.reset();
+
         break;
     case 118:
         log_msg = QString("对方已挂机，代码:%1").arg(fields.at(5));

@@ -15,6 +15,7 @@
 
 #include <boost/signals2.hpp>
 
+#include "simplelog.h"
 #include "metauri.h"
 #include "skype.h"
 
@@ -235,7 +236,7 @@ void SkypeTunnel::onSkypeCallAnswered(int callID, QString callerName, QString ca
 
 void SkypeTunnel::onCallHangup(QString contactName, QString callerName, int callID)
 {
-    qDebug()<<__FILE__<<__LINE__<<contactName<<callID;
+    qLogx()<<contactName<<callID;
 
     QString num = callerName;
     SkypePackage sp;

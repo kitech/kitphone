@@ -557,6 +557,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>   </string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QLabel" name="label_11">
           <property name="text">
            <string>call status message here.................</string>
@@ -632,6 +639,9 @@
           <property name="singleStep">
            <number>5</number>
           </property>
+          <property name="value">
+           <number>99</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -705,6 +715,9 @@
           </property>
           <property name="singleStep">
            <number>5</number>
+          </property>
+          <property name="value">
+           <number>99</number>
           </property>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -783,7 +796,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>

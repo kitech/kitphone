@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "simplelog.h"
+
 #include "libwss/md5.h"
 
 #include "websocketclient.h"

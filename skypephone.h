@@ -53,8 +53,14 @@ public slots:    // pstn
     void onModifyContact();
     void onAddGroup();
     void onShowContactViewMenu(const QPoint &pos);
+    void onShowHistoryViewMenu(const QPoint &pos);
     void onDynamicSetVisible(QWidget *w, bool visible);
     void onDynamicSetVisible();
+
+    void onPlaceCallFromContactList();
+    void onPlaceCallFromHistory();
+    void onDeleteCallHistory();
+    void onDeleteAllCallHistory();
 
     void onConnectSkype();
     void onConnectApp2App();
@@ -103,6 +109,7 @@ protected:
 private:
     void customAddContactButtonMenu();
     void initContactViewContextMenu();
+    void initHistoryViewContextMenu();
 
 private: // pstn
     Skype *mSkype;
@@ -111,17 +118,19 @@ private: // pstn
 
     QWidget *mdyn_widget;
     bool mdyn_visible;
-    QGraphicsOpacityEffect *mdyn_oe;
+    QGraphicsOpacityEffect *mdyn_oe; // 在qt5之后，这个功能会被去掉
 
     QStatusBar *m_status_bar;
     int m_dialpanel_layout_index;
     QLayoutItem *m_dialpanel_layout_item;
-    int m_call_state_layout_index;
-    QLayoutItem *m_call_state_layout_item;
+    // int m_call_state_layout_index;
+    // QLayoutItem *m_call_state_layout_item;
+    QWidget *m_call_state_widget;
     int m_log_list_layout_index;
     QLayoutItem *m_log_list_layout_item;
 
     QMenu *m_contact_view_ctx_menu;
+    QMenu *m_history_view_ctx_menu;
 
     // AsyncDatabase *m_adb;
     boost::shared_ptr<AsyncDatabase> m_adb;

@@ -84,7 +84,12 @@ void debug(const char *format, ...)
 	va_start(ap, format); vfprintf(stderr, format, ap); va_end(ap);
 }
 #else
-static inline void debug(const char *format, ...)
+#ifdef WIN32
+static
+#else
+static inline
+#endif
+void debug(const char *format, ...)
 {
 }
 #endif
@@ -319,12 +324,6 @@ libwebsocket_interpret_incoming_packet(struct libwebsocket *wsi,
 extern int
 libwebsocket_read(struct libwebsocket_context *context, struct libwebsocket *wsi,
 					       unsigned char * buf, size_t len);
-
-extern int
-lws_b64_encode_string(const char *in, int in_len, char *out, int out_size);
-
-extern int
-lws_b64_decode_string(const char *in, char *out, int out_size);
 
 extern int
 lws_b64_selftest(void);

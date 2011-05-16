@@ -49,8 +49,12 @@ QVariant CallHistoryModel::data(const QModelIndex &index, int role) const
         v = cnode->mstatus;
     } else if (index.column() == 1) {
         v = cnode->mphone_number;
-    } else {
+    } else if (index.column() == 2) {
         v = cnode->ctime;
+    } else if (index.column() == 3) {
+        v = cnode->mhid;
+    } else {
+        ////////////
     }
 
 
@@ -98,7 +102,7 @@ int CallHistoryModel::rowCount(const QModelIndex &parent) const
 
 int CallHistoryModel::columnCount(const QModelIndex &parent) const
 {
-    return 3;
+    return 4;
 }
 
 
@@ -239,6 +243,7 @@ bool CallHistoryModel::onNewCallHistoryArrived(const QList<QSqlRecord> &results)
         cnode->lazy_flag = 2;
         
         rec = recs.at(i);
+        cnode->mhid = rec.value("hid").toInt();
         cnode->mstatus = rec.value("call_status").toInt();
         cnode->mcontact_id = rec.value("contact_id").toInt();
         cnode->mphone_number = rec.value("phone_number").toString();
@@ -251,3 +256,34 @@ bool CallHistoryModel::onNewCallHistoryArrived(const QList<QSqlRecord> &results)
 
     return true;
 }
+
+bool CallHistoryModel::onCallHistoryRemoved(int hid)
+{
+
+    boost::shared_ptr<CallHistoryNode> pnode;    
+    for (int i = 0; i < this->mroot->childs.count(); ++i) {
+        pnode = this->mroot->childs.at(i);
+        if (pnode->mhid == hid) {
+            
+            this->beginRemoveRows(QModelIndex(), i, 1);
+            this->mroot->childs.remove(i);
+            for (int j = i; j < this->mroot->childs.count(); ++j) {
+                pnode = this->mroot->childs.at(j);
+                pnode->mrow -= 1;
+            }
+            this->endRemoveRows();
+            break;
+        }
+    }
+    return true;
+}
+
+bool CallHistoryModel::onAllCallHistoryRemoved()
+{
+    this->beginRemoveRows(QModelIndex(), 0, this->mroot->childs.count());
+    this->mroot->childs.clear();
+    this->endRemoveRows();
+
+    return true;
+}
+

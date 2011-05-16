@@ -90,6 +90,8 @@ public slots:    // pstn
     bool onGetAllContactsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req);
     bool onGetAllHistoryDone(boost::shared_ptr<SqlRequest> req);
+    bool onDeleteCallHistoryDone(boost::shared_ptr<SqlRequest> req);
+    bool onDeleteAllCallHistoryDone(boost::shared_ptr<SqlRequest> req);
 
     void log_output(int type, const QString &log);
 

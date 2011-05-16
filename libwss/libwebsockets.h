@@ -655,8 +655,13 @@ lws_send_pipe_choked(struct libwebsocket *wsi);
 extern unsigned char *
 libwebsockets_SHA1(const unsigned char *d, size_t n, unsigned char *md);
 
-extern struct libwebsocket_extension libwebsocket_internal_extensions[];
+extern int
+lws_b64_encode_string(const char *in, int in_len, char *out, int out_size);
 
+extern int
+lws_b64_decode_string(const char *in, char *out, int out_size);
+
+extern struct libwebsocket_extension libwebsocket_internal_extensions[];
 
 #ifdef __cplusplus
 }

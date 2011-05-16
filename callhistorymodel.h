@@ -23,7 +23,7 @@ class CallHistoryNode : public boost::enable_shared_from_this<CallHistoryNode>
 {
 public:
     CallHistoryNode() {
-        mrow = mcol = lazy_flag = mstatus = -1;
+        mrow = mcol = lazy_flag = mhid = mstatus = -1;
     }
     ~CallHistoryNode() {
 
@@ -33,6 +33,7 @@ public:
     int mcol;
     int lazy_flag;
 
+    int mhid;
     int mstatus;
     int mcontact_id;
     QString mphone_number;
@@ -73,6 +74,8 @@ public slots:
     void onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval);
     bool onGetDbCallHistoryDone(boost::shared_ptr<SqlRequest> & req);
     bool onNewCallHistoryArrived(const QList<QSqlRecord> &results);
+    bool onCallHistoryRemoved(int hid);
+    bool onAllCallHistoryRemoved();
 
 private:
     boost::shared_ptr<CallHistoryNode> mroot;

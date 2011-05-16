@@ -536,10 +536,7 @@ void SkypePhone::onDeleteCallHistory()
     req->mCbFunctor = boost::bind(&SkypePhone::onDeleteCallHistoryDone, this, _1);
     req->mCbObject = this;
     req->mCbSlot = SLOT(onDeleteCallHistoryDone(boost::shared_ptr<SqlRequest>));
-    // req->mSql = QString("INSERT INTO kp_contacts (group_id,phone_number) VALUES (%1, '%2')")
-    //     .arg(pc->mGroupId).arg(pc->mPhoneNumber);
-    req->mSql = QString("DELETE FROM kp_histories WHERE hid=%1")
-        .arg(hid);
+    req->mSql = QString("DELETE FROM kp_histories WHERE hid=%1").arg(hid);
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
@@ -548,30 +545,16 @@ void SkypePhone::onDeleteCallHistory()
 
 void SkypePhone::onDeleteAllCallHistory()
 {
-    qLogx()<<"";
-
-    // QItemSelectionModel *ism = this->uiw->treeView_2->selectionModel();
-
-    // if (!ism->hasSelection()) {
-    //     return;
-    // }
-
-    // QModelIndex cidx, idx, idx2;
-    // cidx = ism->currentIndex();
-    // idx = ism->model()->index(cidx.row(), 1, cidx.parent());
-    // idx2 = ism->model()->index(cidx.row(), 3, cidx.parent());
-
-    // QString phone_number = this->m_call_history_model->data(idx).toString();
-    // int hid = this->m_call_history_model->data(idx2).toInt();
-    // qLogx()<<hid<<phone_number;
+    qLogx()<<""<<this->m_call_history_model->rowCount();
+    if (this->m_call_history_model->rowCount() == 0) {
+        return;
+    }
 
     boost::shared_ptr<SqlRequest> req(new SqlRequest());
 
     req->mCbFunctor = boost::bind(&SkypePhone::onDeleteAllCallHistoryDone, this, _1);
     req->mCbObject = this;
     req->mCbSlot = SLOT(onDeleteAllCallHistoryDone(boost::shared_ptr<SqlRequest>));
-    // req->mSql = QString("INSERT INTO kp_contacts (group_id,phone_number) VALUES (%1, '%2')")
-    //     .arg(pc->mGroupId).arg(pc->mPhoneNumber);
     req->mSql = QString("DELETE FROM kp_histories WHERE 1=1");
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);

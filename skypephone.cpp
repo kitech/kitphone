@@ -127,6 +127,7 @@ void SkypePhone::defaultPstnInit()
     this->mSkype = NULL;
     this->mtun = NULL;
     this->mSkypeTracer = NULL;
+    this->m_curr_skype_call_id = -1;
 
     // QObject::connect(this->uiw->checkBox_2, SIGNAL(stateChanged(int)),
     //                  this, SLOT(onInitPstnClient()));
@@ -160,6 +161,20 @@ void SkypePhone::defaultPstnInit()
     this->m_call_state_widget->setVisible(false);
 
     this->uiw->label_11->installEventFilter(this);
+
+    QObject::connect(this->uiw->toolButton_14, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_15, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_16, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_17, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_18, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_19, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_20, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_21, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_22, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_23, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_24, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+    QObject::connect(this->uiw->toolButton_25, SIGNAL(clicked()), this, SLOT(onDigitButtonClicked()));
+
 }
 
 void SkypePhone::customAddContactButtonMenu()
@@ -358,7 +373,10 @@ void SkypePhone::onSkypeUserStatus(QString str_status, int int_status)
     }
 
     this->uiw->label_14->setPixmap(icon);
-    this->uiw->label_14->setToolTip(str_status);
+    
+    QString old_tooltip = this->uiw->label_14->toolTip();
+    QString new_tooltip = old_tooltip.split(":").at(0) + ": " + str_status;
+    this->uiw->label_14->setToolTip(new_tooltip);
 }
 
 void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int callID)
@@ -367,6 +385,53 @@ void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int 
     this->m_curr_skype_call_id = callID;
     this->m_curr_skype_call_peer = calleeName;
 }
+
+void SkypePhone::onDigitButtonClicked()
+{
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<(sender());
+    QToolButton *btn = static_cast<QToolButton*>(sender());
+
+    QString digit;
+    QHash<QToolButton*, char> bdmap;
+    bdmap[this->uiw->toolButton_14] = '0';
+    bdmap[this->uiw->toolButton_15] = '1';
+    bdmap[this->uiw->toolButton_16] = '2';
+    bdmap[this->uiw->toolButton_17] = '3';
+    bdmap[this->uiw->toolButton_18] = '4';
+    bdmap[this->uiw->toolButton_19] = '5';
+    bdmap[this->uiw->toolButton_20] = '6';
+    bdmap[this->uiw->toolButton_21] = '7';
+    bdmap[this->uiw->toolButton_22] = '8';
+    bdmap[this->uiw->toolButton_23] = '9';
+    bdmap[this->uiw->toolButton_24] = '*';
+    bdmap[this->uiw->toolButton_25] = '#';
+
+    Q_ASSERT(bdmap.contains(btn));
+
+    // 作为电话号码的一部分
+    if (this->m_curr_skype_call_id == -1) {
+        QString num = this->uiw->comboBox_3->currentText();
+        QLineEdit *le = this->uiw->comboBox_3->lineEdit();
+        if (le->selectedText() == num) {
+            le->setText(QString(QChar(bdmap[btn])));
+        } else if (le->selectedText().length() > 0) {
+            le->insert(QString(QChar(bdmap[btn])));
+        } else {
+            le->insert(QString(QChar(bdmap[btn])));
+        }
+    }
+    else
+    // if (in call state) it's dtmf digit
+    if (this->m_curr_skype_call_id != -1) {
+        // send dtmf here
+        this->mSkype->setCallDTMF(QString::number(this->m_curr_skype_call_id), 
+                                  QString(QChar(bdmap[btn])));
+    }
+    else { 
+        Q_ASSERT(1==2);
+    }
+}
+
 
 void SkypePhone::onCallPstn()
 {

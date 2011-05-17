@@ -46,6 +46,7 @@ public slots:    // pstn
     void onCallPstn();
     void onHangupPstn();
     void onShowSkypeTracer();
+    void onDigitButtonClicked();
 
     void onShowDialPanel();
     void onShowLogPanel();

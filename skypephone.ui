@@ -101,7 +101,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="label_14">
        <property name="toolTip">
-        <string>Skype客户端状态</string>
+        <string>Skype客户端状态: NONE</string>
        </property>
        <property name="text">
         <string/>
@@ -126,7 +126,7 @@
         <string>当前登陆的Skype用户名</string>
        </property>
        <property name="text">
-        <string>未连续Skype</string>
+        <string>未连接Skype</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>

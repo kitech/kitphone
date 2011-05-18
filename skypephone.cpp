@@ -489,6 +489,9 @@ void SkypePhone::onCallPstn()
 
     if (this->m_conn_ws_max_retry_times == this->m_conn_ws_max_retry_times) {
 
+        QString log_msg = "连接预处理服务器。。。";
+        this->log_output(LT_USER, log_msg);
+
         boost::shared_ptr<SqlRequest> req(new SqlRequest());
 
         req->mCbFunctor = boost::bind(&SkypePhone::onAddCallHistoryDone, this, _1);

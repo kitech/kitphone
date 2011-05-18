@@ -71,6 +71,7 @@ public slots:    // pstn
 
     void onSkypeUserStatus(QString str_status, int int_status);
     void onSkypeCallArrived(QString callerName, QString calleeName, int callID);
+    void onSkypeCallHangup(QString callerName, QString calleeName, int callID);
 
     void onWSConnected(QString path);
     void onWSError(int error, const QString &errmsg);

@@ -21,7 +21,7 @@ VERSION = 0.5.6
 !win32 {
 QMAKE_CXXFLAGS += -g -std=c++0x
 }
-DEFINES += KPVER_STR=\"\\\"$$VERSION\\\"\" 
+DEFINES += KPVERSION_STR=\"\\\"$$VERSION\\\"\" 
 
 QTSAPP_HEADERS = ./qtsingleapplication/qtsingleapplication.h ./qtsingleapplication/qtlocalpeer.h
 QTSAPP_SOURCES = ./qtsingleapplication/qtsingleapplication.cpp ./qtsingleapplication/qtlocalpeer.cpp
@@ -45,7 +45,7 @@ HEADERS  += kitphone.h kitapplication.h metauri.h \
         databaseworker.h \
         simplelog.h
 
-FORMS    += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
+FORMS   += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
 
 #######
 SOURCES += sipphone.cpp

@@ -287,6 +287,8 @@ void SkypePhone::onInitPstnClient()
 
     QObject::connect(this->mSkype, SIGNAL(newCallArrived(QString,QString,int)),
                      this, SLOT(onSkypeCallArrived(QString,QString,int)));
+    QObject::connect(this->mSkype, SIGNAL(callHangup(QString,QString,int)),
+                     this, SLOT(onSkypeCallHangup(QString,QString,int)));
 
     this->mtun = new SkypeTunnel(this);
     this->mtun->setSkype(this->mSkype);
@@ -384,6 +386,19 @@ void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int 
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<callerName<<calleeName<<callID;
     this->m_curr_skype_call_id = callID;
     this->m_curr_skype_call_peer = calleeName;
+}
+
+void SkypePhone::onSkypeCallHangup(QString contactName, QString callerName, int callID)
+{
+    qLogx()<<"";
+
+    if (callID != this->m_curr_skype_call_id) {
+        qLogx()<<"";
+    }
+    this->m_curr_skype_call_id = -1;
+    if (this->m_call_state_widget->isVisible()) {
+        this->onDynamicSetVisible(this->m_call_state_widget, false);
+    }
 }
 
 void SkypePhone::onDigitButtonClicked()
@@ -843,6 +858,14 @@ void SkypePhone::onWSMessage(QByteArray msg)
             this->mSkype->callFriend(router_name);
         }
         break;
+    case 104:
+        log_msg = "线路忙，请稍后再拨。";
+        this->log_output(LT_USER, log_msg);
+        break;
+    case 106:
+        log_msg = QString("FCall notice: ") + fields.at(4);
+        this->log_output(LT_DEBUG, log_msg);
+        break;
     case 108:
         log_msg = "通话结束。";
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
@@ -856,12 +879,38 @@ void SkypePhone::onWSMessage(QByteArray msg)
         this->wscli.reset();
 
         break;
+    case 110:
+        log_msg = "不支持通话挂起功能，请尽快恢复，否则对方可能因听不到您的声音而挂断。";
+        this->log_output(LT_USER, log_msg);
+        break;
+    case 112:
+        log_msg = "对方已经接通，计时开始。";
+        this->log_output(LT_USER, log_msg);
+        break;
+    case 114:
+        log_msg = "可能会有2-3秒静音时间，请稍后。。。"; // may be mute 3-5s
+        this->log_output(LT_USER, log_msg);
+        break;
+    case 116:
+        log_msg = "分配通话线路。。。";// Allocate circuitry...
+        this->log_output(LT_USER, log_msg);
+        break;
+    case 117:
+        log_msg = "连接对方话机。。。"; // Info: connect pstn network.
+        this->log_output(LT_USER, log_msg);
+        break;
     case 118:
         log_msg = QString("对方已挂机，代码:%1").arg(fields.at(5));
         // log_msg = QString("<p><img src='%1'/> %2</p>").arg(":/skins/default/info.png").arg(log_msg);
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
         this->log_output(LT_USER, log_msg);
+        switch (fields.at(5).toInt()) {
+        case 603:
+            break;
+        default:
+            break;
+        };
         break;
     default:
         qDebug()<<"Unknwon ws msg:"<<msg;

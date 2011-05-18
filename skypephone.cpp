@@ -815,10 +815,15 @@ void SkypePhone::onWSConnected(QString path)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<path;
 
+    QString log_msg = "连接预处理服务器 OK。";
+    this->log_output(LT_USER, log_msg);
+    log_msg = "连接接线服务器。。。";
+    this->log_output(LT_USER, log_msg);
     // 
     QString num = this->uiw->comboBox_3->currentText();
     QString cmd = QString("101$%1$%2").arg(this->mSkype->handlerName()).arg(num);
     this->wscli->sendMessage(cmd.toAscii());
+    this->log_output(LT_DEBUG, cmd);
 }
 
 void SkypePhone::onWSError(int error, const QString &errmsg)

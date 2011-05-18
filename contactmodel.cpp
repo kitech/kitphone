@@ -56,7 +56,7 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
         } else {
             return v;
         }
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<colsize<<colsize.isValid();
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<colsize<<colsize.isValid();
         return colsize;
     }
 
@@ -110,7 +110,7 @@ QModelIndex ContactModel::index(int row, int column, const QModelIndex &parent) 
         return idx;
     } else {
         pnode = static_cast<ContactInfoNode*>(parent.internalPointer());
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<pnode<<pnode->mrow<<pnode->childs.count()<<row<<column;
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<pnode<<pnode->mrow<<pnode->childs.count()<<row<<column;
         if (row >= pnode->childs.count()) {
             return idx;
         }
@@ -167,7 +167,7 @@ int ContactModel::rowCount(const QModelIndex &parent) const
 
     if (!parent.isValid()) {
         cnt = this->mContacts.count();
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
         if (cnt == 0 && this->m_dretr->lazy_flag == 0) {
             this->m_dretr->lazy_flag = 1;
             this->m_dretr->getGroupList();
@@ -178,7 +178,7 @@ int ContactModel::rowCount(const QModelIndex &parent) const
         if (pnode->ntype == 0) {
             // pnode = this->mContacts.at(row);
             cnt = pnode->childs.count();
-            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
+            // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
             //////////
             if (cnt == 0 && pnode->lazy_flag == 0) {
                 pnode->lazy_flag = 1;
@@ -188,7 +188,7 @@ int ContactModel::rowCount(const QModelIndex &parent) const
             cnt = 0;
         }
     }
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<parent<<cnt;
     return cnt;
 }
 
@@ -237,7 +237,7 @@ bool ContactModel::insertRows(int row, int count, const QModelIndex &parent)
 
 bool ContactModel::removeRows(int row, int count, const QModelIndex & parent)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<row<<count<<parent<<parent.internalPointer();
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<row<<count<<parent<<parent.internalPointer();
     ContactInfoNode *pnode = NULL;
     ContactInfoNode *cnode = NULL;
     ContactInfoNode *tnode = NULL;
@@ -247,10 +247,10 @@ bool ContactModel::removeRows(int row, int count, const QModelIndex & parent)
         return false;
     } else {
         pnode = static_cast<ContactInfoNode*>(parent.internalPointer());
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<pnode->childs.count();
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<pnode->childs.count();
         for (int i = 0; i < pnode->childs.count(); i++) {
             tnode = pnode->childs.at(i);
-            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<tnode->pnode<<tnode->mrow;
+            // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<tnode->pnode<<tnode->mrow;
         }
         assert(row < pnode->childs.count());
         this->beginRemoveRows(parent, row, row + count - 1);
@@ -261,7 +261,7 @@ bool ContactModel::removeRows(int row, int count, const QModelIndex & parent)
         }
 
         for (int i = 0; i < count; i++) {
-            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"rming:"<<(i+row);
+            // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"rming:"<<(i+row);
             tnode = pnode->childs.at(i+row);
             pnode->childs.remove(i+row);
             delete tnode;
@@ -269,21 +269,21 @@ bool ContactModel::removeRows(int row, int count, const QModelIndex & parent)
         
         this->endRemoveRows();
 
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<pnode->childs.count();
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<pnode->childs.count();
     }
     return true;
 }
 
 void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
     QSqlRecord rec;
     int gid;
     QString gname;
     ContactInfoNode *cin = NULL;
     QModelIndex idx;
 
-    qDebug()<<results;
+    // qDebug()<<results;
 
     this->m_dretr->lazy_flag = 2;
     for (int i = 0; i < results.count(); i++) {
@@ -306,12 +306,12 @@ void ContactModel::onGroupsRetrived(const QList<QSqlRecord> & results)
         emit this->endInsertRows();
     }
 
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->mContacts.count();    
+    // xsqDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->mContacts.count();    
 }
 
 void ContactModel::onContactsRetrived(int gid, const QList<QSqlRecord> & results)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<gid<<results.count();
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<gid<<results.count();
 
     QSqlRecord rec;
     QString gname;
@@ -325,8 +325,8 @@ void ContactModel::onContactsRetrived(int gid, const QList<QSqlRecord> & results
 
             for (int k = 0; k < cin->childs.count(); k++) {
                 nin = cin->childs.at(k);
-                qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<nin->pc->mContactId<<nin->pc->mDispName
-                        <<nin->mrow;
+                // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<nin->pc->mContactId<<nin->pc->mDispName
+                //         <<nin->mrow;
             }
 
             for (int j = 0; j < results.count(); j++) {
@@ -345,11 +345,11 @@ void ContactModel::onContactsRetrived(int gid, const QList<QSqlRecord> & results
 
                 // idx = this->index(cin->mrow, 0, QModelIndex()); // parent
                 idx = this->createIndex(cin->mrow, 0, cin);
-                qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->rowCount(idx);
+                // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->rowCount(idx);
                 emit this->beginInsertRows(idx, nin->mrow, nin->mrow);
                 cin->childs.append(nin);
                 emit this->endInsertRows();
-                qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->rowCount(idx);
+                // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->rowCount(idx);
             }
 
             break;
@@ -365,7 +365,7 @@ void ContactModel::onContactModified(int cid)
 
 void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<results;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<results;
 
     if (results.count() == 0) {
         // why???
@@ -388,7 +388,7 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
         tnode = this->mContacts.at(i);
         for (int j = tnode->childs.count()-1; j >= 0; j--) {
             cnode = tnode->childs.at(j);
-            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<i<<j<<cnode<<cnode->pc->mContactId<<cid;
+            // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<i<<j<<cnode<<cnode->pc->mContactId<<cid;
             if (cnode->pc->mContactId == cid) {
                 // found
                 rmrow = j;
@@ -411,11 +411,11 @@ void ContactModel::onModifiedContactRetrived(const QList<QSqlRecord> & results)
         pnode = cnode->pnode;
         // idx = this->index(pnode->mrow, 0, QModelIndex());
         idx = this->createIndex(pnode->mrow, 0, pnode);
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<cnode<<rmrow<<cnode->mrow<<idx<<pnode<<pnode->childs.count()<<"vvvvvv";
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<cnode<<rmrow<<cnode->mrow<<idx<<pnode<<pnode->childs.count()<<"vvvvvv";
 
         this->removeRows(rmrow, 1, idx);
 
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<cnode<<rmrow<<cnode->mrow<<idx<<pnode<<pnode->childs.count()<<"vvvvvv";
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<cnode<<rmrow<<cnode->mrow<<idx<<pnode<<pnode->childs.count()<<"vvvvvv";
         // for (int i = rmrow+1; i < pnode->childs.count(); i++) {
         //     tnode = pnode->childs.at(i);
         //     tnode->mrow--;
@@ -450,7 +450,7 @@ ContactDataRetriver::~ContactDataRetriver()
 ////////////////
 void ContactDataRetriver::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
     
     QObject *cb_obj = NULL;
     const char *cb_slot = NULL;
@@ -478,7 +478,7 @@ void ContactDataRetriver::onSqlExecuteDone(const QList<QSqlRecord> & results, in
             cb_obj = req->mCbObject;
             cb_slot = req->mCbSlot;
 
-            qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
+            // qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
             // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
             for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
                 if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
@@ -503,7 +503,7 @@ void ContactDataRetriver::onSqlExecuteDone(const QList<QSqlRecord> & results, in
 
 bool ContactDataRetriver::onGetAllGroupsDone(boost::shared_ptr<SqlRequest> req)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<req->mReqno;
 
     this->mRequests.remove(req->mReqno);
 
@@ -548,7 +548,7 @@ bool ContactDataRetriver::getContactsByGroupId(int gid)
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
-    qDebug()<<req->mSql;
+    // qDebug()<<req->mSql;
 
     return true;
 }
@@ -565,7 +565,7 @@ bool ContactDataRetriver::getContactById(int cid)
     req->mReqno = this->m_adb->execute(req->mSql);
     this->mRequests.insert(req->mReqno, req);
 
-    qDebug()<<req->mSql;
+    // qDebug()<<req->mSql;
 
     return true;
 }

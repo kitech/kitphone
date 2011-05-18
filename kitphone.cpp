@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:46:42 +0800
-// Version: $Id: kitphone.cpp 880 2011-05-16 12:55:07Z drswinghead $
+// Version: $Id: kitphone.cpp 881 2011-05-17 14:59:51Z drswinghead $
 // 
 
 #include <QtCore>
@@ -32,10 +32,12 @@ KitPhone::KitPhone(QWidget *parent)
     this->uiw_skype = new SkypePhone();
     vlout->addWidget(this->uiw_skype);
     this->uiw_skype->init_status_bar(this->statusBar());
+    this->resize(this->uiw_skype->width(), this->uiw_skype->height());
 
     ///////////////////
     // this->uiw_sip = new SipPhone();
     // vlout->addWidget(this->uiw_sip);
+    // this->resize(this->uiw_sip->width(), this->uiw_sip->height());
 }
 
 KitPhone::~KitPhone()

@@ -108,7 +108,7 @@ int CallHistoryModel::columnCount(const QModelIndex &parent) const
 
 bool CallHistoryModel::hasChildren(const QModelIndex &parent) const
 {
-    qLogx()<<parent;
+    // qLogx()<<parent;
     if (parent.isValid()) {
         return false;
     }
@@ -117,7 +117,7 @@ bool CallHistoryModel::hasChildren(const QModelIndex &parent) const
 
 void CallHistoryModel::fetchMore ( const QModelIndex & parent )
 {
-    qLogx()<<parent;
+    // qLogx()<<parent;
     if (!parent.isValid()) {
         boost::shared_ptr<SqlRequest> req(new SqlRequest());
         // get groups list
@@ -129,7 +129,7 @@ void CallHistoryModel::fetchMore ( const QModelIndex & parent )
         req->mReqno = this->m_adb->execute(req->mSql);
         this->mRequests.insert(req->mReqno, req);
 
-        qDebug()<<req->mSql;
+        // qDebug()<<req->mSql;
     } else {
 
     }
@@ -137,7 +137,7 @@ void CallHistoryModel::fetchMore ( const QModelIndex & parent )
 
 bool CallHistoryModel::canFetchMore ( const QModelIndex & parent ) const
 {
-    qLogx()<<parent;
+    // qLogx()<<parent;
     if (!parent.isValid()) {
         if (this->mroot->lazy_flag == 0) {
             this->mroot->lazy_flag = 1;
@@ -162,7 +162,7 @@ bool CallHistoryModel::removeRows(int row, int count, const QModelIndex & parent
 ////////////////
 void CallHistoryModel::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, bool eret, const QString &estr, const QVariant &eval)
 {
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<reqno; 
     
     QObject *cb_obj = NULL;
     const char *cb_slot = NULL;
@@ -190,7 +190,7 @@ void CallHistoryModel::onSqlExecuteDone(const QList<QSqlRecord> & results, int r
             cb_obj = req->mCbObject;
             cb_slot = req->mCbSlot;
 
-            qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
+            // qDebug()<<"qinvoke:"<<cb_obj<<cb_slot;
             // get method name from SLOT() signature: 1onAddContactDone(boost::shared_ptr<SqlRequest>)
             for (int i = 0, j = 0; i < strlen(cb_slot); ++i) {
                 if (cb_slot[i] >= '0' && cb_slot[i] <= '9') {
@@ -218,7 +218,7 @@ bool CallHistoryModel::onGetDbCallHistoryDone(boost::shared_ptr<SqlRequest> & re
     QList<QSqlRecord> recs;
 
     recs = req->mResults;
-    qLogx()<<recs;
+    // qLogx()<<recs;
 
     this->onNewCallHistoryArrived(recs);
 

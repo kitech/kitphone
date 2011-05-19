@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:23:19 +0800
-// Version: $Id: skypephone.h 882 2011-05-18 09:04:23Z drswinghead $
+// Version: $Id: skypephone.h 883 2011-05-19 03:42:32Z drswinghead $
 // 
 
 #ifndef _SKYPEPHONE_H_

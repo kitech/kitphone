@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:46:16 +0800
-// Version: $Id: kitphone.h 869 2011-05-07 09:41:17Z drswinghead $
+// Version: $Id: kitphone.h 883 2011-05-19 03:42:32Z drswinghead $
 // 
 #ifndef _KITPHONE_H_
 #define _KITPHONE_H_

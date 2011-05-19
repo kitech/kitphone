@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL:
 // Created: 2010-07-03 15:35:48 +0800
-// Version: $Id: skyserv.cpp 877 2011-05-12 12:46:14Z drswinghead $
+// Version: $Id: skyserv.cpp 883 2011-05-19 03:42:32Z drswinghead $
 //
 
 #include <sys/socket.h>
@@ -1547,14 +1547,14 @@ void SkyServ::onRouterWSMessage(QByteArray msg, qint64 cseq)
                       router_names << elm.first;
                   });
 
-    switch (fields.at(0).toInt()) {
+    switch (fields.at(0).trimmed().toInt()) {
     case 101:  // note pair and request main router
         if (fields.count() < 3 || fields.count() > 6) {
             qDebug()<<"Invalid ws command:"<<msg;
             return;
         }
-        caller_name = fields.at(1);
-        callee_phone = fields.at(2);
+        caller_name = fields.at(1).trimmed();
+        callee_phone = fields.at(2).trimmed();
         // routers = Configs().getSkypeRouters();
         if (router_names.contains(this->mSkype->handlerName())) {
             // i'm router server
@@ -1597,8 +1597,8 @@ void SkyServ::onRouterWSMessage(QByteArray msg, qint64 cseq)
             qDebug()<<"Invalid ws command:"<<msg;
             return;
         }
-        caller_name = fields.at(1);
-        callee_phone = fields.at(2);
+        caller_name = fields.at(1).trimmed();
+        callee_phone = fields.at(2).trimmed();
         // routers = Configs().getSkypeRouters(); // no use
         if (router_names.contains(this->mSkype->handlerName())) {
             this->on_ws_proxy_send_message(caller_name, msg);
@@ -1628,23 +1628,23 @@ void SkyServ::onForwardWSMessage(QByteArray msg, qint64 cseq)
         return;
     }
 
-    switch (fields.at(0).toInt()) {
+    switch (fields.at(0).trimmed().toInt()) {
     case 105:  // dtfm from WSC
-        skype_call_id = this->mSkype->getCallIdByPartnerName(fields.at(1));
+        skype_call_id = this->mSkype->getCallIdByPartnerName(fields.at(1).trimmed());
         if (skype_call_id > 0) {
         } else {
             qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Cannot find call id for:"<<fields.at(1);
-            skype_call_id = fields.at(3).toInt();
+            skype_call_id = fields.at(3).trimmed().toInt();
         }
         this->onSkypeForwardCallDtmfArrived(skype_call_id, fields.at(1),
-                                            this->mSkype->handlerName(), fields.at(3));
+                                            this->mSkype->handlerName(), fields.at(3).trimmed());
         break;
     case 107:  // hangup request from WSC, for non-ie explorer
-        skype_call_id = this->mSkype->getCallIdByPartnerName(fields.at(1));
+        skype_call_id = this->mSkype->getCallIdByPartnerName(fields.at(1).trimmed());
         if (skype_call_id > 0) {
         } else {
             qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Cannot find call id for:"<<fields.at(1);
-            skype_call_id = fields.at(3).toInt();
+            skype_call_id = fields.at(3).trimmed().toInt();
         }
         this->mSkype->setCallHangup(QString::number(skype_call_id));
         break;
@@ -1978,8 +1978,8 @@ bool SkyServ::send_ws_command_common(QString caller_name, QString cmdstr)
     //     ilen = this->scn_ws_serv2->wssend(cseq, cmdline.toAscii().data(), cmdline.length());
     //     if (ilen) {}
     // }
-
-    call_meta_info *cmi = this->find_call_meta_info_by_caller_name(caller_name);
+    
+    call_meta_info *cmi = this->find_call_meta_info_by_caller_name(caller_name.trimmed());
     if (cmi != NULL) {
         cseq = cmi->conn_seq;
 

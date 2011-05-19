@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>371</width>
-    <height>798</height>
+    <width>349</width>
+    <height>732</height>
    </rect>
   </property>
   <property name="contextMenuPolicy">
    <enum>Qt::DefaultContextMenu</enum>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Kitphone for Skype</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_6">
    <item>
@@ -385,6 +385,13 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="4">
+       <widget class="QPushButton" name="pushButton_2">
+        <property name="text">
+         <string>日志窗口</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -486,7 +493,7 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>50</height>
+            <height>40</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -560,7 +567,7 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>50</height>
+            <height>40</height>
            </size>
           </property>
           <property name="maximumSize">

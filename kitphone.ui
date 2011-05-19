@@ -14,7 +14,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>Kitphone Soft SIP phone</string>
+   <string>Kitphone SIP/Skype Soft  phone</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -76,7 +76,7 @@
      <x>0</x>
      <y>0</y>
      <width>391</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

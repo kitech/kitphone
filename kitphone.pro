@@ -27,7 +27,7 @@ QTSAPP_HEADERS = ./qtsingleapplication/qtsingleapplication.h ./qtsingleapplicati
 QTSAPP_SOURCES = ./qtsingleapplication/qtsingleapplication.cpp ./qtsingleapplication/qtlocalpeer.cpp
 
 SOURCES += main.cpp kitapplication.cpp metauri.cpp \
-        kitphone.cpp \
+        kitphone.cpp aboutdialog.cpp \
         sipaccountswindow.cpp sipaccountpropertieswindow.cpp \
         sipaccount.cpp \
         skypetracer.cpp skypetunnel.cpp volctl.cpp \
@@ -36,7 +36,7 @@ SOURCES += main.cpp kitapplication.cpp metauri.cpp \
         databaseworker.cpp \
         simplelog.cpp
 
-HEADERS  += kitphone.h kitapplication.h metauri.h \
+HEADERS  += kitphone.h kitapplication.h metauri.h aboutdialog.h \
          sipaccountswindow.h sipaccountpropertieswindow.h \
          sipaccount.h \
          skypetracer.h skypetunnel.h \
@@ -45,7 +45,8 @@ HEADERS  += kitphone.h kitapplication.h metauri.h \
         databaseworker.h \
         simplelog.h
 
-FORMS   += kitphone.ui skypetracer.ui sipaccountswindow.ui sipaccountpropertieswindow.ui
+FORMS   += kitphone.ui aboutdialog.ui skypetracer.ui \
+        sipaccountswindow.ui sipaccountpropertieswindow.ui
 
 #######
 SOURCES += sipphone.cpp

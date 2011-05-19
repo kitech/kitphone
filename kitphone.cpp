@@ -10,9 +10,12 @@
 #include <QtCore>
 #include <QtGui>
 
+#include "boost/smart_ptr.hpp"
+
 #include "kitphone.h"
 #include "ui_kitphone.h"
 
+#include "aboutdialog.h"
 #include "skypephone.h"
 #include "sipphone.h"
 
@@ -27,6 +30,17 @@ KitPhone::KitPhone(QWidget *parent)
 
     QLayout *lout = this->centralWidget()->layout();
     QVBoxLayout *vlout = static_cast<QVBoxLayout*>(lout);
+
+    //////////////////
+    QObject::connect(this->uiw->action_Exit, SIGNAL(triggered()),
+                     this, SLOT(onQuitApp()));
+
+    QObject::connect(this->uiw->action_About, SIGNAL(triggered()),
+                     this, SLOT(onShowAbout()));
+
+
+    this->uiw_skype = nullptr;
+    this->uiw_sip = nullptr;
 
     //////////////////
     this->uiw_skype = new SkypePhone();
@@ -55,4 +69,24 @@ void KitPhone::showEvent ( QShowEvent * event )
     QMainWindow::showEvent(event);
     // qDebug()<<"showwwwwwwwwwwww"<<event<<event->type();
 }
+
+void KitPhone::onQuitApp()
+{
+    if (this->uiw_skype != nullptr) {
+        // Application asked to unregister timer 0x1b00000b which is not registered in this thread. 
+        // Fix application.
+        // delete this->uiw_skype;
+    }
+    if (this->uiw_sip != nullptr) {
+        // delete this->uiw_sip;
+    }
+    qApp->quit();
+}
+
+void KitPhone::onShowAbout()
+{
+    boost::scoped_ptr<AboutDialog> dlg(new AboutDialog(this));
+    dlg->exec();
+}
+
 

@@ -42,9 +42,10 @@ SkypePhone::SkypePhone(QWidget *parent)
     QLayoutItem *call_state_layout_item = this->layout()->itemAt(call_state_layout_index);
     this->m_call_state_widget = call_state_layout_item->widget();
     // this->m_call_state_layout_item->widget()->setVisible(false);
-    this->m_log_list_layout_index = 6;
-    this->m_log_list_layout_item = this->layout()->itemAt(this->m_log_list_layout_index);
+    int log_list_layout_index = 5;
+    QLayoutItem *log_list_layout_item = this->layout()->itemAt(log_list_layout_index);
     // this->m_log_list_layout_item->widget()->setVisible(false);
+    this->m_log_list_widget = log_list_layout_item->widget();
 
     this->m_status_bar = nullptr;
 
@@ -136,6 +137,8 @@ void SkypePhone::defaultPstnInit()
     QObject::connect(this->uiw->toolButton_2, SIGNAL(clicked()),
                      this, SLOT(onShowDialPanel()));
     QObject::connect(this->uiw->toolButton, SIGNAL(clicked()),
+                     this, SLOT(onShowLogPanel()));
+    QObject::connect(this->uiw->pushButton_2, SIGNAL(clicked()),
                      this, SLOT(onShowLogPanel()));
 
     QObject::connect(this->uiw->pushButton, SIGNAL(clicked()),
@@ -528,7 +531,8 @@ void SkypePhone::onShowDialPanel()
 
 void SkypePhone::onShowLogPanel()
 {
-    this->m_log_list_layout_item->widget()->setVisible(!this->m_log_list_layout_item->widget()->isVisible());
+    // this->m_log_list_layout_item->widget()->setVisible(!this->m_log_list_layout_item->widget()->isVisible());
+    this->m_log_list_widget->setVisible(!this->m_log_list_widget->isVisible());
 }
 
 /*
@@ -1238,6 +1242,8 @@ void SkypePhone::log_output(int type, const QString &log)
         //     delete witem;
         // }
     }
+
+    this->uiw->listWidget->scrollToItem(this->uiw->listWidget->item(this->uiw->listWidget->count()-1));
 
     qLogx()<<type<<u16_log;
 }

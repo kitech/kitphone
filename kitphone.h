@@ -27,6 +27,10 @@ public:
     explicit KitPhone(QWidget *parent = 0);
     virtual ~KitPhone();
 
+public slots:
+    void onQuitApp();
+    void onShowAbout();
+
 protected:
     virtual void 	paintEvent ( QPaintEvent * event );
     virtual void 	showEvent ( QShowEvent * event );

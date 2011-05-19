@@ -130,8 +130,9 @@ private: // pstn
     // int m_call_state_layout_index;
     // QLayoutItem *m_call_state_layout_item;
     QWidget *m_call_state_widget;
-    int m_log_list_layout_index;
-    QLayoutItem *m_log_list_layout_item;
+    // int m_log_list_layout_index;
+    // QLayoutItem *m_log_list_layout_item;
+    QWidget *m_log_list_widget;
 
     QMenu *m_contact_view_ctx_menu;
     QMenu *m_history_view_ctx_menu;

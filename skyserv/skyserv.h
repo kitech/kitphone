@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-07-03 15:35:54 +0800
-// Version: $Id: skyserv.h 877 2011-05-12 12:46:14Z drswinghead $
+// Version: $Id: skyserv.h 889 2011-05-25 02:17:11Z drswinghead $
 // 
 
 #ifndef SKYSERV_H
@@ -64,6 +64,7 @@ enum class CallState {
 class call_meta_info : public boost::enable_shared_from_this<call_meta_info> {
 public:
     call_meta_info() {
+        this->m_ref_count = 0;
         this->skype_call_id = -1;
         this->sip_call_id = -1;
         this->conn_seq = -1;
@@ -74,6 +75,7 @@ public:
     virtual ~call_meta_info() {
 
     }
+    QAtomicInt m_ref_count; // for skype call, sip call, ws_sock, so max is 3
     QString callee_name;
     QString caller_name;
     QString callee_phone;
@@ -282,11 +284,14 @@ private:
     // KBiHash<boost::shared_ptr<WebSocketClient>, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->met info
     // KBiHash<WebSocketClient*, boost::shared_ptr<call_meta_info> > nWebSocketProxyMap; // ws ->meta info
 
+    // 保证这个实例每个key只有一个，改一下方法，使用老的连接，如果新连接来到，老的连接存在，则不受理新的连续
+    // 如果老的连接已经存在，则重复使用这一数据结构。
+    // 不过在重用旧的数据结构的时候，检测其他几个的状态。
     QHash<QString, call_meta_info*> ncmis; // call meta data
     QMutex mutex_ncmi;
     
     // next next way, 再下一种试用的方法
-    boost::tuple<QString, QString, QString, int, int, qint64, boost::shared_ptr<WebSocketClient> > call_meta_info_b;
+    // boost::tuple<QString, QString, QString, int, int, qint64, boost::shared_ptr<WebSocketClient> > call_meta_info_b;
 
     // 
     // WebSocketServer *scn_ws_serv; // skype call notice websocket server

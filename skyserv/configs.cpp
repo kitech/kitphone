@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-25 15:54:57 +0800
-// Version: $Id: configs.cpp 822 2011-04-11 02:44:20Z drswinghead $
+// Version: $Id: configs.cpp 888 2011-05-19 08:36:05Z drswinghead $
 // 
 
 #include "configs.h"
@@ -78,7 +78,9 @@ QHash<QString, int> Configs::getSipServers()
     int vint;
     for (int i = 0 ; i < keys.count(); ++i) {
         vint = sets.value(keys.at(i)).toInt();
-        servs.insert(keys.at(i), vint);
+        if (!keys.at(i).trimmed().startsWith("#")) {
+            servs.insert(keys.at(i).trimmed(), vint);
+        }
     }
 
     return servs;

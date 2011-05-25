@@ -83,11 +83,13 @@ SOURCES += ./libwss/base64-decode.c  \
             ./libwss/sha-1.c         \
             ./libwss/client-handshake.c  \
             ./libwss/extension-deflate-stream.c  \
+#            ./libwss/extension-x-google-mux.c \
             ./libwss/libwebsockets.c  \
             ./libwss/parsers.c 
 win32 {
     SOURCES +=  ./libwss/win32helpers/gettimeofday.c
 }
+#DEFINES += LWS_EXT_GOOGLE_MUX
 
 ## libskynet
 include(./skynet/libskynet.pri)

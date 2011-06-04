@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-12-07 11:06:59 +0800
-// Version: $Id: siproom.cpp 830 2011-04-14 14:46:21Z drswinghead $
+// Version: $Id: siproom.cpp 908 2011-06-02 09:37:45Z drswinghead $
 // 
 
 #include <stdarg.h>
@@ -19,11 +19,15 @@
 #include <sys/epoll.h>
 
 #include <QtCore>
+#include <QtNetwork>
 
 #include <pjmedia/wave.h>
 #include <pjmedia/wav_port.h>
 
 #include "../utils.h"
+#include "../simplelog.h"
+
+#include "websocket.h"
 
 #include "sip_proc.h"
 #include "siproom.h"
@@ -413,10 +417,27 @@ static int sip_app_init()
 
     /* Add TCP transport. */
     {
+        pjsua_transport_config rtp_cfg;
         pjsua_transport_config cfg;
 
+        QString inter_ipaddr = WebSocketServer2::serverIpAddr(0);
+
+        // 创建RTP语音流传输层
+        pjsua_transport_config_default(&rtp_cfg);
+        rtp_cfg.port = 4000; //
+        rtp_cfg.public_addr = pj_str(strdup(inter_ipaddr.toAscii().data()));
+        rtp_cfg.bound_addr = pj_str(strdup(inter_ipaddr.toAscii().data()));
+        status = pjsua_media_transports_create(&rtp_cfg);
+        if (status != PJ_SUCCESS) {
+            pjsua_perror(__FILE__, "Error creating RTP media transport", status);
+            return status;
+        }
+        
+        // 创建SIP协议传输层,使用TCP传输协议。
         pjsua_transport_config_default(&cfg);
         cfg.port = 0;// 15678; // if not set , use random big port 
+        // 默认的cfg会使用公网IP，这是否可以指定内网IP呢。
+        // cfg.public_addr = pj_str(strdup("aaaaaaa"));
         // status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &cfg, NULL);
         status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &cfg, NULL);
         if (status != PJ_SUCCESS) {
@@ -424,6 +445,9 @@ static int sip_app_init()
             // error_exit("Error creating transport", status);
             return status;
         }
+        qLogx()<<"Transport created::"<<QByteArray(cfg.public_addr.ptr, cfg.public_addr.slen)
+               <<QByteArray(cfg.bound_addr.ptr, cfg.bound_addr.slen)
+               <<inter_ipaddr;
     }
 
     /* Initialization is done, now start pjsua */
@@ -520,8 +544,8 @@ int sip_call_phone(char *arg_str)
             memset(ubuf, 0, sizeof(ubuf));
             // snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@%s>",
             //          args.at(0).toAscii().data(), args.at(0).toAscii().data(), SIP_FROM_DOMAIN);
-            snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@sips.qtchina.net-%s:5060>",
-                     args.at(0).toAscii().data(), args.at(0).toAscii().data(),
+            snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@sips.qtchina.net-%s-at-%s:5060>",
+                     args.at(0).toAscii().data(), args.at(0).toAscii().data(), args.at(0).toAscii().data(),
                      args.at(4).toAscii().data());
             cfg.id = pj_str(ubuf);
             // cfg.id = pj_str(QString("%1 <sip:%1@%2>").arg(caller_name).arg(SIP_DOMAIN).toAscii().data());

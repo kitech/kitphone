@@ -166,8 +166,17 @@ int Database::acquireGateway(QString caller_name, QString callee_phone, QString 
 
     int rand_key = time(NULL) + qrand();
     int upcnt = 0;
+    QString same_net_clause = " 1=1 ";
 
-    QString sql = QString("UPDATE skype_gateways SET in_use = 1, lock_time=NOW(),caller_name='%1',callee_phone='%2', rand_key=%3 WHERE in_use = 0 AND skype_id = (SELECT skype_id FROM skype_gateways WHERE in_use=0 ORDER BY RANDOM() LIMIT 1 FOR UPDATE)").arg(esc_caller_name).arg(esc_callee_phone).arg(rand_key);
+    if (!ipaddr.isEmpty()) {
+        same_net_clause = QString(" ws_ipaddr LIKE '%1%'")
+            .arg(ipaddr.left(ipaddr.lastIndexOf(".") + 1));
+        Q_ASSERT(ipaddr.lastIndexOf(".") != -1);
+        ipaddr = QString(); // 不再需要，防止再返回这个值。
+    }
+
+    QString sql = QString("UPDATE skype_gateways SET in_use = 1, lock_time=NOW(),caller_name='%1',callee_phone='%2', rand_key=%3 WHERE in_use = 0 AND skype_id = (SELECT skype_id FROM skype_gateways WHERE in_use=0 AND %4 ORDER BY RANDOM() LIMIT 1 FOR UPDATE)")
+        .arg(esc_caller_name).arg(esc_callee_phone).arg(rand_key).arg(same_net_clause);
     QString sql2 = QString("SELECT skype_id,ws_port,ws_ipaddr FROM skype_gateways WHERE in_use=1 AND caller_name='%1' AND rand_key=%2").arg(esc_caller_name).arg(rand_key);
 
     PGresult *pres = PQexec(this->conn, sql.toAscii().data());

@@ -29,172 +29,173 @@ Connection: Upgrade\r\n\
 
 const char policy_response[] = "<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\" /></cross-domain-policy>\n";
 
-WebSocketServer::WebSocketServer(QObject *parent)
-    : QObject(parent)
-{
-    this->ws_serv_sock = NULL;
-    // this->allowed_hosts << "1.2.3.4";
-}
+// WebSocketServer::WebSocketServer(QObject *parent)
+//     : QObject(parent)
+// {
+//     this->ws_serv_sock = NULL;
+//     // this->allowed_hosts << "1.2.3.4";
+// }
 
-WebSocketServer::~WebSocketServer()
-{
-}
+// WebSocketServer::~WebSocketServer()
+// {
+// }
 
-bool WebSocketServer::setAllowedHost(QStringList allows)
-{
+// bool WebSocketServer::setAllowedHost(QStringList allows)
+// {
   
-    this->allowed_hosts = allows;
+//     this->allowed_hosts = allows;
   
-    return true;
-}
+//     return true;
+// }
 
 
-QTcpSocket *WebSocketServer::nextPendingConnection()
-{
-    QTcpSocket *sock = NULL;
+// QTcpSocket *WebSocketServer::nextPendingConnection()
+// {
+//     QTcpSocket *sock = NULL;
 
-    if (this->pending_conns.size() > 0) {
-        sock = this->pending_conns.begin().key();
-        this->pending_conns.erase(this->pending_conns.begin());
+//     if (this->pending_conns.size() > 0) {
+//         sock = this->pending_conns.begin().key();
+//         this->pending_conns.erase(this->pending_conns.begin());
 
-        qDebug()<<"disconnect object 3";
-        QObject::disconnect(sock, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
-    }
+//         qDebug()<<"disconnect object 3";
+//         QObject::disconnect(sock, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
+//     }
 
-    return sock;
-}
+//     return sock;
+// }
 
-bool WebSocketServer::listen(unsigned short port)
-{
-    // port = 8080;
-    this->ws_serv_sock = new QTcpServer();
-    QObject::connect(this->ws_serv_sock, SIGNAL(newConnection()),
-                     this, SLOT(onNewRawConnection()));
-    bool ok = this->ws_serv_sock->listen(QHostAddress::Any, port);
+// bool WebSocketServer::listen(unsigned short port)
+// {
+//     // port = 8080;
+//     this->ws_serv_sock = new QTcpServer();
+//     QObject::connect(this->ws_serv_sock, SIGNAL(newConnection()),
+//                      this, SLOT(onNewRawConnection()));
+//     bool ok = this->ws_serv_sock->listen(QHostAddress::Any, port);
 
     
-    return ok;
-}
+//     return ok;
+// }
 
-unsigned short WebSocketServer::serverPort()
-{
-    return this->ws_serv_sock->serverPort();
-}
+// unsigned short WebSocketServer::serverPort()
+// {
+//     return this->ws_serv_sock->serverPort();
+// }
 
-QString WebSocketServer::serverIpAddr(int type)
-{
-    QString ipaddr;
-    QHostAddress addr;
-    QList<QHostAddress> addr_list;
-    QList<QString> addr_str_list;
+// QString WebSocketServer::serverIpAddr(int type)
+// {
+//     QString ipaddr;
+//     QHostAddress addr;
+//     QList<QHostAddress> addr_list;
+//     QList<QString> addr_str_list;
+//     bool use_big_ip = false;
     
-    addr = this->ws_serv_sock->serverAddress();
-    qDebug()<<"ws listen ip addr:"<<addr;
-    if (addr == QHostAddress::Null) {
+//     addr = this->ws_serv_sock->serverAddress();
+//     qDebug()<<"ws listen ip addr:"<<addr;
+//     if (addr == QHostAddress::Null) {
         
-    } else {
-        ipaddr = addr.toString();
-    }
+//     } else {
+//         ipaddr = addr.toString();
+//     }
 
-    addr_list = QNetworkInterface::allAddresses();
-    // qDebug()<<addr_list;
-    for (int i = 0 ; i < addr_list.count() ; i ++) {
-      addr_str_list.append(addr_list.at(i).toString());
-    }
-    // qSort(list.begin(), list.end(), qGreater<int>());
-    qSort(addr_str_list.begin(), addr_str_list.end(), qGreater<QString>());
+//     addr_list = QNetworkInterface::allAddresses();
+//     // qDebug()<<addr_list;
+//     for (int i = 0 ; i < addr_list.count() ; i ++) {
+//         addr_str_list.append(addr_list.at(i).toString());
+//     }
+//     // qSort(list.begin(), list.end(), qGreater<int>());
+//     qSort(addr_str_list.begin(), addr_str_list.end(), qGreater<QString>());
 
-    if (addr_str_list.count() == 0) {
-    } else if (addr_str_list.count() == 1) {
-        // must be 127.0.0.1
-        ipaddr = addr_str_list.at(0);
-    } else {
-        for (int i = 0 ; i < addr_str_list.count(); i ++) {
-	  // addr = addr_list.at(i);
-	  ipaddr = addr_str_list.at(i);
-            if (ipaddr.indexOf(":") != -1) {
-                // ipv6 addr
-                ipaddr = QString();
-                continue;
-            } else {
-                if (ipaddr.startsWith("127.0")) {
-                    ipaddr = QString();
-                    continue;
-                } else if (!ipaddr.startsWith("172.24.")
-                           &&!ipaddr.startsWith("192.168.")
-                           &&!ipaddr.startsWith("10.10.")) {
-                    // should a big ip addr
-		  qDebug()<<"break big ip";
-                    break;
-                } else if (ipaddr.startsWith("172.24.")) {
-		  qDebug()<<"break 172.2";
-                    break;
-                } else if (ipaddr.startsWith("10.10.")) {
-                    break;
-                } else if (ipaddr.startsWith("192.168.")) {
-                    break;
-                } else {
-                    // do not want go here
-                    Q_ASSERT(1 == 2);
-                    break;
-                }
-            }
-            ipaddr = QString();
-        }
-    }
+//     if (addr_str_list.count() == 0) {
+//     } else if (addr_str_list.count() == 1) {
+//         // must be 127.0.0.1
+//         ipaddr = addr_str_list.at(0);
+//     } else {
+//         for (int i = 0 ; i < addr_str_list.count(); i ++) {
+//             // addr = addr_list.at(i);
+//             ipaddr = addr_str_list.at(i);
+//             if (ipaddr.indexOf(":") != -1) {
+//                 // ipv6 addr
+//                 ipaddr = QString();
+//                 continue;
+//             } else {
+//                 if (ipaddr.startsWith("127.0")) {
+//                     ipaddr = QString();
+//                     continue;
+//                 } else if (!ipaddr.startsWith("172.24.")
+//                            && !ipaddr.startsWith("192.168.")
+//                            && !ipaddr.startsWith("10.10.")) {
+//                     if (use_big_ip) {
+//                         // should a big ip addr
+//                         qDebug()<<"break big ip";
+//                         break;
+//                     }
+//                 } else if (ipaddr.startsWith("172.24.")
+//                            || ipaddr.startsWith("10.10.")
+//                            || ipaddr.startsWith("192.168.")) {
+//                     qDebug()<<(QString("break internal ip: ")+ipaddr);
+//                     break;
+//                 } else {
+//                     // do not want go here
+//                     Q_ASSERT(1 == 2);
+//                     break;
+//                 }
+//             }
+//             ipaddr = QString();
+//         }
+//     }
 
-    return ipaddr;
-}
+//     return ipaddr;
+// }
 
-ssize_t WebSocketServer::recv(QTcpSocket *sock, void *buf, size_t len)
-{
-    return 0;
-}
+// ssize_t WebSocketServer::recv(QTcpSocket *sock, void *buf, size_t len)
+// {
+//     return 0;
+// }
 
-ssize_t WebSocketServer::send(QTcpSocket *sock, const void *buf, size_t len)
-{
-    ssize_t wlen = 0;
+// ssize_t WebSocketServer::send(QTcpSocket *sock, const void *buf, size_t len)
+// {
+//     ssize_t wlen = 0;
 
-    Q_ASSERT(sock != NULL);
-    wlen = sock->write((const char *)buf, len);
+//     Q_ASSERT(sock != NULL);
+//     wlen = sock->write((const char *)buf, len);
     
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;
-    return wlen;
-}
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;
+//     return wlen;
+// }
 
-ssize_t WebSocketServer::wssend(QTcpSocket *sock, const void *buf, size_t len)
-{
-    ssize_t wlen = 0;
-    bool ok;
-    char wbuf[1000] = {0};
+// ssize_t WebSocketServer::wssend(QTcpSocket *sock, const void *buf, size_t len)
+// {
+//     ssize_t wlen = 0;
+//     bool ok;
+//     char wbuf[1000] = {0};
 
-    Q_ASSERT(sock != NULL);
+//     Q_ASSERT(sock != NULL);
 
-    // ok = sock->putChar(0x00);
-    // Q_ASSERT(ok);
-    // wlen = sock->write((const char *)buf, len);
-    // ok = sock->putChar(0xff);
-    // Q_ASSERT(ok);
-    wbuf[0] = 0x00;
-    wbuf[len+1] = 0xff;
-    memcpy(wbuf+1, buf, len);
+//     // ok = sock->putChar(0x00);
+//     // Q_ASSERT(ok);
+//     // wlen = sock->write((const char *)buf, len);
+//     // ok = sock->putChar(0xff);
+//     // Q_ASSERT(ok);
+//     wbuf[0] = 0x00;
+//     wbuf[len+1] = 0xff;
+//     memcpy(wbuf+1, buf, len);
     
-    wlen = sock->write(wbuf, len+2);
+//     wlen = sock->write(wbuf, len+2);
     
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;
-    return wlen;
-}
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;
+//     return wlen;
+// }
 
-bool WebSocketServer::handshake(QTcpSocket *sock)
-{
-    char handshake[4096], response[4096], trailer[17];
-    char *scheme, *pre;
-    headers_t headers;
-    int len, ret;
+// bool WebSocketServer::handshake(QTcpSocket *sock)
+// {
+//     char handshake[4096], response[4096], trailer[17];
+//     char *scheme, *pre;
+//     headers_t headers;
+//     int len, ret;
 
 
-    return true;
-}
+//     return true;
+// }
 
 /* ------------------------------------------------------- */
 static int encode(u_char const *src, size_t srclength, char *target, size_t targsize) {
@@ -245,76 +246,76 @@ static int decode(char *src, size_t srclength, unsigned char *target, size_t tar
     return retlen;
 }
 
-int WebSocketServer::parse_handshake(char *handshake, headers_t *headers)
-{
-    char *start, *end;
+// int WebSocketServer::parse_handshake(char *handshake, headers_t *headers)
+// {
+//     char *start, *end;
 
-    if ((strlen(handshake) < 92) || (bcmp(handshake, "GET ", 4) != 0)) {
-        return 0;
-    }
-    start = handshake+4;
-    end = strstr(start, " HTTP/1.1");
-    if (!end) { return 0; }
-    strncpy(headers->path, start, end-start);
-    headers->path[end-start] = '\0';
+//     if ((strlen(handshake) < 92) || (bcmp(handshake, "GET ", 4) != 0)) {
+//         return 0;
+//     }
+//     start = handshake+4;
+//     end = strstr(start, " HTTP/1.1");
+//     if (!end) { return 0; }
+//     strncpy(headers->path, start, end-start);
+//     headers->path[end-start] = '\0';
 
-    start = strstr(handshake, "\r\nHost: ");
-    if (!start) { return 0; }
-    start += 8;
-    end = strstr(start, "\r\n");
-    strncpy(headers->host, start, end-start);
-    headers->host[end-start] = '\0';
+//     start = strstr(handshake, "\r\nHost: ");
+//     if (!start) { return 0; }
+//     start += 8;
+//     end = strstr(start, "\r\n");
+//     strncpy(headers->host, start, end-start);
+//     headers->host[end-start] = '\0';
 
-    start = strstr(handshake, "\r\nOrigin: ");
-    if (!start) { return 0; }
-    start += 10;
-    end = strstr(start, "\r\n");
-    strncpy(headers->origin, start, end-start);
-    headers->origin[end-start] = '\0';
+//     start = strstr(handshake, "\r\nOrigin: ");
+//     if (!start) { return 0; }
+//     start += 10;
+//     end = strstr(start, "\r\n");
+//     strncpy(headers->origin, start, end-start);
+//     headers->origin[end-start] = '\0';
    
-    start = strstr(handshake, "\r\n\r\n");
-    if (!start) { return 0; }
-    start += 4;
-    if (strlen(start) == 8) {
-        strncpy(headers->key3, start, 8);
-        headers->key3[8] = '\0';
+//     start = strstr(handshake, "\r\n\r\n");
+//     if (!start) { return 0; }
+//     start += 4;
+//     if (strlen(start) == 8) {
+//         strncpy(headers->key3, start, 8);
+//         headers->key3[8] = '\0';
 
-        start = strstr(handshake, "\r\nSec-WebSocket-Key1: ");
-        if (!start) { return 0; }
-        start += 22;
-        end = strstr(start, "\r\n");
-        strncpy(headers->key1, start, end-start);
-        headers->key1[end-start] = '\0';
+//         start = strstr(handshake, "\r\nSec-WebSocket-Key1: ");
+//         if (!start) { return 0; }
+//         start += 22;
+//         end = strstr(start, "\r\n");
+//         strncpy(headers->key1, start, end-start);
+//         headers->key1[end-start] = '\0';
     
-        start = strstr(handshake, "\r\nSec-WebSocket-Key2: ");
-        if (!start) { return 0; }
-        start += 22;
-        end = strstr(start, "\r\n");
-        strncpy(headers->key2, start, end-start);
-        headers->key2[end-start] = '\0';
-    } else {
-        headers->key1[0] = '\0';
-        headers->key2[0] = '\0';
-        headers->key3[0] = '\0';
-    }
+//         start = strstr(handshake, "\r\nSec-WebSocket-Key2: ");
+//         if (!start) { return 0; }
+//         start += 22;
+//         end = strstr(start, "\r\n");
+//         strncpy(headers->key2, start, end-start);
+//         headers->key2[end-start] = '\0';
+//     } else {
+//         headers->key1[0] = '\0';
+//         headers->key2[0] = '\0';
+//         headers->key3[0] = '\0';
+//     }
 
-    return 1;
-}
+//     return 1;
+// }
 
-bool WebSocketServer::checkHostPermission(QString ws_uri)
-{
-    QUrl u(ws_uri);
+// bool WebSocketServer::checkHostPermission(QString ws_uri)
+// {
+//     QUrl u(ws_uri);
 
-    if (this->allowed_hosts.count() == 0) {
-        return true;
-    }
+//     if (this->allowed_hosts.count() == 0) {
+//         return true;
+//     }
 
-    if (this->allowed_hosts.contains(u.host())) {
-        return true;
-    }
+//     if (this->allowed_hosts.contains(u.host())) {
+//         return true;
+//     }
   
-    return false;
-}
+//     return false;
+// }
 
 static void *md5_buffer (const char *src, size_t len, void *dest)
 {
@@ -382,177 +383,177 @@ static int gen_md5(headers_t *headers, char *target) {
     return 1;
 }
 
-void WebSocketServer::onNewRawConnection()
-{
-    QTcpSocket *sock = this->ws_serv_sock->nextPendingConnection();
-    this->pending_conns.insert(sock, QByteArray());
-    QObject::connect(sock, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
-    QObject::connect(sock, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
+// void WebSocketServer::onNewRawConnection()
+// {
+//     QTcpSocket *sock = this->ws_serv_sock->nextPendingConnection();
+//     this->pending_conns.insert(sock, QByteArray());
+//     QObject::connect(sock, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+//     QObject::connect(sock, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
     
-}
+// }
 
-void WebSocketServer::onReadyRead()
-{
-    QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
-    QByteArray ba = sock->readAll();
+// void WebSocketServer::onReadyRead()
+// {
+//     QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
+//     QByteArray ba = sock->readAll();
 
-    char handshake[4096] = {0}, response[4096] = {0}, trailer[17] = {0};
-    char *scheme = 0, *pre = 0;
-    headers_t headers = {0};
-    int len, ret;
+//     char handshake[4096] = {0}, response[4096] = {0}, trailer[17] = {0};
+//     char *scheme = 0, *pre = 0;
+//     headers_t headers = {0};
+//     int len, ret;
 
-    len = ba.length();
-    strncpy(handshake, ba.data(), sizeof(handshake));    
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<ba.length()<<strlen(handshake)<<ba.length();
-    if (1) {
-        // log request and response without binary key data part
-        QList<QByteArray> req_lines = ba.split('\n');
-        for (int i = 0; i < 5 && i < req_lines.count(); i++) {
-            qDebug()<<req_lines.at(i).trimmed();
-        }
-    }
+//     len = ba.length();
+//     strncpy(handshake, ba.data(), sizeof(handshake));    
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<ba.length()<<strlen(handshake)<<ba.length();
+//     if (1) {
+//         // log request and response without binary key data part
+//         QList<QByteArray> req_lines = ba.split('\n');
+//         for (int i = 0; i < 5 && i < req_lines.count(); i++) {
+//             qDebug()<<req_lines.at(i).trimmed();
+//         }
+//     }
 
-    if (len == 0) {
-        qDebug()<<("ignoring empty handshake\n");
-        // close(sock);
-        sock->close();
-	this->pending_conns.remove(sock);
-	delete sock;
-        return;
-    } else if (bcmp(handshake, "<policy-file-request/>", 22) == 0) {
-        // len = recv(sock, handshake, 1024, 0);
-        // handshake[len] = 0;
-        qDebug()<<("sending flash policy response\n");
-        // send(sock, policy_response, sizeof(policy_response), 0);
-        // close(sock);
-	this->send(sock, policy_response, sizeof(policy_response));
-	sock->waitForBytesWritten(1000);
-        sock->close();
-	this->pending_conns.remove(sock);
-	delete sock;
-        return;
-    } else if((bcmp(handshake, "\x16", 1) == 0) ||
-              (bcmp(handshake, "\x80", 1) == 0)) {
-        // SSL
-        scheme = "wss";
-        qDebug()<<("using SSL socket\n");
-    } else {
-        scheme = "ws";
-        qDebug()<<("using plain (not SSL) socket\n");
-    }
+//     if (len == 0) {
+//         qDebug()<<("ignoring empty handshake\n");
+//         // close(sock);
+//         sock->close();
+//         this->pending_conns.remove(sock);
+//         delete sock;
+//         return;
+//     } else if (bcmp(handshake, "<policy-file-request/>", 22) == 0) {
+//         // len = recv(sock, handshake, 1024, 0);
+//         // handshake[len] = 0;
+//         qDebug()<<("sending flash policy response\n");
+//         // send(sock, policy_response, sizeof(policy_response), 0);
+//         // close(sock);
+//         this->send(sock, policy_response, sizeof(policy_response));
+//         sock->waitForBytesWritten(1000);
+//         sock->close();
+//         this->pending_conns.remove(sock);
+//         delete sock;
+//         return;
+//     } else if((bcmp(handshake, "\x16", 1) == 0) ||
+//               (bcmp(handshake, "\x80", 1) == 0)) {
+//         // SSL
+//         scheme = "wss";
+//         qDebug()<<("using SSL socket\n");
+//     } else {
+//         scheme = "ws";
+//         qDebug()<<("using plain (not SSL) socket\n");
+//     }
     
-    if (!parse_handshake(handshake, &headers)) {
-        qDebug()<<"Invalid WS request\n";
-        // close(sock);
-        sock->close();
-	this->pending_conns.remove(sock);
-	delete sock;
-        return;
-    }
+//     if (!parse_handshake(handshake, &headers)) {
+//         qDebug()<<"Invalid WS request\n";
+//         // close(sock);
+//         sock->close();
+//         this->pending_conns.remove(sock);
+//         delete sock;
+//         return;
+//     }
 
-    if (headers.key3[0] != '\0') {
-        gen_md5(&headers, trailer);
-        pre = "Sec-";
-        qDebug()<<("using protocol version 76\n");
-    } else {
-        trailer[0] = '\0';
-        pre = "";
-        qDebug()<<("using protocol version 75\n");
-    }
+//     if (headers.key3[0] != '\0') {
+//         gen_md5(&headers, trailer);
+//         pre = "Sec-";
+//         qDebug()<<("using protocol version 76\n");
+//     } else {
+//         trailer[0] = '\0';
+//         pre = "";
+//         qDebug()<<("using protocol version 75\n");
+//     }
 
-    qDebug()<<"orig:"<<headers.origin;
-    qDebug()<<"scheme:"<<scheme;
-    qDebug()<<"headers.host:"<<headers.host;
-    qDebug()<<"headers.path:"<<headers.path;
-    qDebug()<<"trailer:"<<trailer;
+//     qDebug()<<"orig:"<<headers.origin;
+//     qDebug()<<"scheme:"<<scheme;
+//     qDebug()<<"headers.host:"<<headers.host;
+//     qDebug()<<"headers.path:"<<headers.path;
+//     qDebug()<<"trailer:"<<trailer;
     
-    sprintf(response, server_handshake, pre, headers.origin, pre, scheme,
-            headers.host, headers.path, pre, trailer);
-    //handler_msg("response: %s\n", response);
-    // ws_send(ws_ctx, response, strlen(response));
+//     sprintf(response, server_handshake, pre, headers.origin, pre, scheme,
+//             headers.host, headers.path, pre, trailer);
+//     //handler_msg("response: %s\n", response);
+//     // ws_send(ws_ctx, response, strlen(response));
 
-    qDebug()<<"disconnect object 1";
-    QObject::disconnect(sock, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+//     qDebug()<<"disconnect object 1";
+//     QObject::disconnect(sock, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
 
-    if (!this->checkHostPermission(QString(headers.origin))) {
-      qDebug()<<"WebSocketServer connection from this origin host is not allowed:"<<QString(headers.origin);
-      sock->close();
-      this->pending_conns.remove(sock);
-      delete sock;
-      return;
-    }
+//     if (!this->checkHostPermission(QString(headers.origin))) {
+//         qDebug()<<"WebSocketServer connection from this origin host is not allowed:"<<QString(headers.origin);
+//         sock->close();
+//         this->pending_conns.remove(sock);
+//         delete sock;
+//         return;
+//     }
 
-    QObject::connect(sock, SIGNAL(readyRead()), this, SLOT(onWSMessageReadyRead()));
+//     QObject::connect(sock, SIGNAL(readyRead()), this, SLOT(onWSMessageReadyRead()));
 
-    // handshake ok, broadcast new ws connection
-    QString path = QString(headers.path);
-    sock->setProperty("payload_path", path);
-    // emit newConnection(path, sock);
-    emit newConnection();
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"broard cast new ws connection.";
+//     // handshake ok, broadcast new ws connection
+//     QString path = QString(headers.path);
+//     sock->setProperty("payload_path", path);
+//     // emit newConnection(path, sock);
+//     emit newConnection();
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"broard cast new ws connection.";
 
-    this->send(sock, response, strlen(response));
-}
+//     this->send(sock, response, strlen(response));
+// }
 
-void WebSocketServer::onDisconnected()
-{
-    QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
+// void WebSocketServer::onDisconnected()
+// {
+//     QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
 
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"closed pending websocket.";
-    Q_ASSERT(this->pending_conns.contains(sock));
-    this->pending_conns.remove(sock);
-    sock->close();
-    sock->deleteLater(); // free mem, in it's signal handle, cannot delete directly, use this instead
-}
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"closed pending websocket.";
+//     Q_ASSERT(this->pending_conns.contains(sock));
+//     this->pending_conns.remove(sock);
+//     sock->close();
+//     sock->deleteLater(); // free mem, in it's signal handle, cannot delete directly, use this instead
+// }
 
-void WebSocketServer::onWSMessageReadyRead()
-{
-    QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
-    QByteArray ba = sock->readAll();
-    char srcbuf[5120] = {0};
-    // char msgbuf[5120] = {0};
-    // int ret;
+// void WebSocketServer::onWSMessageReadyRead()
+// {
+//     QTcpSocket *sock = static_cast<QTcpSocket*>(sender());
+//     QByteArray ba = sock->readAll();
+//     char srcbuf[5120] = {0};
+//     // char msgbuf[5120] = {0};
+//     // int ret;
     
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"read ws message"
-            <<ba.length()<<ba;
+//     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<sock<<"read ws message"
+//             <<ba.length()<<ba;
 
-    //always 00datahereff format ?????????
-    memcpy(srcbuf, ba.data(), ba.length());
+//     //always 00datahereff format ?????????
+//     memcpy(srcbuf, ba.data(), ba.length());
 
-    if ((unsigned char)(srcbuf[0]) == 0x00 
-        && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
-        ba = QByteArray(srcbuf + 1, ba.length() - 2);
-        if (ba.length() > 0) {
-            qDebug()<<"ws serv got and broard msg:"<<ba;
-            emit this->newWSMessage(ba, sock);
-        }
-	// websocket close standard command 0xff0x00
-    } else if(ba.length() == 2 && 
-	      (unsigned char)(srcbuf[0]) == 0xff &&
-	      (unsigned char)(srcbuf[1]) == 0x00) {
-      qDebug()<<"websocket recieve close request.";
-    } else {
-        qDebug()<<"Invalid/Uknown ws data frame, omited";
-    }
+//     if ((unsigned char)(srcbuf[0]) == 0x00 
+//         && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
+//         ba = QByteArray(srcbuf + 1, ba.length() - 2);
+//         if (ba.length() > 0) {
+//             qDebug()<<"ws serv got and broard msg:"<<ba;
+//             emit this->newWSMessage(ba, sock);
+//         }
+//         // websocket close standard command 0xff0x00
+//     } else if(ba.length() == 2 && 
+//               (unsigned char)(srcbuf[0]) == 0xff &&
+//               (unsigned char)(srcbuf[1]) == 0x00) {
+//         qDebug()<<"websocket recieve close request.";
+//     } else {
+//         qDebug()<<"Invalid/Uknown ws data frame, omited";
+//     }
 
-    // ret = decode(srcbuf, ba.length(), (unsigned char*)msgbuf, sizeof(msgbuf));
-    // memset(srcbuf, 0, sizeof(srcbuf));
-    // memcpy(srcbuf, ba.data() + 1, ba.length() -2 );
-    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<ret<<srcbuf<<(msgbuf+2)<<msgbuf<<(msgbuf + 1);
-    // Q_ASSERT(ret > 0);
+//     // ret = decode(srcbuf, ba.length(), (unsigned char*)msgbuf, sizeof(msgbuf));
+//     // memset(srcbuf, 0, sizeof(srcbuf));
+//     // memcpy(srcbuf, ba.data() + 1, ba.length() -2 );
+//     // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<ret<<srcbuf<<(msgbuf+2)<<msgbuf<<(msgbuf + 1);
+//     // Q_ASSERT(ret > 0);
 
-//     QFile fp("a.msg");
-//     fp.open(QIODevice::ReadWrite);
-//     fp.resize(0);
-//     fp.write(ba);
-//     fp.close();
+//     //     QFile fp("a.msg");
+//     //     fp.open(QIODevice::ReadWrite);
+//     //     fp.resize(0);
+//     //     fp.write(ba);
+//     //     fp.close();
 
-    // memset(msgbuf, 0, sizeof(msgbuf));
-    // strcat(srcbuf, "只整合，说：");
-    // snprintf(msgbuf, sizeof(msgbuf) - 3, "%c%s%c", 0x00, srcbuf, 0xff);
-    // sock->write(msgbuf, strlen(srcbuf) + 2);
-    // this->wssend(sock, srcbuf, strlen(srcbuf));
-}
+//     // memset(msgbuf, 0, sizeof(msgbuf));
+//     // strcat(srcbuf, "只整合，说：");
+//     // snprintf(msgbuf, sizeof(msgbuf) - 3, "%c%s%c", 0x00, srcbuf, 0xff);
+//     // sock->write(msgbuf, strlen(srcbuf) + 2);
+//     // this->wssend(sock, srcbuf, strlen(srcbuf));
+// }
 
 
 ///////////////////////////////////////
@@ -635,6 +636,11 @@ bool WebSocketClient::sendMessage(QByteArray msg)
     // return wlen;
 
     return true;
+}
+
+bool WebSocketClient::isClosed()
+{
+    return this->m_sock.get() == 0 || this->m_sock->state() == QAbstractSocket::UnconnectedState;
 }
 
 void WebSocketClient::on_connected_ws_server()
@@ -733,18 +739,16 @@ void WebSocketClient::on_backend_ready_read()
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
     QByteArray ba;
-
-    ba = this->m_sock->readAll();
-
     char srcbuf[5120] = {0};
     // char msgbuf[5120] = {0};
     // int ret;
-    
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->m_sock<<"read ws message"
-            <<ba.length()<<ba;
+
+    ba = this->m_sock->readAll();
 
     //always 00datahereff format ?????????
     memcpy(srcbuf, ba.data(), ba.length());
+    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->m_sock<<"read ws message"
+            <<ba.length()<<ba<<(char*)(srcbuf+LWS_SEND_BUFFER_PRE_PADDING);
 
     if ((unsigned char)(srcbuf[0]) == 0x00 
         && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
@@ -974,17 +978,27 @@ unsigned short WebSocketServer2::serverPort()
     struct sockaddr_in serv_addr;
     socklen_t addr_size;
 
+    qLogx()<<FD_HASHTABLE_MODULUS;
 	for (n = 0; n < FD_HASHTABLE_MODULUS; n++) {
 		for (m = 0; m < this->serv_ctx->fd_hashtable[n].length; m++) {
 			wsi = this->serv_ctx->fd_hashtable[n].wsi[m];
-            // qlog("%d,%d, %p, %d, %d\n", n, m, wsi, wsi->sock, wsi->mode);
-            qLogx()<<n<<m<<wsi<<wsi->sock<<wsi->mode;
-            if (wsi->mode == LWS_CONNMODE_SERVER_LISTENER) {
 
-                addr_size = sizeof(serv_addr);
-                getsockname(wsi->sock, (struct sockaddr*)&serv_addr, &addr_size);
-                port = ntohs(serv_addr.sin_port);
+
+            addr_size = sizeof(serv_addr);
+            getsockname(wsi->sock, (struct sockaddr*)&serv_addr, &addr_size);
+            port = ntohs(serv_addr.sin_port);
+
+            qLogx()<<n<<m<<wsi<<wsi->sock<<wsi->mode<<port;
+
+            if (wsi->mode == LWS_CONNMODE_SERVER_LISTENER) {
+               break;
+            } else {
+                port = 0;
             }
+            port = 0;
+        }
+        if (port != 0) {
+            break;
         }
     }
     assert(port != 0);
@@ -1002,6 +1016,7 @@ QString WebSocketServer2::serverIpAddr(int type)
     QHostAddress addr;
     QList<QHostAddress> addr_list;
     QList<QString> addr_str_list;
+    bool use_big_ip = false;
     
     // addr = this->ws_serv_sock->serverAddress();
     // qDebug()<<"ws listen ip addr:"<<addr;
@@ -1025,8 +1040,8 @@ QString WebSocketServer2::serverIpAddr(int type)
         ipaddr = addr_str_list.at(0);
     } else {
         for (int i = 0 ; i < addr_str_list.count(); i ++) {
-	  // addr = addr_list.at(i);
-	  ipaddr = addr_str_list.at(i);
+            // addr = addr_list.at(i);
+            ipaddr = addr_str_list.at(i);
             if (ipaddr.indexOf(":") != -1) {
                 // ipv6 addr
                 ipaddr = QString();
@@ -1036,17 +1051,17 @@ QString WebSocketServer2::serverIpAddr(int type)
                     ipaddr = QString();
                     continue;
                 } else if (!ipaddr.startsWith("172.24.")
-                           &&!ipaddr.startsWith("192.168.")
-                           &&!ipaddr.startsWith("10.10.")) {
-                    // should a big ip addr
-		  qDebug()<<"break big ip";
-                    break;
-                } else if (ipaddr.startsWith("172.24.")) {
-		  qDebug()<<"break 172.2";
-                    break;
-                } else if (ipaddr.startsWith("10.10.")) {
-                    break;
-                } else if (ipaddr.startsWith("192.168.")) {
+                           && !ipaddr.startsWith("192.168.")
+                           && !ipaddr.startsWith("10.10.")) {
+                    if (use_big_ip) {
+                        // should a big ip addr
+                        qDebug()<<"break big ip";
+                        break;
+                    }
+                } else if (ipaddr.startsWith("172.24.")
+                           || ipaddr.startsWith("10.10.")
+                           || ipaddr.startsWith("192.168.")) {
+                    qDebug()<<(QString("break internal ip: ")+ipaddr);
                     break;
                 } else {
                     // do not want go here
@@ -1056,6 +1071,10 @@ QString WebSocketServer2::serverIpAddr(int type)
             }
             ipaddr = QString();
         }
+    }
+
+    if (ipaddr.isEmpty()) {
+
     }
 
     return ipaddr;
@@ -1088,30 +1107,46 @@ ssize_t WebSocketServer2::wssend(qint64 cseq, const void *buf, size_t len)
 {
     ssize_t wlen = 0;
     bool ok;
-    char wbuf[1000] = {0};
+    unsigned char wbuf[512] = {0};
     libwebsocket *wsi = this->outer_conns.findRight(cseq).value();
 
-    // Q_ASSERT(sock != NULL);
     Q_ASSERT(cseq != 0);
 
-    // ok = sock->putChar(0x00);
-    // Q_ASSERT(ok);
-    // wlen = sock->write((const char *)buf, len);
-    // ok = sock->putChar(0xff);
-    // Q_ASSERT(ok);
-    // wbuf[0] = 0x00;
-    // wbuf[len+1] = 0xff;
-    // memcpy(wbuf+1, buf, len);
-    
-    // wlen = sock->write(wbuf, len+2);
+    /*
+      buf 
+      The data to send. For data being sent on a websocket connection (ie, not default http), this buffer MUST have LWS_SEND_BUFFER_PRE_PADDING bytes valid BEFORE the pointer and an additional LWS_SEND_BUFFER_POST_PADDING bytes valid in the buffer after (buf + len). This is so the protocol header and trailer data can be added in-situ.
 
+      这应该就是问题多在了。
+     */
+    Q_ASSERT(strlen((const char*)buf) == len); // 因为传递过来的是可打印字符串。
     if (!this->outer_conns.rightContains(cseq)) {
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"maybe sess ended already."<<cseq;
     } else {
+        Q_ASSERT(sizeof(wbuf) > (len + LWS_SEND_BUFFER_PRE_PADDING + LWS_SEND_BUFFER_POST_PADDING));
+        memcpy(wbuf + LWS_SEND_BUFFER_PRE_PADDING, buf, len);
         wlen = libwebsocket_write(wsi, (unsigned char*)buf, len, LWS_WRITE_TEXT);
-        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<(const char*)buf;
+        if (wlen == 0) {
+            // write success
+        } else {
+            // write error
+        }
+        QString ba = QByteArray((const char*)buf, len);
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<ba.length()<<ba<<(const char*)buf;
     }
     return wlen;
+}
+
+ssize_t WebSocketServer2::wssend(qint64 cseq, const QString &msg)
+{
+    ssize_t ret = 0;
+    char wbuf[512] = {0};
+
+    memcpy(wbuf, msg.toAscii().data(), msg.length());
+    assert(strlen(wbuf) == msg.length());
+    ret = this->wssend(cseq, wbuf, msg.length());
+
+    return ret;
+
 }
 
 QString WebSocketServer2::conn_payload_path(qint64 cseq)
@@ -1154,6 +1189,7 @@ int WebSocketServer2::conn_close(qint64 cseq)
 
     if (this->outer_conns.rightContains(cseq)) {
         // iret = libwebsocket_write(wsi, NULL, 0, LWS_WRITE_CLOSE);
+        qLogx()<<"closing wsi now...";
         libwebsockets_hangup_on_client(this->serv_ctx, 
                                        libwebsocket_get_socket_fd(wsi));
     }
@@ -1441,7 +1477,8 @@ struct a_message {
 
 static struct a_message ringbuffer[MAX_MESSAGE_QUEUE];
 static int ringbuffer_head;
-
+static struct a_message ringbuffer_wso[MAX_MESSAGE_QUEUE];
+static int ringbuffer_head_wso = 0;
 
 static int
 callback_lws_mirror(struct libwebsocket_context * context,
@@ -1539,6 +1576,7 @@ callback_lws_mirror(struct libwebsocket_context * context,
 struct per_session_data__wso {
     struct libwebsocket *wsi;
     int seq;
+	int ringbuffer_tail;
 };
 
 static int
@@ -1555,17 +1593,73 @@ callback_wso(struct libwebsocket_context * context,
         pwso->seq = 0;
         pwso->wsi = wsi;
         user_hook->lws_new_connection_established(wsi);
+
+		pwso->ringbuffer_tail = ringbuffer_head_wso;
         break;
 
     case LWS_CALLBACK_CLOSED:
         user_hook->lws_connection_closed(wsi);
         break;
+
+	case LWS_CALLBACK_SERVER_WRITEABLE:
+		if (close_testing)
+			break;
+		if (pwso->ringbuffer_tail != ringbuffer_head_wso) {
+
+			n = libwebsocket_write(wsi, (unsigned char *)
+				   ringbuffer_wso[pwso->ringbuffer_tail].payload +
+				   LWS_SEND_BUFFER_PRE_PADDING,
+				   ringbuffer_wso[pwso->ringbuffer_tail].len,
+								LWS_WRITE_TEXT);
+			if (n < 0) {
+				fprintf(stderr, "ERROR writing to socket");
+				exit(1);
+			}
+
+			if (pwso->ringbuffer_tail == (MAX_MESSAGE_QUEUE - 1))
+				pwso->ringbuffer_tail = 0;
+			else
+				pwso->ringbuffer_tail++;
+
+			if (((ringbuffer_head - pwso->ringbuffer_tail) %
+				  MAX_MESSAGE_QUEUE) < (MAX_MESSAGE_QUEUE - 15))
+				libwebsocket_rx_flow_control(wsi, 1);
+
+			libwebsocket_callback_on_writable(context, wsi);
+
+		}
+		break;
+
     case LWS_CALLBACK_RECEIVE:
         n = user_hook->lws_ws_message_ready(wsi, (char*)in, len);
+
+		if (ringbuffer_wso[ringbuffer_head_wso].payload)
+			free(ringbuffer_wso[ringbuffer_head_wso].payload);
+
+		ringbuffer_wso[ringbuffer_head].payload =
+				malloc(LWS_SEND_BUFFER_PRE_PADDING + len +
+						  LWS_SEND_BUFFER_POST_PADDING);
+		ringbuffer_wso[ringbuffer_head_wso].len = len;
+		memcpy((char *)ringbuffer_wso[ringbuffer_head_wso].payload +
+					  LWS_SEND_BUFFER_PRE_PADDING, in, len);
+		if (ringbuffer_head_wso == (MAX_MESSAGE_QUEUE - 1))
+			ringbuffer_head_wso = 0;
+		else
+			ringbuffer_head_wso++;
+
+		if (((ringbuffer_head_wso - pwso->ringbuffer_tail) %
+				  MAX_MESSAGE_QUEUE) > (MAX_MESSAGE_QUEUE - 10))
+			libwebsocket_rx_flow_control(wsi, 0);
+
+		libwebsocket_callback_on_writable_all_protocol(
+					       libwebsockets_get_protocol(wsi));
 
         break;
 
     case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+        break;
+    default:
+        qLogx()<<"Unhandled lws callback event:"<<reason;
         break;
     }
 
@@ -1602,11 +1696,28 @@ static struct libwebsocket_protocols protocols[] = {
 	}
 };
 
+// #include "private-libwebsockets.h"
+
+// #include "extension-deflate-stream.h"
+
+// #ifdef LWS_EXT_GOOGLE_MUX
+// #include "extension-x-google-mux.h"
+// #endif
+
+struct libwebsocket_extension libwebsocket_my_extensions[] = {
+	{ /* terminator */
+		NULL, NULL, 0
+	}
+};
+
+
 bool WebSocketServer2::listen(unsigned short port)
 {
     // port = 8080;
 
-    this->serv_ctx = libwebsocket_create_context(port, NULL, protocols, NULL, NULL, NULL, -1, -1, 0);
+    qLogx()<<"want to listen:"<<port;
+    // this->serv_ctx = libwebsocket_create_context(port, NULL, protocols, NULL, NULL, NULL, -1, -1, 0);
+    this->serv_ctx = libwebsocket_create_context(port, NULL, protocols, libwebsocket_my_extensions, NULL, NULL, -1, -1, 0);
     Q_ASSERT(this->serv_ctx != NULL);
 
     // qlog("server listen port: %d\n", this->serverPort()); 
@@ -1617,3 +1728,271 @@ bool WebSocketServer2::listen(unsigned short port)
     return true;
 }
 
+///////////////////////////////////
+/////////////////////////////////
+////////////////////////////////////
+////// first wrapper for payloadable context
+static struct libwebsocket_context * libwebsocket_create_context_ex (int port, const char * interf, struct libwebsocket_protocols * protocols, struct libwebsocket_extension * extensions, const char * ssl_cert_filepath, const char * ssl_private_key_filepath, int gid, int uid, unsigned int options, void *user_data)
+{
+    struct libwebsocket_context *ctx = NULL;
+
+    ctx = libwebsocket_create_context(port, interf, protocols, extensions, ssl_cert_filepath, ssl_private_key_filepath, gid, uid, options);
+    if (ctx != NULL) {
+        ctx->user_data = user_data;
+    }
+
+    return ctx;
+}
+
+static void *libwebsocket_context_user_data(libwebsocket_context *ctx)
+{
+    if (ctx != NULL) 
+        return ctx->user_data;
+
+    return NULL;
+}
+
+/* lws-client_wso_protocol */
+static int callback_lws_client_wso(struct libwebsocket_context * ctx,
+                                   struct libwebsocket *wsi,
+                                   enum libwebsocket_callback_reasons reason,
+                                   void *user, void *in, size_t len)
+{
+	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 4096 +
+                      LWS_SEND_BUFFER_POST_PADDING];
+	int l;
+
+    WebSocketClient2 *wsc = (WebSocketClient2*)(libwebsocket_context_user_data(ctx));
+
+	switch (reason) {
+	case LWS_CALLBACK_CLOSED:
+		fprintf(stderr, "mirror: LWS_CALLBACK_CLOSED\n");
+        wsc->lws_connection_closed(wsi);
+		break;
+
+	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+        wsc->lws_new_connection_established(wsi);
+		/*
+		 * start the ball rolling,
+		 * LWS_CALLBACK_CLIENT_WRITEABLE will come next service
+		 */
+
+		// libwebsocket_callback_on_writable(ctx, wsi);
+		break;
+
+	case LWS_CALLBACK_CLIENT_RECEIVE:
+        /*		fprintf(stderr, "rx %d '%s'\n", (int)len, (char *)in); */
+        wsc->lws_ws_message_ready(wsi, (char*)in, len);
+		break;
+
+	case LWS_CALLBACK_CLIENT_WRITEABLE:
+
+		// l = sprintf((char *)&buf[LWS_SEND_BUFFER_PRE_PADDING],
+		// 			"c #%06X %d %d %d;",
+		// 			(int)random() & 0xffffff,
+		// 			(int)random() % 500,
+		// 			(int)random() % 250,
+		// 			(int)random() % 24);
+
+		// libwebsocket_write(wsi,
+        //                    &buf[LWS_SEND_BUFFER_PRE_PADDING], l, LWS_WRITE_TEXT);
+
+		// /* get notified as soon as we can write again */
+
+		// libwebsocket_callback_on_writable(ctx, wsi);
+
+		// /*
+		//  * without at least this delay, we choke the browser
+		//  * and the connection stalls, despite we now take care about
+		//  * flow control
+		//  */
+
+		// usleep(200);
+		break;
+
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+struct client_session_user_data {
+    struct libwebsocket *wsi;
+    int seq;
+};
+/* list of supported protocols and callbacks */
+static struct libwebsocket_protocols client_protocols[] = {
+	{
+		"wso",
+		callback_lws_client_wso,
+		sizeof(struct client_session_user_data),
+	},
+	{  /* end of list */
+		NULL,
+		NULL,
+		0
+	}
+};
+
+
+WebSocketClient2::WebSocketClient2(QString uri)
+    : QThread(0)
+{
+    this->m_rpath = uri;
+}
+
+WebSocketClient2::~WebSocketClient2()
+{
+    qLogx()<<"";
+}
+
+bool WebSocketClient2::connectToServer(QString rpath)
+{
+    unsigned short ctx_port = CONTEXT_PORT_NO_LISTEN;
+
+    memset(this->client_protocols, 0, sizeof(struct libwebsocket_protocols)*2);
+    this->client_protocols[0] = 
+        {
+            "wso",
+            callback_lws_client_wso,
+            sizeof(struct client_session_user_data),
+        };
+
+    this->m_lws_ctx = libwebsocket_create_context_ex(ctx_port, NULL, client_protocols, libwebsocket_my_extensions, NULL, NULL, -1, -1, 0, this);
+    Q_ASSERT(this->m_lws_ctx != NULL);
+
+
+    QUrl mu(this->m_uri);
+    qDebug()<<mu;
+
+    unsigned short port = mu.port(80);
+    QString host = mu.host();
+    QString path = mu.path();
+
+    QString myname = WebSocketServer2::serverIpAddr(0);
+
+	this->m_wsi = libwebsocket_client_connect(this->m_lws_ctx, host.toAscii().data(), port, 0,
+                                              path.toAscii().data(), 
+                                              myname.toAscii().data(), myname.toAscii().data(),
+                                              client_protocols[0].name, -1);
+
+	if (this->m_wsi == NULL) {
+		qLogx()<<"libwebsocket dumb connect failed.";
+		return false;
+	}
+
+    this->start();
+    
+    return true;
+}
+
+bool WebSocketClient2::disconnectFromServer()
+{
+
+    libwebsocket_close_and_free_session(this->m_lws_ctx,
+                                        this->m_wsi, LWS_CLOSE_STATUS_GOINGAWAY);
+    this->quit_cli_loop = true;
+    this->m_wsi = NULL;
+
+    libwebsocket_context_destroy(this->m_lws_ctx);
+    this->m_lws_ctx = NULL;
+    
+    return true;
+}
+
+bool WebSocketClient2::sendMessage(QByteArray msg)
+{
+    int wlen = 0;
+
+    wlen = libwebsocket_write(this->m_wsi, (unsigned char*)msg.data(), msg.length(), LWS_WRITE_TEXT);
+    // wlen = libwebsocket_write(wsi, (unsigned char*)buf, len, LWS_WRITE_TEXT);
+    qLogx()<<wlen<<msg;
+    return true;
+}
+
+
+bool WebSocketClient2::isClosed()
+{
+    return true;
+}
+
+
+int WebSocketClient2::lws_new_connection_established(libwebsocket *wsi)
+{
+    //fprintf(stderr, "c_path: %s\n", wsi->c_path);
+    fprintf(stderr, "\n\n\n");
+    struct lws_tokens *t;
+    for (int i = 0 ; i < WSI_TOKEN_COUNT; i++) {
+        t = &wsi->utf8_token[i];
+        if (t->token_len == 0) {
+            break;
+        }
+        fprintf(stderr, "dumping hdr: %s, %d\n", t->token, t->token_len);
+        if (i == WSI_TOKEN_GET_URI) {
+            // should be c_path token
+            // this->pending_payload_paths.insert(wsi, QByteArray(t->token, t->token_len));
+        }
+    }
+    // this->pending_conns.insert(wsi, QByteArray());
+    // emit newConnection();
+    return 0;
+}
+
+int WebSocketClient2::lws_connection_closed(libwebsocket *wsi)
+{
+    // qDebug()<<"backend ws close event:"<<wsi;
+    // qlog("backend ws close event: %p", wsi);
+    qLogx()<<"backed ws close event:"<<wsi;
+    qint64 cseq = 0;
+    // if (this->outer_conns.leftContains(wsi)) {
+    //     emit this->clientSessionClosed(cseq);
+    // }
+
+    return 0;
+}
+
+int WebSocketClient2::lws_ws_message_ready(libwebsocket *wsi, char *msg, size_t len)
+{
+    int cseq = 0;
+    QByteArray nmsg = QByteArray(msg, len);
+
+    // cseq = this->outer_conns.findLeft(wsi).value();
+
+    qDebug()<<"ws serv got and broard msg:"<<nmsg<<cseq;
+
+    emit this->onWSMessage(nmsg);
+    // emit this->newWSMessage(nmsg, cseq);
+    // emit this->newWSMessage(nmsg, (QTcpSocket*)wsi);
+    
+    return 0;
+}
+
+// test bind method
+int WebSocketClient2::callback_wso(struct libwebsocket_context * ctx,
+                                   struct libwebsocket *wsi,
+                                   enum libwebsocket_callback_reasons reason,
+                                   void *user, void *in, size_t len)
+{
+
+    return 0;
+}
+
+
+void WebSocketClient2::run()
+{
+    int iret = 0;
+    while (!quit_cli_loop) {
+        iret = libwebsocket_service(this->m_lws_ctx, 2000);
+        // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
+        if (iret == 0) {
+            // ok, success
+        } else {
+            // listen socket deak
+            qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Listen socket maybe dead."
+                    <<"Need restart this server.";
+        }
+    }
+    
+    this->exec();
+}

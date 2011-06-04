@@ -35,6 +35,7 @@ public:
     bool connectToServer(QString rpath = QString());
     bool disconnectFromServer();
     bool sendMessage(QByteArray msg);
+    bool isClosed();
 
 public:
     enum EWebSocket {
@@ -47,6 +48,8 @@ private slots:
 
     void on_backend_handshake_ready_read();
     void on_backend_ready_read();
+
+    void on_ping_timeout();
 
 private:
     void initNoiseChars();
@@ -62,6 +65,9 @@ private:
     char noise_chars[128];
     int noise_slen;
     QByteArray expected_digest;
+
+    QTimer *m_ws_ping_timer;
+    unsigned int m_ping_seq;
 
 public: // boost::signals2
     enum MySignals {

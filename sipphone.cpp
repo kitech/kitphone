@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 876 2011-05-11 14:25:21Z drswinghead $
+// Version: $Id: sipphone.cpp 909 2011-06-02 15:11:58Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -263,6 +263,7 @@ void SipPhone::defaultSipInit()
 
 void SipPhone::set_custom_sip_config()
 {
+    char tmp[80] = {0};
     pj_status_t status;
 
     // Initialize configs with default settings.
@@ -270,6 +271,9 @@ void SipPhone::set_custom_sip_config()
     pjsua_logging_config_default(&m_log_cfg);
     pjsua_media_config_default(&m_media_cfg);
 
+    snprintf(tmp, sizeof(tmp)-1, "KitPhone v%s; PJSUA v%s %s", KP_VERSION_STR,
+             pj_get_version(), pj_get_sys_info()->info.ptr);
+    m_ua_cfg.user_agent = pj_str(strdup(tmp));
     // ua_cfg.thread_cnt = 0;
     // At the very least, application would want to override
     // the call callbacks in pjsua_config:
@@ -281,6 +285,7 @@ void SipPhone::set_custom_sip_config()
     m_ua_cfg.cb.on_incoming_call = PjCallback::on_incoming_call_wrapper;
     m_ua_cfg.cb.on_call_state = PjCallback::on_call_state_wrapper;
     m_ua_cfg.cb.on_call_media_state = PjCallback::on_call_media_state_wrapper;
+    m_ua_cfg.cb.on_reg_state = PjCallback::on_reg_state_wrapper;
     m_ua_cfg.nat_type_in_sdp = 1;
 
     m_ua_cfg.cb.on_nat_detect = PjCallback::on_nat_detect_wrapper;
@@ -361,6 +366,9 @@ void SipPhone::on3_invoker_started(pj_status_t rstatus)
 	QObject::connect(pjcb, SIGNAL(sig_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
                      this, SLOT(on1_incoming_call(pjsua_acc_id, pjsua_call_id, pjsip_rx_data *)),
                      Qt::QueuedConnection);
+	QObject::connect(pjcb, SIGNAL(sig_reg_state(pjsua_acc_id)),
+                     this, SLOT(on1_reg_state(pjsua_acc_id)),
+                     Qt::QueuedConnection);
 
     this->on2_pjsua_start_done(0, PJ_SUCCESS);
     // int reqno = this->m_invoker->invoke_pjsua_init(&m_ua_cfg, &m_log_cfg, &m_media_cfg);
@@ -384,7 +392,7 @@ void SipPhone::onManageSipAccounts()
     delete acc_win;
 }
 
-int SipPhone::_find_account_from_pjacc(QString acc_name)
+int SipPhone::_find_account_from_pjacc(QString acc_name, const QString serv_addr)
 {
     unsigned int acc_cnt = 0;
     pjsua_acc_id acc_id;
@@ -392,6 +400,7 @@ int SipPhone::_find_account_from_pjacc(QString acc_name)
     pjsua_acc_info acc_info;
     pj_status_t status;
     QString acc_uri;
+    QString sip_addr;
 
     acc_cnt = pjsua_acc_get_count();
     acc_cnt = 100;
@@ -406,7 +415,11 @@ int SipPhone::_find_account_from_pjacc(QString acc_name)
         }
         acc_uri = QString::fromAscii(acc_info.acc_uri.ptr, acc_info.acc_uri.slen);
         // qDebug()<<"acc_uri for "<<acc_id<<" " << acc_uri;
-        if (acc_uri.split(" ").at(0) == acc_name) {
+        // SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">
+        sip_addr = acc_uri.mid(acc_uri.indexOf(":") + 1,
+                               acc_uri.lastIndexOf(">") - acc_uri.indexOf(":"));
+        // if (acc_uri.split(" ").at(0) == acc_name) {
+        if (sip_addr == serv_addr) {
             if (!pjsua_acc_is_valid(acc_info.id)) {
                 qDebug()<<"Warning: acc id is not valid:"<<acc_info.id<<" "<<acc_uri;
             }
@@ -414,6 +427,7 @@ int SipPhone::_find_account_from_pjacc(QString acc_name)
         }
     }
 
+    return PJSUA_INVALID_ID;
     return -1;
 }
 
@@ -421,7 +435,7 @@ int SipPhone::_find_account_from_pjacc(QString acc_name)
   TODO 只有一个用户名还不行，不能确定所要找的sip账号
   要支持不同服务器上注册相同的用户名。
  */
-void SipPhone::onRegisterAccount(QString user_name, bool reg)
+void SipPhone::onRegisterAccount(QString user_name, const QString serv_addr, bool reg)
 {
     pjsua_acc_id acc_id;
     pjsua_acc_id acc_ids[100];
@@ -434,8 +448,13 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
     SipAccount sip_acc;
     QString acc_uri;
 
+    if (!pj_thread_is_registered()) {
+        // qLogx()<<"";
+        return;
+    }
+
     if (reg) {
-        acc_id = this->_find_account_from_pjacc(user_name);
+        acc_id = this->_find_account_from_pjacc(user_name, serv_addr);
         // sip_acc = sip_acc.getAccount(user_name); // todo, depcreated
         Q_ASSERT(sip_acc.userName.isEmpty() == false);
 
@@ -443,13 +462,15 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
         // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
         cfg.id = pj_str(SIP_USER " <sip:" SIP_USER "@"  "sips.qtchina.net:15678>");
         // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok
-        cfg.reg_uri = pj_str(QString("SIP:%1").arg(sip_acc.domain).toAscii().data());
+        // cfg.reg_uri = pj_str(QString("SIP:%1").arg(sip_acc.domain).toAscii().data());
+        cfg.reg_uri = pj_str(QString("SIP:%1").arg(serv_addr).toAscii().data());
         // cfg.reg_timeout = 800000000;
         // cfg.publish_enabled = PJ_FALSE;
         // cfg.auth_pref.initial_auth = 0; // no use
         // cfg.reg_retry_interval = 0;
         cfg.cred_count = 1;
-        cfg.cred_info[0].realm = pj_str(sip_acc.domain.toAscii().data());
+        // cfg.cred_info[0].realm = pj_str(sip_acc.domain.toAscii().data());
+        cfg.cred_info[0].realm = pj_str("*");
         cfg.cred_info[0].scheme = pj_str("digest");
         cfg.cred_info[0].username = pj_str(sip_acc.userName.toAscii().data());
         cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
@@ -462,11 +483,17 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
                 //   error_exit("Error adding account", status);
             }
         } else {
-            status = pjsua_acc_modify(acc_id, &cfg);
-            status = pjsua_acc_set_registration(acc_id, 1);
+            status = pjsua_acc_get_info(acc_id, &acc_info);
+            if (acc_info.status == 0) {
+                // already reged
+                status = pjsua_acc_set_default(acc_id);
+            } else {
+                status = pjsua_acc_modify(acc_id, &cfg);
+                status = pjsua_acc_set_registration(acc_id, 1);
+            }
         }
     } else {
-        acc_id = this->_find_account_from_pjacc(user_name);
+        acc_id = this->_find_account_from_pjacc(user_name, serv_addr);
         if (acc_id != -1) {
             status = pjsua_acc_set_registration(acc_id, 0); // unregister
         } else {
@@ -475,17 +502,17 @@ void SipPhone::onRegisterAccount(QString user_name, bool reg)
     }
 }
 
-void SipPhone::onRemoveAccount(QString user_name)
+void SipPhone::onRemoveAccount(QString user_name, const QString serv_addr)
 {
     pjsua_acc_id acc_id;
     pj_status_t status;
 
-    acc_id = this->_find_account_from_pjacc(user_name);
+    acc_id = this->_find_account_from_pjacc(user_name, serv_addr);
     if (acc_id != -1) {
         status = pjsua_acc_set_registration(acc_id, 0);
         status = pjsua_acc_del(acc_id);
     } else {
-        qLogx()<<"Can not find pjsip account:"<<user_name;
+        qLogx()<<"Can not find pjsip account:"<<user_name<<serv_addr;
     }
 }
 
@@ -603,6 +630,12 @@ void SipPhone::on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjs
     /* Automatically answer incoming calls with 200/OK */
     status = pjsua_call_answer(call_id, 200, NULL, NULL);
 
+}
+
+void SipPhone::on1_reg_state(pjsua_acc_id acc_id)
+{
+    qLogx()<<acc_id;
+    
 }
 
 //////
@@ -837,6 +870,12 @@ void SipPhone::onSelectedUserAccountChanged(int idx)
 
     // TODO
     // 得到该账号的注册状态，更新对应的状态图标
+    QString sip_uri = this->uiw->comboBox_6->currentText();
+    QStringList upart = sip_uri.split("@");
+    qLogx()<<upart<<upart.count();
+    if (upart.count() == 2) {
+        this->onRegisterAccount(upart.at(0), upart.at(1), true);
+    }
 }
 
 void SipPhone::onDigitButtonClicked()
@@ -934,6 +973,57 @@ void SipPhone::on2_make_call_done(int seqno, pj_status_t rstatus, pjsua_call_id 
     } else {
         this->m_curr_call_id = call_id;
     }
+}
+
+/*
+  如果返回空，则确定用户输入的号码格式不正确。
+ */
+QString SipPhone::_reformat_call_phone_number(const QString &user_phone_number)
+{
+    QString phone_number;
+    QString phone_prefix = "9900866";
+
+    if (!user_phone_number.startsWith("*0")
+        && !user_phone_number.startsWith(phone_prefix)) {
+        return phone_number;
+    }
+
+    if (user_phone_number.length() < 10
+        && user_phone_number.length() > 21) {
+        return phone_number;
+    }
+
+    for (int i = 0; i < user_phone_number.size(); ++i) {
+        if (user_phone_number.at(i) >= QChar('0') && user_phone_number.at(i) <= QChar('9')) {
+        } else {
+            return phone_number;
+        }
+    }
+
+    // *0 OR 99xxxx
+    if (user_phone_number.startsWith(phone_prefix)) {
+        phone_number = user_phone_number;
+    } else {
+        phone_number = phone_prefix + QString::number(8010+qrand()%90)
+            + user_phone_number.right(user_phone_number.length()-1);
+    }
+
+    return phone_number;
+}
+
+QString SipPhone::_get_input_phone_number()
+{
+    QString user_phone_number;
+    QString phone_number;
+
+    phone_number = user_phone_number = this->uiw->comboBox_7->currentText();
+    phone_number = this->_reformat_call_phone_number(user_phone_number);
+
+    if (phone_number.isEmpty()) {
+        qLogx()<<"Invalid phone number format."<<user_phone_number;
+    }
+
+    return phone_number;
 }
 
 void SipPhone::customAddContactButtonMenu()
@@ -1128,7 +1218,7 @@ void SipPhone::onDatabaseConnected()
         req4->mCbFunctor = boost::bind(&SipPhone::onGetAllAccountsDone, this, _1);
         req4->mCbObject = this;
         req4->mCbSlot = SLOT(onGetAllAccountsDone(boost::shared_ptr<SqlRequest>));
-        req4->mSql = QString("SELECT * FROM kp_accounts WHERE 1=1");
+        req4->mSql = QString("SELECT * FROM kp_accounts WHERE 1=1 ORDER BY aid DESC");
         req4->mReqno = this->m_adb->execute(req4->mSql);
         this->mRequests.insert(req4->mReqno, req4);
     }

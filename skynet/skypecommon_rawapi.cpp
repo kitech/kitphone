@@ -142,6 +142,7 @@ static LRESULT APIENTRY SkypeAPITest_Windows_WindowProc(
                                 ::win_skype_common_handle->localEventLoop.quit();
                             }
                             printf("!!! Skype API not available\n");
+                            // emit ::win_skype_common_handle->skypeNotFound()
                             break;
                         case SKYPECONTROLAPI_ATTACH_API_AVAILABLE:
                             printf("!!! Try connect now (API available); issue #connect\n");

@@ -444,6 +444,17 @@ void PjCallback::on_nat_detect_wrapper(const pj_stun_nat_detect_result *res) {
 // 		myCb->on_reg_state(acc_id);
 // 	}
 // }
+void PjCallback::on_reg_state(pjsua_acc_id acc_id) {
+	emit sig_reg_state(acc_id);
+}
+
+void PjCallback::on_reg_state_wrapper(pjsua_acc_id acc_id) {
+	/* call the non-static member */
+	if (globalPjCallback) {
+		PjCallback *myCb = (PjCallback*) globalPjCallback;
+		myCb->on_reg_state(acc_id);
+	}
+}
 
 //void PjCallback::on_pager2(pjsua_call_id call_id, const pj_str_t *from,
 //		const pj_str_t *to, const pj_str_t *contact, const pj_str_t *mime_type,

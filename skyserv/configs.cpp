@@ -4,12 +4,14 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-25 15:54:57 +0800
-// Version: $Id: configs.cpp 888 2011-05-19 08:36:05Z drswinghead $
+// Version: $Id: configs.cpp 897 2011-05-28 14:25:04Z drswinghead $
 // 
 
 #include "configs.h"
 
 #include <algorithm>
+
+#define COMMENT_STRING "#"
 
 Configs::Configs(QObject *parent)
     : QObject(parent)
@@ -60,7 +62,9 @@ QHash<QString, QString> Configs::getDatabaseInfo()
     QString vstr;
     for (int i = 0 ; i < keys.count(); ++i) {
         vstr = sets.value(keys.at(i)).toString();
-        db_info.insert(keys.at(i), vstr);
+        if (!vstr.trimmed().startsWith(COMMENT_STRING)) {
+            db_info.insert(keys.at(i), vstr);
+        }
     }
 
     return db_info;
@@ -78,7 +82,7 @@ QHash<QString, int> Configs::getSipServers()
     int vint;
     for (int i = 0 ; i < keys.count(); ++i) {
         vint = sets.value(keys.at(i)).toInt();
-        if (!keys.at(i).trimmed().startsWith("#")) {
+        if (!keys.at(i).trimmed().startsWith(COMMENT_STRING)) {
             servs.insert(keys.at(i).trimmed(), vint);
         }
     }
@@ -122,7 +126,9 @@ QVector<QPair<QString,QString> > Configs::getSkypeRouters()
 
     std::for_each(keys.begin(), keys.end(),
                    [&] (QString elm) {
-                      routers.append(QPair<QString, QString>(elm, sets.value(elm).toString()));
+                      if (!elm.trimmed().startsWith(COMMENT_STRING)) {
+                          routers.append(QPair<QString, QString>(elm, sets.value(elm).toString()));
+                      }
                    });
 
     // routers = keys;

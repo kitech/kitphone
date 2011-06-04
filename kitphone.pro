@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-09-21 16:19:00 +0800
-# Version: $Id: kitphone.pro 883 2011-05-19 03:42:32Z drswinghead $
+# Version: $Id: kitphone.pro 906 2011-06-01 15:17:50Z drswinghead $
 # 
 
 QT       += core gui network declarative sql
@@ -16,12 +16,12 @@ MOC_DIR = tmp
 UI_DIR = tmp
 OBJECTS_DIR = tmp
 
-VERSION = 0.5.6
+VERSION = 0.5.9
 
 !win32 {
 QMAKE_CXXFLAGS += -g -std=c++0x
 }
-DEFINES += KPVERSION_STR=\"\\\"$$VERSION\\\"\" 
+DEFINES += KP_VERSION_STR=\"\\\"$$VERSION\\\"\" 
 
 QTSAPP_HEADERS = ./qtsingleapplication/qtsingleapplication.h ./qtsingleapplication/qtlocalpeer.h
 QTSAPP_SOURCES = ./qtsingleapplication/qtsingleapplication.cpp ./qtsingleapplication/qtlocalpeer.cpp
@@ -34,7 +34,7 @@ SOURCES += main.cpp kitapplication.cpp metauri.cpp \
         PjCallback.cpp \
         asyncdatabase.cpp \
         databaseworker.cpp \
-        simplelog.cpp
+        simplelog.cpp ldist.cpp
 
 HEADERS  += kitphone.h kitapplication.h metauri.h aboutdialog.h \
          sipaccountswindow.h sipaccountpropertieswindow.h \
@@ -54,10 +54,10 @@ HEADERS += sipphone.h
 FORMS += sipphone.ui
 
 #######
-SOURCES += skypephone.cpp websocketclient.cpp phonecontact.cpp phonecontactproperty.cpp \
+SOURCES += skypephone.cpp websocketclient.cpp websocketclient2.cpp phonecontact.cpp phonecontactproperty.cpp \
         groupinfodialog.cpp contactmodel.cpp callhistorymodel.cpp \
         networkdetect.cpp
-HEADERS += skypephone.h websocketclient.h phonecontact.h phonecontactproperty.h \
+HEADERS += skypephone.h websocketclient.h websocketclient2.h phonecontact.h phonecontactproperty.h \
         groupinfodialog.h contactmodel.h callhistorymodel.h \ 
         networkdetect.h networkdetect_p.h
 FORMS += skypephone.ui phonecontactproperty.ui groupinfodialog.ui
@@ -83,13 +83,14 @@ SOURCES += ./libwss/base64-decode.c  \
             ./libwss/sha-1.c         \
             ./libwss/client-handshake.c  \
             ./libwss/extension-deflate-stream.c  \
-#            ./libwss/extension-x-google-mux.c \
+            ./libwss/extension-x-google-mux.c \
             ./libwss/libwebsockets.c  \
             ./libwss/parsers.c 
 win32 {
     SOURCES +=  ./libwss/win32helpers/gettimeofday.c
 }
 #DEFINES += LWS_EXT_GOOGLE_MUX
+DEFINES += KP_LWS_CLIENT
 
 ## libskynet
 include(./skynet/libskynet.pri)

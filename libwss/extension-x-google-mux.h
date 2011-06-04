@@ -68,9 +68,6 @@ struct lws_ext_x_google_mux_context {
 	int active_conns;
 };
 
-inline int use_mux_blocks(struct lws_ext_x_google_mux_context * mux_context) { \
-				     return !!(mux_context->active_conns > 1); }
-
 /* one of these per connection (server or client) */
 
 struct lws_ext_x_google_mux_conn {
@@ -82,11 +79,13 @@ struct lws_ext_x_google_mux_conn {
 	struct libwebsocket *wsi_parent;
 	int subchannel;
 	struct libwebsocket *wsi_children[MAX_CLIENTS];
-	int count_children;
+	int highest_child_subchannel;
 	char awaiting_POLLOUT;
 	int count_children_needing_POLLOUT;
 	int sticky_mux_used;
 	int defeat_mux_opcode_wrapping;
+	int original_ch1_closed;
+	int ignore_cmd;
 };
 
 extern int

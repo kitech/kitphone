@@ -36,6 +36,7 @@ Skype::Skype(QString AppName)
     QObject::connect(this, SIGNAL(connectionLost(QString)), this, SLOT(onDisconnected(QString)));
     QObject::connect(pingTimer, SIGNAL(timeout()), this, SLOT(ping()));
 
+    QObject::connect(&sk, SIGNAL(skypeNotFound()), this, SIGNAL(skypeNotFound()));
     QObject::connect(&sk, SIGNAL(newMsgFromSkype(const QString)),
                      this, SLOT(processMessage(const QString)));
 }
@@ -77,12 +78,12 @@ void Skype::ping() {
         if (value.right(5) == " PING") {
             qDebug()<<"may be ping timeout, skype instance dispearred";
             // this->requestResponseSets.remove(key);  // will crash
-	    // this->requestResponseSets.erase(it);
-	    break;
+            // this->requestResponseSets.erase(it);
+            break;
         }
     }
     if (it != this->requestResponseSets.end()) {
-      this->requestResponseSets.erase(it);
+        this->requestResponseSets.erase(it);
     }
     this->rrSetsMutex.unlock();
     this->doCommand(SkypeCommand::PING());

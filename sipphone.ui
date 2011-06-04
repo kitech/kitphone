@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>372</width>
-    <height>871</height>
+    <width>322</width>
+    <height>639</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -19,6 +19,12 @@
   <layout class="QVBoxLayout" name="verticalLayout_5">
    <item>
     <widget class="QLabel" name="label_13">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="text">
       <string>标准SIP协议模式，语音直通+P2P穿透.</string>
      </property>
@@ -31,6 +37,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QPushButton" name="pushButton_5">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Manage Account ...</string>
        </property>
@@ -38,15 +50,14 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_6">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Preferences</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_7">
-       <property name="text">
-        <string>PushButton</string>
        </property>
       </widget>
      </item>
@@ -195,17 +206,17 @@
        </property>
        <item>
         <property name="text">
-         <string>9900866805601095588</string>
+         <string>*013800138000</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>99008664115013800138000</string>
+         <string>*01068730066</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>99008668056010687300662546</string>
+         <string>*01096196</string>
         </property>
        </item>
       </widget>
@@ -241,6 +252,12 @@
    <item>
     <widget class="QWidget" name="widget" native="true">
      <layout class="QGridLayout" name="gridLayout">
+      <property name="margin">
+       <number>0</number>
+      </property>
+      <property name="spacing">
+       <number>0</number>
+      </property>
       <item row="0" column="1">
        <widget class="QToolButton" name="toolButton_15">
         <property name="text">
@@ -292,40 +309,6 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="4">
-       <widget class="QComboBox" name="comboBox_2">
-        <item>
-         <property name="text">
-          <string>UDP</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TCP</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TLS</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>IPV6</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>UDP6</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TCP6</string>
-         </property>
-        </item>
-       </widget>
-      </item>
       <item row="1" column="0">
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
@@ -333,7 +316,7 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>65</width>
+          <width>25</width>
           <height>20</height>
          </size>
         </property>
@@ -388,32 +371,6 @@
           <height>22</height>
          </size>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="4">
-       <widget class="QComboBox" name="comboBox">
-        <property name="toolTip">
-         <string>语音编码</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QComboBox" name="comboBox_3">
-        <item>
-         <property name="text">
-          <string>STUN</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TURN</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>ICE</string>
-         </property>
-        </item>
        </widget>
       </item>
       <item row="2" column="1">
@@ -531,7 +488,67 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="4">
+       <widget class="QComboBox" name="comboBox_2">
+        <item>
+         <property name="text">
+          <string>UDP</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TCP</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TLS</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>IPV6</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>UDP6</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TCP6</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QComboBox" name="comboBox">
+        <property name="toolTip">
+         <string>语音编码</string>
+        </property>
+       </widget>
+      </item>
       <item row="3" column="4">
+       <widget class="QComboBox" name="comboBox_3">
+        <item>
+         <property name="text">
+          <string>STUN</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TURN</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>ICE</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="0">
        <widget class="QCheckBox" name="checkBox">
         <property name="text">
          <string>TLS</string>
@@ -566,7 +583,7 @@
         <item>
          <widget class="QLabel" name="label_11">
           <property name="text">
-           <string>call status message here.................</string>
+           <string>call status message here</string>
           </property>
           <property name="textInteractionFlags">
            <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
@@ -796,7 +813,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>

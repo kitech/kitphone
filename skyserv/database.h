@@ -30,6 +30,9 @@ public:
         return this->conn;
     }
 
+    /*
+      ipaddr:如果不为空，则优先查找同一网段的可用语音网关，查找方法：ipv4的前三段相同即可。
+     */
     int acquireGateway(QString caller_name, QString callee_phone, QString &gateway,
                        unsigned short &port, QString &ipaddr);
     int releaseGateway(QString caller_name, QString gateway);

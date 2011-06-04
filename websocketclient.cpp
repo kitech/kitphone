@@ -26,13 +26,19 @@ WebSocketClient::WebSocketClient(QString uri)
     :QObject(0)
 {
     this->m_uri = uri;
-
     this->initNoiseChars();
 
     this->m_sock = boost::shared_ptr<QTcpSocket>(new QTcpSocket());
     QObject::connect(this->m_sock.get(), SIGNAL(connected()), this, SLOT(on_connected_ws_server()));
     QObject::connect(this->m_sock.get(), SIGNAL(disconnected()), this, SLOT(on_disconnected_ws_server()));
+    QObject::connect(this->m_sock.get(), SIGNAL(error(QAbstractSocket::SocketError )),
+                     this, SLOT(on_ws_sock_error(QAbstractSocket::SocketError )));
     QObject::connect(this->m_sock.get(), SIGNAL(readyRead()), this, SLOT(on_backend_handshake_ready_read()));
+
+    this->m_ws_ping_timer = new QTimer();
+    this->m_ws_ping_timer->setInterval(3*1000);
+    QObject::connect(this->m_ws_ping_timer, SIGNAL(timeout()), this, SLOT(on_ping_timeout()));
+    this->m_ping_seq = 1;
 }
 
 WebSocketClient::~WebSocketClient()
@@ -68,15 +74,41 @@ bool WebSocketClient::disconnectFromServer()
         this->m_sock->close();
         // delete this->m_sock;
     }
+    this->m_ws_ping_timer->stop();
     
     return true;
 }
 
 void WebSocketClient::on_ws_sock_error(QAbstractSocket::SocketError socketError)
 {
+    qLogx()<<"";
     int error = socketError;
     QString errmsg = this->m_sock->errorString();
     emit this->onError(error, errmsg);
+}
+
+void WebSocketClient::on_ping_timeout()
+{
+    qLogx()<<"";
+    int wlen = 0;
+    unsigned char buf[32] = {0};
+
+    // 00 00 00 00 00 00 00 00 11 FF
+    // 00 00 00 00 00 00 00 00 02 00 FF
+    // 89 88 4A AF 18 CA 4A AF 18 CA 4A AF 18 C3
+    // buf[0] = 0x00;
+    // strcpy((char*)buf+1, "ping");
+    // *(buf+5) = 0xff;
+    this->m_ping_seq ++;
+    memcpy(&buf[8], &this->m_ping_seq, sizeof(int));
+    buf[9+sizeof(int)-1] = 0xff;
+
+    wlen = 9+sizeof(int);
+    QByteArray ba = QByteArray((const char*)buf, wlen);
+    // this->sendMessage(ba);
+
+    bool ok = this->m_sock->write((const char*)buf, wlen);
+    // 都不管用，服务器端还是会关闭连接
 }
 
 bool WebSocketClient::sendMessage(QByteArray msg)
@@ -84,14 +116,23 @@ bool WebSocketClient::sendMessage(QByteArray msg)
  
     int wlen = 0;
     bool ok;
+    unsigned char buf[512] = {0};
+    QByteArray nba;
 
     Q_ASSERT(this->m_sock != NULL);
 
-    ok = this->m_sock->putChar(0x00);
-    Q_ASSERT(ok);
+    buf[0] = 0x00;
+    memcpy(buf+1, msg.data(), msg.length());
+    buf[msg.length()+1] = 0xff;
+
+    // ok = this->m_sock->putChar(0x00);
+    // Q_ASSERT(ok);
     // wlen = this->m_sock->write((const char *)buf, len);
-    wlen = this->m_sock->write(msg);
-    ok = this->m_sock->putChar(0xff);
+    // wlen = this->m_sock->write(msg);
+    // ok = this->m_sock->putChar(0xff);
+    // nba = QByteArray((const char*)buf, msg.length()+2);
+    wlen = msg.length()+2;
+    ok = this->m_sock->write((const char*)buf, wlen);
     Q_ASSERT(ok);
     
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<msg;
@@ -155,10 +196,16 @@ void WebSocketClient::on_connected_ws_server()
     // qDebug()<<"send client handshake request:"<<request<<key3;    
 }
 
+bool WebSocketClient::isClosed()
+{
+    return this->m_sock.get() == 0 || this->m_sock->state() == QAbstractSocket::UnconnectedState;
+}
+
+
 void WebSocketClient::on_disconnected_ws_server()
 {
     // 如果出现服务器端发起的关闭，则有问题。
-    
+    qLogx()<<"";
 }
 
 void WebSocketClient::on_backend_handshake_ready_read()
@@ -182,6 +229,8 @@ void WebSocketClient::on_backend_handshake_ready_read()
         QObject::connect(this->m_sock.get(), SIGNAL(readyRead()), this, SLOT(on_backend_ready_read()));
 
         emit onConnected(this->m_rpath);
+
+        this->m_ws_ping_timer->start();
     } else {
         qDebug()<<"digest doesn't match:"
                 <<"l"<<reply_digest.length()<<"=?"<<this->expected_digest.length()
@@ -201,6 +250,7 @@ void WebSocketClient::on_backend_ready_read()
 
     ba = this->m_sock->readAll();
 
+    char pong_frm[32] = {0};
     char srcbuf[5120] = {0};
     // char msgbuf[5120] = {0};
     // int ret;
@@ -211,7 +261,11 @@ void WebSocketClient::on_backend_ready_read()
     //always 00datahereff format ?????????
     memcpy(srcbuf, ba.data(), ba.length());
 
-    if ((unsigned char)(srcbuf[0]) == 0x00 
+    if (memcmp(srcbuf, pong_frm, 8) == 0
+        && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
+        // 00 00 00 00 00 00 00 00 46 00 00 00 FF
+        qLogx()<<"Recive server pong frame.B"<<ba.length();
+    } else if ((unsigned char)(srcbuf[0]) == 0x00 
         && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
         ba = QByteArray(srcbuf + 1, ba.length() - 2);
         if (ba.length() > 0) {
@@ -387,3 +441,6 @@ QByteArray WebSocketClient::keyToBytes(QByteArray key)
     return bytes;
 }
 
+////////////////////////
+//////
+/////////////////////////////////

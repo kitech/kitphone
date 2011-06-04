@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-12-07 11:06:55 +0800
-// Version: $Id: siproom.h 809 2011-04-01 09:58:53Z drswinghead $
+// Version: $Id: siproom.h 908 2011-06-02 09:37:45Z drswinghead $
 // 
 
 
@@ -56,6 +56,7 @@ extern "C" {
   116(caller_name,forward,skype_call_id,msg)    分配线路    F -> C
   117(caller_name,forward,skype_call_id,msg)    连接对方话机    R -> C
   118(caller_name,forward,skype_call_id,msg)    对方挂机+原因    R -> C
+  119(caller_name,forward,skype_call_id,real_caller_name)  用户名输入错误     R -> C
  */
 
 #define SKXSIP_CMD_BUFFER_LEN  512

@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 883 2011-05-19 03:42:32Z drswinghead $
+// Version: $Id: skypephone.cpp 908 2011-06-02 09:37:45Z drswinghead $
 // 
 
 #include <QtCore>
@@ -22,6 +22,7 @@
 #include "skypetracer.h"
 
 #include "websocketclient.h"
+#include "websocketclient2.h"
 #include "asyncdatabase.h"
 #include "phonecontact.h"
 #include "phonecontactproperty.h"
@@ -29,6 +30,14 @@
 #include "contactmodel.h"
 #include "callhistorymodel.h"
 
+/*
+  由于在开始设计的时候，以页面版本为主，而在页面上能得到skype信息非常少，
+  不得不使用websocket传递客户端到服务器端的控制信息，像呼出，中间信息，挂断等。
+  在实现这简单的桌面客户端后，上面这种老的方式显示有点笨了，
+  最好的实现方式，使用websocket只用作传输一些提示信息，不作为控制，
+  由于客户端方式能得到所有skype状态信息，通过skype的状态变化控制更有效，稳定。
+  现阶段，还不能完全使用新的方式，还需要以页面拨打方式为主。
+ */
 SkypePhone::SkypePhone(QWidget *parent)
     :QWidget(parent),
      uiw(new Ui::SkypePhone())
@@ -37,14 +46,11 @@ SkypePhone::SkypePhone(QWidget *parent)
 
     this->m_dialpanel_layout_index = 2;
     this->m_dialpanel_layout_item = this->layout()->itemAt(this->m_dialpanel_layout_index);
-    // this->m_dialpanel_layout_item->widget()->setVisible(false);
     int call_state_layout_index = 3;
     QLayoutItem *call_state_layout_item = this->layout()->itemAt(call_state_layout_index);
     this->m_call_state_widget = call_state_layout_item->widget();
-    // this->m_call_state_layout_item->widget()->setVisible(false);
     int log_list_layout_index = 5;
     QLayoutItem *log_list_layout_item = this->layout()->itemAt(log_list_layout_index);
-    // this->m_log_list_layout_item->widget()->setVisible(false);
     this->m_log_list_widget = log_list_layout_item->widget();
 
     this->m_status_bar = nullptr;
@@ -73,12 +79,13 @@ SkypePhone::SkypePhone(QWidget *parent)
 
 SkypePhone::~SkypePhone()
 {
+    this->uiw->treeView->setModel(0);
+    delete this->m_contact_model;
+
     this->m_adb->quit();
     this->m_adb->wait();
     // delete this->m_adb;
     this->m_adb = boost::shared_ptr<AsyncDatabase>();
-    this->uiw->treeView->setModel(0);
-    delete this->m_contact_model;
 
     delete uiw;
 }
@@ -278,9 +285,11 @@ void SkypePhone::onInitPstnClient()
     this->mSkype = new Skype("karia2");
     this->mSkype->setRunAsClient();
     // this->mSkype->connectToSkype();
-    // QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString)),
-    //                  this, SLOT(onSkypeError(int, QString)));
-
+    QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString, QString)),
+                     this, SLOT(onSkypeError(int, QString, QString)));
+    QObject::connect(this->mSkype, SIGNAL(skypeNotFound()),
+                     this, SLOT(onSkypeNotFound()));
+    
     QObject::connect(this->mSkype, SIGNAL(connected(QString)), this, SLOT(onSkypeConnected(QString)));
     QObject::connect(this->mSkype, SIGNAL(realConnected(QString)),
                      this, SLOT(onSkypeRealConnected(QString)));
@@ -299,6 +308,10 @@ void SkypePhone::onInitPstnClient()
 
 void SkypePhone::onShowSkypeTracer()
 {
+    if (this->mSkype == nullptr) {
+        this->log_output(LT_USER, "未连接到Skype API。");
+        return;
+    }
     if (this->mSkypeTracer == NULL) {
         this->mSkypeTracer = new SkypeTracer(this);
         QObject::connect(this->mSkype, SIGNAL(commandRequest(QString)),
@@ -332,6 +345,14 @@ void SkypePhone::onConnectApp2App()
 
     // this->mSkype->newStream(skypeName);
     // this->mSkype->newStream("drswinghead");
+}
+
+void SkypePhone::onSkypeNotFound()
+{
+    qLogx()<<"";
+    this->m_call_button_disable_count.ref();
+    this->uiw->pushButton_3->setEnabled(true);
+    this->log_output(LT_USER, QString("未安装或未登陆Skype客户端"));
 }
 
 void SkypePhone::onSkypeConnected(QString user_name)
@@ -384,6 +405,11 @@ void SkypePhone::onSkypeUserStatus(QString str_status, int int_status)
     this->uiw->label_14->setToolTip(new_tooltip);
 }
 
+void SkypePhone::onSkypeError(int code, QString msg, QString cmd)
+{
+    qLogx()<<code<<msg<<cmd;
+}
+
 void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int callID)
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<callerName<<calleeName<<callID;
@@ -394,13 +420,26 @@ void SkypePhone::onSkypeCallArrived(QString callerName, QString calleeName, int 
 void SkypePhone::onSkypeCallHangup(QString contactName, QString callerName, int callID)
 {
     qLogx()<<"";
+    int skype_call_id = callID;
 
     if (callID != this->m_curr_skype_call_id) {
-        qLogx()<<"";
+        qLogx()<<"Warning:";
     }
     this->m_curr_skype_call_id = -1;
     if (this->m_call_state_widget->isVisible()) {
         this->onDynamicSetVisible(this->m_call_state_widget, false);
+    }
+
+    if (this->wscli.get() && this->wscli->isClosed()) {
+        qLogx()<<"ws ctrl unexception closed, should cleanup here now.";
+        this->log_output(LT_USER, "通话异常终止，请重试。");
+
+        {
+            this->onDynamicSetVisible(this->m_call_state_widget, false);
+            // 关闭网络连续，如果有的话。
+            this->wscli.reset();
+            this->uiw->pushButton_4->setEnabled(true);
+        }
     }
 }
 
@@ -453,20 +492,26 @@ void SkypePhone::onDigitButtonClicked()
 
 void SkypePhone::onCallPstn()
 {
-    if (sender() != NULL) {
+    qLogx()<<sender()<<this->m_conn_ws_retry_times;
+    if (sender()->isWidgetType()) { // from button
         // init call by user
         this->m_conn_ws_retry_times = this->m_conn_ws_max_retry_times;
+
+        this->uiw->pushButton_4->setEnabled(false);
         // 显示呼叫状态窗口
         this->onDynamicSetVisible(this->m_call_state_widget, true);
     } else {
         // retry call by robot
         if (--this->m_conn_ws_retry_times >= 0) {
-            qDebug()<<"retry conn ws: "<< (this->m_conn_ws_max_retry_times-this->m_conn_ws_retry_times);
+            qLogx()<<"retry conn ws: "<< (this->m_conn_ws_max_retry_times-this->m_conn_ws_retry_times);
         } else {
-            qDebug()<<"retry conn ws exceed max retry:"<<this->m_conn_ws_max_retry_times;
+            qLogx()<<"retry conn ws exceed max retry:"<<this->m_conn_ws_max_retry_times;
             this->onDynamicSetVisible(this->m_call_state_widget, false);
             // 关闭网络连续，如果有的话。
             this->wscli.reset();
+
+            this->log_output(LT_USER, "网络错误，呼叫已中止。");
+            this->uiw->pushButton_4->setEnabled(true);
             return;
         }
     }
@@ -477,10 +522,10 @@ void SkypePhone::onCallPstn()
     // this->uiw->pushButton_4->setEnabled(false);
     this->uiw->label_5->setText(phone_number);
     
-
     Q_ASSERT(!this->m_ws_serv_ipaddr.isEmpty());
     // QString wsuri = "ws://202.108.12.212:80/" + this->mSkype->handlerName() + "/";
-    QString wsuri = QString("ws://%1:80/%2/").arg(this->m_ws_serv_ipaddr).arg(this->mSkype->handlerName());
+    // /caller_name/client_type_web_or_desktop_or_mobile_or_netbook/
+    QString wsuri = QString("ws://%1:80/%2/desktop/").arg(this->m_ws_serv_ipaddr).arg(this->mSkype->handlerName());
     this->wscli = boost::shared_ptr<WebSocketClient>(new WebSocketClient(wsuri));
     QObject::connect(this->wscli.get(), SIGNAL(onConnected(QString)), this, SLOT(onWSConnected(QString)));
     QObject::connect(this->wscli.get(), SIGNAL(onDisconnected()), this, SLOT(onWSDisconnected()));
@@ -837,10 +882,16 @@ void SkypePhone::onWSError(int error, const QString &errmsg)
 {
     qLogx()<<error<<errmsg;
     if (error == WebSocketClient::EWS_HANDSHAKE) {
-        log_output(LT_USER, tr("网络协议错误，重试连接服务器。。。"));
-        this->onCallPstn();
+        log_output(LT_USER, tr("网络协议错误，2秒后重试连接服务器。。。"));
+        // 这种直接调用的情况下，被调用方法接收到的 sender()仍旧是调用处的sender()!!!
+        // this->onCallPstn();
+        QTimer::singleShot(100, this, SLOT(onCallPstn()));
+    } else if (error == QAbstractSocket::RemoteHostClosedError) {
+        // 通话完成？还是非正常连接中断？
     } else {
-        
+        log_output(LT_USER, tr("网络错误，3秒后重试连接服务器。。。") + errmsg);
+        // this->onCallPstn();
+        QTimer::singleShot(200, this, SLOT(onCallPstn()));
     }
 }
 
@@ -873,6 +924,12 @@ void SkypePhone::onWSMessage(QByteArray msg)
     case 104:
         log_msg = "线路忙，请稍后再拨。";
         this->log_output(LT_USER, log_msg);
+
+        // 是不是需要这些状态控制呢？ // 不需要，服务器端还会发送108通话结束指令。
+        // this->onDynamicSetVisible(this->m_call_state_widget, false);
+        // // 关闭网络连续，如果有的话。
+        // this->wscli.reset();
+        // this->uiw->pushButton_4->setEnabled(true);
         break;
     case 106:
         log_msg = QString("FCall notice: ") + fields.at(4);
@@ -889,6 +946,7 @@ void SkypePhone::onWSMessage(QByteArray msg)
 
         // 关闭网络连续，如果有的话。
         this->wscli.reset();
+        this->uiw->pushButton_4->setEnabled(true);
 
         break;
     case 110:
@@ -917,12 +975,14 @@ void SkypePhone::onWSMessage(QByteArray msg)
         // this->uiw->plainTextEdit->appendPlainText(log_msg);
         // this->uiw->plainTextEdit->appendHtml(log_msg);
         this->log_output(LT_USER, log_msg);
+
         switch (fields.at(5).toInt()) {
         case 603:
             break;
         default:
             break;
         };
+
         break;
     default:
         qDebug()<<"Unknwon ws msg:"<<msg;
@@ -1211,10 +1271,11 @@ void SkypePhone::log_output(int type, const QString &log)
 
     QTextCodec *u8codec = QTextCodec::codecForName("UTF-8");
     QString u16_log = log_time + " " + u8codec->toUnicode(log.toAscii());
+    QString notime_log = u8codec->toUnicode(log.toAscii());
 
     if (type == LT_USER) {
         // TODO 怎么确定是属于呼叫日志呢。恐怕还是得在相应的地方执行才行。
-        this->uiw->label_11->setText(u16_log);
+        this->uiw->label_11->setText(notime_log);
         witem = new QListWidgetItem(QIcon(":/skins/default/info.png"), u16_log);
         this->uiw->listWidget->addItem(witem);
     } else if (type == LT_DEBUG && debug) {
@@ -1245,5 +1306,8 @@ void SkypePhone::log_output(int type, const QString &log)
 
     this->uiw->listWidget->scrollToItem(this->uiw->listWidget->item(this->uiw->listWidget->count()-1));
 
+    if (this->m_status_bar != nullptr) {
+        this->m_status_bar->showMessage(u16_log);
+    }
     qLogx()<<type<<u16_log;
 }

@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 876 2011-05-11 14:25:21Z drswinghead $
+// Version: $Id: sipphone.h 909 2011-06-02 15:11:58Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -82,8 +82,8 @@ public slots: // sip
 
     void init_sip_client_ui_element();
     void onManageSipAccounts();
-    void onRegisterAccount(QString user_name, bool reg);
-    void onRemoveAccount(QString user_name);
+    void onRegisterAccount(QString user_name, const QString serv_addr, bool reg);
+    void onRemoveAccount(QString user_name, const QString serv_addr);
     
     void onCallSipNew();
     void onHangupSipNew();
@@ -97,6 +97,7 @@ public slots: // sip
     void on1_call_state(pjsua_call_id call_id, pjsip_event *e, pjsua_call_info *pci);
     void on1_call_media_state(pjsua_call_id call_id, pjsua_call_info *pci);
     void on1_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata);
+    void on1_reg_state(pjsua_acc_id acc_id);
 
     // void on1_new_connection(void *m_port);
 
@@ -150,7 +151,9 @@ public:
 private:
     pjsua_acc_id _create_sip_account(QString acc_name);
     QString _get_sip_from_domain();
-    int _find_account_from_pjacc(QString acc_name);
+    int _find_account_from_pjacc(QString acc_name, const QString serv_addr);
+    QString _reformat_call_phone_number(const QString &user_phone_number);
+    QString _get_input_phone_number();
 
 protected:
     bool first_paint_event;

@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:23:19 +0800
-// Version: $Id: skypephone.h 883 2011-05-19 03:42:32Z drswinghead $
+// Version: $Id: skypephone.h 906 2011-06-01 15:17:50Z drswinghead $
 // 
 
 #ifndef _SKYPEPHONE_H_
@@ -22,6 +22,7 @@ class SkypeTunnel;
 class SkypeTracer;
 
 class WebSocketClient;
+class WebSocketClient2;
 class AsyncDatabase;
 class SqlRequest;
 class ContactModel;
@@ -66,10 +67,12 @@ public slots:    // pstn
     void onConnectSkype();
     void onConnectApp2App();
 
+    void onSkypeNotFound();
     void onSkypeConnected(QString user_name);
     void onSkypeRealConnected(QString user_name);
-
     void onSkypeUserStatus(QString str_status, int int_status);
+    void onSkypeError(int code, QString msg, QString cmd);
+
     void onSkypeCallArrived(QString callerName, QString calleeName, int callID);
     void onSkypeCallHangup(QString callerName, QString calleeName, int callID);
 
@@ -146,6 +149,7 @@ private: // pstn
     int m_curr_skype_call_id;
     QString m_curr_skype_call_peer;
     boost::shared_ptr<WebSocketClient> wscli;
+    boost::shared_ptr<WebSocketClient2> wscli2;
     
     QAtomicInt m_call_button_disable_count; // 由于默认的按钮初始化状态是disabled
     static const int m_conn_ws_max_retry_times = 3;    

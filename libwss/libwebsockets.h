@@ -31,15 +31,16 @@
 #include <ws2tcpip.h>
 #include "websock-w32.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "gettimeofday.h"
 
 #else
 #include <poll.h>
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define CONTEXT_PORT_NO_LISTEN 0
 #define MAX_MUX_RECURSION 2
@@ -82,6 +83,8 @@ enum libwebsocket_extension_callback_reasons {
 	LWS_EXT_CALLBACK_CLIENT_CONTEXT_DESTRUCT,
 	LWS_EXT_CALLBACK_CONSTRUCT,
 	LWS_EXT_CALLBACK_CLIENT_CONSTRUCT,
+	LWS_EXT_CALLBACK_CHECK_OK_TO_REALLY_CLOSE,
+	LWS_EXT_CALLBACK_CHECK_OK_TO_PROPOSE_EXTENSION,
 	LWS_EXT_CALLBACK_DESTROY,
 	LWS_EXT_CALLBACK_DESTROY_ANY_WSI_CLOSING,
 	LWS_EXT_CALLBACK_ANY_WSI_ESTABLISHED,
@@ -681,9 +684,10 @@ lws_b64_decode_string(const char *in, char *out, int out_size);
 
 extern struct libwebsocket_extension libwebsocket_internal_extensions[];
 
-#ifdef WIN32
+
 #ifdef __cplusplus
 }
 #endif
+
 #endif
-#endif
+

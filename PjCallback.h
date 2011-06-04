@@ -82,10 +82,10 @@ public:
 	// static void on_buddy_state_wrapper(pjsua_buddy_id buddy_id);
 
 	// /** callback function, called by wrapper */
-	// void on_reg_state(pjsua_acc_id acc_id);
+    void on_reg_state(pjsua_acc_id acc_id);
 	// /** callback wrapper function called by pjsip
 	//  * Registration state of account changed */
-	// static void on_reg_state_wrapper(pjsua_acc_id acc_id);
+    static void on_reg_state_wrapper(pjsua_acc_id acc_id);
 
 
 	//	/** callback function, called by wrapper */
@@ -158,8 +158,8 @@ signals:
 // 	/* this signal forwards the buddy_id of the buddy whose status changed to the GUI thread */
 // 	void buddy_state(int buddy_id);
 // 	/* this signal forwards the acc_id of the SIP account whose registration status changed */
-// 	void reg_state_signal(int acc_id);
-
+ 	// void reg_state_signal(int acc_id);
+    void sig_reg_state(pjsua_acc_id acc_id);
 
     void sig_make_call_done(int reqno, pj_status_t status, pjsua_call_id call_id);
 };

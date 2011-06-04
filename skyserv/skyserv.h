@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-07-03 15:35:54 +0800
-// Version: $Id: skyserv.h 889 2011-05-25 02:17:11Z drswinghead $
+// Version: $Id: skyserv.h 908 2011-06-02 09:37:45Z drswinghead $
 // 
 
 #ifndef SKYSERV_H
@@ -43,6 +43,7 @@ class NLBridge;
 // 用于switcher和router两种模式，状态机有所不同。
 enum class CallState {
     CS_NONE = 0,
+        CS_WS_CONNECTED,
         CS_CALL_ARRIVED,
         CS_NO_CALL_PAIR,
         CS_CALL_TRANSFERED,
@@ -50,7 +51,6 @@ enum class CallState {
         CS_CALL_REFUSED,
         CS_CALL_FINISHED,
         CS_CALL_ANSWERED,
-        CS_WS_CONNECTED,
 
         CS_ROUTER_CONNECTING_SWITCHER,
         CS_ROUTER_CONNECTED_SWITCHER,
@@ -77,6 +77,8 @@ public:
     }
     QAtomicInt m_ref_count; // for skype call, sip call, ws_sock, so max is 3
     QString callee_name;
+    QString guess_caller_name;
+    QString client_type;
     QString caller_name;
     QString callee_phone;
     QString switcher_name;    // 对于router,需要知道把这个呼叫转到哪个switcher上了。
@@ -219,6 +221,8 @@ private slots:
     bool send_ws_command_117(QString caller_name, QString gateway, int skype_call_id, QString reason);
     bool send_ws_command_118(QString caller_name, QString gateway, int skype_call_id, 
                              QString sip_code, QString reason);
+    bool send_ws_command_119(const QString &caller_name, const QString & gateway, int skype_call_id, 
+                             const QString & guess_caller_name, const QString & reason);
 
     bool send_ws_command_common(QString caller_name, QString cmdstr);
 
@@ -230,14 +234,16 @@ private slots:
 private:
     // boost::shared_ptr<call_meta_info> find_call_meta_info_by_caller_name(QString caller_name, int sip_call_id=-1, int skype_call_id=-1);
 
-    call_meta_info *find_call_meta_info_by_caller_name(QString caller_name);
+    call_meta_info *find_call_meta_info_by_caller_name(QString caller_name, bool reverse);
     call_meta_info *find_call_meta_info_by_skype_call_id(int skype_call_id);
     call_meta_info *find_call_meta_info_by_sip_call_id(int sip_call_id);
     call_meta_info *find_call_meta_info_by_conn_seq(int conn_seq);
     call_meta_info *find_call_meta_info_by_ws_client(WebSocketClient *ws_client);
     // call_meta_info *find_call_meta_info_by_caller_name(QString caller_name);
-    bool remove_call_meta_info(QString caller_name);
+    // bool remove_call_meta_info(QString caller_name);
+    bool remove_call_meta_info(call_meta_info *cmi);
     bool add_call_meta_info(QString caller_name, call_meta_info *cmi);
+    call_meta_info *find_call_meta_info_by_guess(const QString &caller_name, int &guess_count); // 返回的是可能的call meta info 实例
 
 private:
     QDateTime start_time; // 启动时间
@@ -287,7 +293,8 @@ private:
     // 保证这个实例每个key只有一个，改一下方法，使用老的连接，如果新连接来到，老的连接存在，则不受理新的连续
     // 如果老的连接已经存在，则重复使用这一数据结构。
     // 不过在重用旧的数据结构的时候，检测其他几个的状态。
-    QHash<QString, call_meta_info*> ncmis; // call meta data
+    // QHash<QString, call_meta_info*> ncmis; // call meta data
+    QVector<call_meta_info*> ncmis;
     QMutex mutex_ncmi;
     
     // next next way, 再下一种试用的方法

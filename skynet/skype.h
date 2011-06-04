@@ -122,6 +122,9 @@ public slots:
     void onCommandRequest(QString cmd);
 
 signals:
+    // TODO 参数全都改成const QString &，提高健壮性。
+    void skypeNotFound();
+    void skypeLogout();
     void connected(QString skypeName);
     void realConnected(QString skypeName); // skypeName is real not null
     void connectionLost(QString skypeName);

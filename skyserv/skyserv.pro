@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-07-03 14:03:38 +0800
-# Version: $Id: skyserv.pro 865 2011-05-06 06:15:31Z drswinghead $
+# Version: $Id: skyserv.pro 912 2011-06-04 03:00:21Z drswinghead $
 # 
 
 QT       += core gui network
@@ -19,7 +19,7 @@ OBJECTS_DIR = tmp
 # only test qmake pkgconfig support feature
 PKGCONFIG += x11
 
-VERSION = 0.7.80
+VERSION = 0.7.92
 
 #########################
 #QMAKE_CFLAGS += -std=c1x  # newlisp compile faild
@@ -38,7 +38,7 @@ SOURCES += main.cpp skyserv.cpp skyservapplication.cpp \
         pa_ringbuffer.c ringbuffer.c \
         wryip.c websocket.cpp \
         md5.c \
-        ../utils.cpp ../simplelog.cpp \
+        ../utils.cpp ../simplelog.cpp ../ldist.cpp \
         limit_detect.cpp \
         lisp_bridge.cpp
 
@@ -68,6 +68,7 @@ SOURCES += ../libwss/base64-decode.c  \
          #   ../libwss/sha-1.c         \
             ../libwss/client-handshake.c  \
             ../libwss/extension-deflate-stream.c  \
+            ../libwss/extension-x-google-mux.c  \
             ../libwss/libwebsockets.c  \
             ../libwss/parsers.c
 

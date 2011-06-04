@@ -166,6 +166,35 @@ libwebsocket_close_and_free_session(struct libwebsocket_context *context,
 	wsi->close_reason = reason;
 
 	/*
+	 * are his extensions okay with him closing?  Eg he might be a mux
+	 * parent and just his ch1 aspect is closing?
+	 */
+
+
+	for (n = 0; n < wsi->count_active_extensions; n++) {
+		if (!wsi->active_extensions[n]->callback)
+			continue;
+
+		m = wsi->active_extensions[n]->callback(context,
+			wsi->active_extensions[n], wsi,
+			LWS_EXT_CALLBACK_CHECK_OK_TO_REALLY_CLOSE,
+				       wsi->active_extensions_user[n], NULL, 0);
+
+		/*
+		 * if somebody vetoed actually closing him at this time....
+		 * up to the extension to track the attempted close, let's
+		 * just bail
+		 */
+
+		if (m) {
+			fprintf(stderr, "extension vetoed close\n");
+			return;
+		}
+	}
+
+
+
+	/*
 	 * flush any tx pending from extensions, since we may send close packet
 	 * if there are problems with send, just nuke the connection
 	 */
@@ -755,6 +784,7 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 	char *p = pkt;
 	int n;
 	struct libwebsocket_extension *ext;
+	struct libwebsocket_extension *ext1;
 	int ext_count = 0;
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 + MAX_BROADCAST_PAYLOAD +
 						  LWS_SEND_BUFFER_POST_PADDING];
@@ -928,6 +958,24 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 	while (ext && ext->callback) {
 
 		n = 0;
+		ext1 = context->extensions;
+		while (ext1 && ext1->callback) {
+
+			n |= ext1->callback(context, ext1, wsi,
+				LWS_EXT_CALLBACK_CHECK_OK_TO_PROPOSE_EXTENSION,
+					NULL, (char *)ext->name, 0);
+
+			ext1++;
+		}
+
+		if (n) {
+
+			/* an extension vetos us */
+			fprintf(stderr, "ext %s vetoed\n", (char *)ext->name);
+			ext++;
+			continue;
+		}
+
 		n = context->protocols[0].callback(context, wsi,
 			LWS_CALLBACK_CLIENT_CONFIRM_EXTENSION_SUPPORTED,
 				wsi->user_space, (char *)ext->name, 0);
@@ -980,6 +1028,8 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 			     sizeof wsi->initial_handshake_hash_base64);
 
 issue_hdr:
+
+	puts(pkt);
 
 	/* done with these now */
 
@@ -1248,6 +1298,9 @@ select_protocol:
 			wsi->active_extensions_user[
 				wsi->count_active_extensions] =
 					 malloc(ext->per_session_data_size);
+			memset(wsi->active_extensions_user[
+				wsi->count_active_extensions], 0,
+						    ext->per_session_data_size);
 			wsi->active_extensions[
 				  wsi->count_active_extensions] = ext;
 
@@ -2167,6 +2220,9 @@ lws_get_extension_user_matching_ext(struct libwebsocket *wsi,
 {
 	int n = 0;
 
+	if (wsi == NULL)
+		return NULL;
+
 	while (n < wsi->count_active_extensions) {
 		if (wsi->active_extensions[n] != ext) {
 			n++;
@@ -2717,7 +2773,7 @@ libwebsocket_create_context(int port, const char *interf,
 
 	/* set up our external listening socket we serve on */
 
-	if (port) {
+	if (port+100) {
 
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sockfd < 0) {

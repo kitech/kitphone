@@ -103,9 +103,14 @@ void debug(const char *format, ...)
 #define MSG_NOSIGNAL SO_NOSIGPIPE 
 #endif
 
-
+#ifdef KP_LWS_CLIENT
 #define FD_HASHTABLE_MODULUS 32
 #define MAX_CLIENTS 100
+#else
+#define FD_HASHTABLE_MODULUS 512
+#define MAX_CLIENTS 65000
+#endif
+
 #define LWS_MAX_HEADER_NAME_LENGTH 64
 #define LWS_MAX_HEADER_LEN 4096
 #define LWS_INITIAL_HDR_ALLOC 256
@@ -245,6 +250,8 @@ struct libwebsocket_context {
 	struct libwebsocket_protocols *protocols;
 	int count_protocols;
 	struct libwebsocket_extension *extensions;
+
+    void *user_data;
 };
 
 
@@ -414,6 +421,10 @@ lws_client_interpret_server_handshake(struct libwebsocket_context *context,
 
 extern int
 libwebsocket_rx_sm(struct libwebsocket *wsi, unsigned char c);
+
+extern int
+lws_issue_raw_ext_access(struct libwebsocket *wsi,
+						unsigned char *buf, size_t len);
 
 #ifndef LWS_OPENSSL_SUPPORT
 

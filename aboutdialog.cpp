@@ -16,7 +16,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     ,uiw(new Ui::AboutDialog())
 {
     this->uiw->setupUi(this);
-    this->uiw->label_6->setText(KPVERSION_STR);
+    this->uiw->label_6->setText(KP_VERSION_STR);
 }
 
 AboutDialog::~AboutDialog()

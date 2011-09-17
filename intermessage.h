@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2012 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-09-05 21:20:11 +0800
-// Version: $Id: intermessage.h 996 2011-09-16 15:04:24Z drswinghead $
+// Version: $Id: intermessage.h 999 2011-09-17 14:25:17Z drswinghead $
 // 
 
 #ifndef _INTERMESSAGE_H_

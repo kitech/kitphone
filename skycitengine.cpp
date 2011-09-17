@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-09-15 09:32:20 +0000
-// Version: $Id: skycitengine.cpp 998 2011-09-17 11:03:58Z drswinghead $
+// Version: $Id: skycitengine.cpp 999 2011-09-17 14:25:17Z drswinghead $
 // 
 
 #include "simplelog.h"

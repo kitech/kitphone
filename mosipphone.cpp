@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2012 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-08-10 15:11:22 +0000
-// Version: $Id: mosipphone.cpp 998 2011-09-17 11:03:58Z drswinghead $
+// Version: $Id: mosipphone.cpp 999 2011-09-17 14:25:17Z drswinghead $
 // 
 
 // #ifdef WIN32

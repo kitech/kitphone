@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:23:07 +0800
-// Version: $Id: sipphone.cpp 909 2011-06-02 15:11:58Z drswinghead $
+// Version: $Id: sipphone.cpp 932 2011-07-12 09:27:55Z drswinghead $
 // 
 
 #ifdef WIN32
@@ -447,6 +447,7 @@ void SipPhone::onRegisterAccount(QString user_name, const QString serv_addr, boo
     pjsua_acc_config cfg;
     SipAccount sip_acc;
     QString acc_uri;
+    QList<QSqlRecord> recs;
 
     if (!pj_thread_is_registered()) {
         // qLogx()<<"";
@@ -456,14 +457,18 @@ void SipPhone::onRegisterAccount(QString user_name, const QString serv_addr, boo
     if (reg) {
         acc_id = this->_find_account_from_pjacc(user_name, serv_addr);
         // sip_acc = sip_acc.getAccount(user_name); // todo, depcreated
-        Q_ASSERT(sip_acc.userName.isEmpty() == false);
+        // Q_ASSERT(sip_acc.userName.isEmpty() == false);
+        this->m_adb->syncExecute(QString("SELECT * FROM kp_accounts WHERE account_name='%1' AND serv_addr='%2'")
+                                 .arg(user_name).arg(serv_addr), recs);
+        qLogx()<<recs;
 
         pjsua_acc_config_default(&cfg);
         // cfg.id = pj_str(SIP_USER "<sip:" SIP_USER "@" SIP_DOMAIN ">");
-        cfg.id = pj_str(SIP_USER " <sip:" SIP_USER "@"  "sips.qtchina.net:15678>");
+        // cfg.id = pj_str(strdup(QString(SIP_USER " <sip:" SIP_USER "@"  "sips.qtchina.net:15678>").toAscii().data()));
+        cfg.id = pj_str(strdup(QString("%1 <sip:%1@sips.qtchina.net:15678>").arg(user_name).toAscii().data()));
         // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok
         // cfg.reg_uri = pj_str(QString("SIP:%1").arg(sip_acc.domain).toAscii().data());
-        cfg.reg_uri = pj_str(QString("SIP:%1").arg(serv_addr).toAscii().data());
+        cfg.reg_uri = pj_str(strdup(QString("SIP:%1").arg(serv_addr).toAscii().data()));
         // cfg.reg_timeout = 800000000;
         // cfg.publish_enabled = PJ_FALSE;
         // cfg.auth_pref.initial_auth = 0; // no use
@@ -472,9 +477,11 @@ void SipPhone::onRegisterAccount(QString user_name, const QString serv_addr, boo
         // cfg.cred_info[0].realm = pj_str(sip_acc.domain.toAscii().data());
         cfg.cred_info[0].realm = pj_str("*");
         cfg.cred_info[0].scheme = pj_str("digest");
-        cfg.cred_info[0].username = pj_str(sip_acc.userName.toAscii().data());
+        // cfg.cred_info[0].username = pj_str(sip_acc.userName.toAscii().data());
+        cfg.cred_info[0].username = pj_str(strdup(user_name.toAscii().data()));
         cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
-        cfg.cred_info[0].data = pj_str(sip_acc.password.toAscii().data());
+        // cfg.cred_info[0].data = pj_str(sip_acc.password.toAscii().data());
+        cfg.cred_info[0].data = pj_str(strdup(recs.at(0).value("account_password").toString().toAscii().data()));
 
         if (acc_id == -1) {
             status = pjsua_acc_add(&cfg, PJ_TRUE, &acc_id);

@@ -118,7 +118,6 @@ public:
     int lws_ws_message_ready(libwebsocket *wsi, char *msg, size_t len);
 
 private:
-    // QTcpServer *ws_serv_sock;
     QMap<libwebsocket*, QByteArray> pending_conns; // before handshake done
     QMap<libwebsocket*, QByteArray> pending_payload_paths; // before handshake done
     KBiHash<libwebsocket*, qint64> outer_conns; // ws -> conn seq
@@ -157,9 +156,12 @@ public:
 private slots:
     void on_connected_ws_server();
     void on_disconnected_ws_server();
+    void on_backend_error(QAbstractSocket::SocketError socketError);
 
     void on_backend_handshake_ready_read();
     void on_backend_ready_read();
+
+    void on_ping_timeout();
 
 private:
     void initNoiseChars();
@@ -176,6 +178,10 @@ private:
     char noise_chars[128];
     int noise_slen;
     QByteArray expected_digest;
+
+    QTimer *m_ws_ping_timer;
+    unsigned int m_ping_seq;
+    int m_hs_retry;
 
 public: // boost::signals2
     enum class MySignals {
@@ -213,6 +219,7 @@ signals:
     void onError();
     void onDisconnected();
     void onWSMessage(QByteArray msg);
+    void handShakeError();
 };
 
 ///////////////////////////////

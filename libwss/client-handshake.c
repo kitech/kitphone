@@ -304,7 +304,7 @@ libwebsocket_client_connect(struct libwebsocket_context *context,
 		return wsi;
 	}
 
-	fprintf(stderr, "libwebsocket_client_connect: direct conn\n");
+	fprintf(stderr, "libwebsocket_client_connect: direct conn: %d\n", wsi->state);
 
 	return __libwebsocket_client_connect_2(context, wsi);
 

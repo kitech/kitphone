@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:30:38 +0800
-// Version: $Id: sipphone.h 909 2011-06-02 15:11:58Z drswinghead $
+// Version: $Id: sipphone.h 945 2011-08-10 09:33:34Z drswinghead $
 // 
 
 #ifndef _SIPPHONE_H_
@@ -38,6 +38,10 @@ extern "C" {
 // #define TURN_SERVER "turn.qtchina.net"
 //#define TURN_SERVER "turn.qtchina.net"
 #define TURN_PORT "34780"
+
+// public turn server
+// stun.pjsip.org, stunserver.org
+// 
 
 class SipAccount;
 class PjsipCallFront;

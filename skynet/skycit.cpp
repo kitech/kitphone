@@ -16,10 +16,10 @@
 #include <QtCore/QTimer>
 
 
-#include "skype.h"
+#include "skycit.h"
 #include "skypecommand.h"
 
-Skype::Skype(QString AppName)
+Skycit::Skycit(QString AppName)
   : appPrefix(AppName) 
 {
     this->mAttached = false;
@@ -41,7 +41,7 @@ Skype::Skype(QString AppName)
                      this, SLOT(processMessage(const QString)));
 }
 
-Skype::~Skype()
+Skycit::~Skycit()
 {
     if (this->pingTimer != NULL) {
         delete this->pingTimer;
@@ -49,7 +49,7 @@ Skype::~Skype()
     }
 }
 
-QStringList Skype::getContacts() {
+QStringList Skycit::getContacts() {
     if (this->mConnected) {
         if (contactsUpToDate) return contacts;
         doCommand( SkypeCommand::GET_CONTACT_LIST());
@@ -59,12 +59,12 @@ QStringList Skype::getContacts() {
 }
 
 
-void Skype::timeOut() {
+void Skycit::timeOut() {
     qDebug() << "Timeout while waiting for event #"<<waitForResponseID;
     localEventLoop.exit(2);
 }
 
-void Skype::ping() { 
+void Skycit::ping() { 
     // sk.sendMsgToSkype( SkypeCommand::PING() );
     // check if last ping has response
     QString key;
@@ -89,16 +89,16 @@ void Skype::ping() {
     this->doCommand(SkypeCommand::PING());
 }
 
-void Skype::onPingTimeOut()
+void Skycit::onPingTimeOut()
 {
     
 }
 
-void Skype::readIncomingData(QString contactName, int streamNum) {
+void Skycit::readIncomingData(QString contactName, int streamNum) {
     sk.sendMsgToSkype( SkypeCommand::READ_AP2AP(appName, contactName, streamNum) );
 }
 
-void Skype::processMessage(const QString &message) {
+void Skycit::processMessage(const QString &message) {
     QTextCodec *codec = QTextCodec::codecForName("UTF-8");
     // QString u8msg = codec->toUnicode(message.toAscii());
     qDebug() <<__FILE__<<__LINE__<< "SKYPE: <=" << message; // <<QDateTime::currentDateTime(); // << u8msg;
@@ -275,7 +275,7 @@ void Skype::processMessage(const QString &message) {
     }
 }
 
-void Skype::processRouteCallMessage(const QString &message, SkypeResponse &cmd)
+void Skycit::processRouteCallMessage(const QString &message, SkypeResponse &cmd)
 {
     if (cmd.callStatusKey() == "TRANSFER_STATUS") {
         this->activeCalls[cmd.callID().toInt()].TRANSFER_STATUS = cmd.callStatusValue();
@@ -370,7 +370,7 @@ void Skype::processRouteCallMessage(const QString &message, SkypeResponse &cmd)
     }
 }
 
-void Skype::processForwardCallMessage(const QString &message, SkypeResponse &cmd)
+void Skycit::processForwardCallMessage(const QString &message, SkypeResponse &cmd)
 {
     if (cmd.callStatusValue() == "UNPLACED") {
         emit this->newCallArrived(QString(), QString(), cmd.callID().toInt());
@@ -476,23 +476,23 @@ void Skype::processForwardCallMessage(const QString &message, SkypeResponse &cmd
 }
 
 // shoud not be here, maybe in upper level
-void Skype::processAP2APMessage(const QString &message)
+void Skycit::processAP2APMessage(const QString &message)
 {
     
 }
 
-void Skype::processChatMessage(const QString &message)
+void Skycit::processChatMessage(const QString &message)
 {
     
 }
 
-void Skype::processChatMessageMessage(const QString &message)
+void Skycit::processChatMessageMessage(const QString &message)
 {
     
 }
 
 
-int Skype::waitForResponse( QString cID ) 
+int Skycit::waitForResponse( QString cID ) 
 {
     waitingForResponse = true;
     waitForResponseID = cID;
@@ -503,7 +503,7 @@ int Skype::waitForResponse( QString cID )
     return result;
 }
 
-bool Skype::doCommand(QString cmd, bool blocking) 
+bool Skycit::doCommand(QString cmd, bool blocking) 
 {
     QString cID = SkypeCommand::prependID( cmd );
     QString ID = SkypeCommand::getID( cID );
@@ -526,12 +526,12 @@ bool Skype::doCommand(QString cmd, bool blocking)
     } else return true;
 }
 
-void Skype::onCommandRequest(QString cmd)
+void Skycit::onCommandRequest(QString cmd)
 {
     this->doCommand(cmd);
 }
 
-bool Skype::connectToSkype() 
+bool Skycit::connectToSkype() 
 { 
     if (!this->mAttached) {
         this->attachToSkype();
@@ -552,18 +552,18 @@ bool Skype::connectToSkype()
 }
 
 // private:
-bool Skype::attachToSkype()
+bool Skycit::attachToSkype()
 {
     return this->mAttached = this->sk.attachToSkype();
 }
 
 // private:
-bool Skype::publishToSkype()
+bool Skycit::publishToSkype()
 {
     return this->doCommand(SkypeCommand::PUBLISH_SA_NAME(this->appPrefix));
 }
 
-bool Skype::disconnectFromSkype() 
+bool Skycit::disconnectFromSkype() 
 {
     if ( ! this->mConnected) return true;
     // if ( ! doCommand( SkypeCommand::DELETE_AP2AP(appName) ) ) return false;
@@ -574,37 +574,37 @@ bool Skype::disconnectFromSkype()
     return true;
 }
 
-bool Skype::setAutoAway(bool auto_away)
+bool Skycit::setAutoAway(bool auto_away)
 {
     int ok = this->doCommand(SkypeCommand::SET_AUTOAWAY(auto_away));
     return ok;
 }
 
-int Skype::setMute(bool mute)
+int Skycit::setMute(bool mute)
 {
     int ok = this->doCommand(SkypeCommand::SET_MUTE(mute));
     return ok;
 }
 
-bool Skype::getAudioOut()
+bool Skycit::getAudioOut()
 {
     int ok = this->doCommand(SkypeCommand::GET_AUDIO_OUT());
     return ok;
 }
 
-bool Skype::setAudioOut(QString what)
+bool Skycit::setAudioOut(QString what)
 {
     int ok = this->doCommand(SkypeCommand::SET_AUDIO_OUT(what));
     return ok;
 }
 
-void Skype::newStream(QString contact) 
+void Skycit::newStream(QString contact) 
 { 
     int ok = doCommand( SkypeCommand::CONNECT_AP2AP( appName, contact ) );
     Q_ASSERT(ok);
 }
 
-bool Skype::writeToStream(QByteArray data, QString contactName ) 
+bool Skycit::writeToStream(QByteArray data, QString contactName ) 
 {
     // if ( ! activeStream.contains( contactName ) )  return false; // We are not connected to contactName
     if (!this->activeStreams.leftContains(contactName)) return false;
@@ -614,7 +614,7 @@ bool Skype::writeToStream(QByteArray data, QString contactName )
     return true;
 }
 
-QByteArray Skype::readFromStream(QString contactName) {
+QByteArray Skycit::readFromStream(QString contactName) {
     QByteArray ret;
     ret.clear();
     if ( streams.contains( contactName ) ) { 
@@ -625,89 +625,89 @@ QByteArray Skype::readFromStream(QString contactName) {
     return ret;
 }
 
-QString Skype::callFriend(QString contactName)
+QString Skycit::callFriend(QString contactName)
 {
     int ok = doCommand(SkypeCommand::CALL(contactName), false);
     // Q_ASSERT(ok);
     return QString();
 }
 
-int Skype::answerCall(QString callID)
+int Skycit::answerCall(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_STATUS(callID, "ANSWER"), false);
     return 0;
 }
 
-int Skype::setCallHold(QString callID)
+int Skycit::setCallHold(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_STATUS(callID, "HOLD"), false);
     // int ok = doCommand(SkypeCommand::SET_CALL_PROP(callID, "STATUS", "ONHOLD"), false);
     return 0;
 }
 
-int Skype::setCallResume(QString callID)
+int Skycit::setCallResume(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_STATUS(callID, "RESUME"), false);
     // int ok = doCommand(SkypeCommand::SET_CALL_PROP(callID, "STATUS", "RESUME"), false);
     return 0;
 }
 
-int Skype::setCallHangup(QString callID)
+int Skycit::setCallHangup(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_STATUS(callID, "HANGUP"), false);
     // int ok = doCommand(SkypeCommand::SET_CALL_PROP(callID, "STATUS", "HANGUP"), false);
     return 0;
 }
 
-int Skype::setCallMediaInputPort(QString callID, unsigned short port)
+int Skycit::setCallMediaInputPort(QString callID, unsigned short port)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_SET_INPUT_PORT(callID, QString("%1").arg(port)));
     return 0;
 }
 
-int Skype::setCallMediaOutputPort(QString callID, unsigned short port)
+int Skycit::setCallMediaOutputPort(QString callID, unsigned short port)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_SET_OUTPUT_PORT(callID, QString("%1").arg(port)));
     return 0;
 }
 
-int Skype::setCallInputNull(QString callID)
+int Skycit::setCallInputNull(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_SET_INPUT_SOUNDCARD(callID, QString("NULL")));
     return ok;
 }
-int Skype::setCallOutputNull(QString callID)
+int Skycit::setCallOutputNull(QString callID)
 {
     int ok = doCommand(SkypeCommand::ALTER_CALL_SET_OUTPUT_SOUNDCARD(callID, QString("NULL")));
     return ok;
 }
 
-int Skype::setCallInputFile(QString callID, QString file)
+int Skycit::setCallInputFile(QString callID, QString file)
 {
     int ok = this->doCommand(SkypeCommand::ALTER_CALL_SET_INPUT_FILE(callID, file));
     return ok;
 }
 
-int Skype::setCallOutputFile(QString callID, QString file)
+int Skycit::setCallOutputFile(QString callID, QString file)
 {
     int ok = this->doCommand(SkypeCommand::ALTER_CALL_SET_OUTPUT_FILE(callID, file));
     return ok;
 }
 
-int Skype::setCallDTMF(QString callID, QString code)
+int Skycit::setCallDTMF(QString callID, QString code)
 {
     // int ok = this->doCommand(SkypeCommand::SET_CALL_DTMF(callID, code));
     int ok = this->doCommand(SkypeCommand::ALTER_CALL_SET_DTMF(callID, code));
     return ok;
 }
-int Skype::setCallForward(QString callID, QString toh)
+int Skycit::setCallForward(QString callID, QString toh)
 {
     this->doCommand(SkypeCommand::GET_CALL_PROP_EX(callID, QString("CAN_TRANSFER"), toh));
     int ok = this->doCommand(SkypeCommand::ALTER_CALL_SET_TRANSFER(callID, this->handlerName(), toh));
     return ok;
 }
 
-bool Skype::isTransferredCall(QString callID)
+bool Skycit::isTransferredCall(QString callID)
 {
     if (this->activeCalls.contains(callID.toInt())) {
         if (this->activeCalls[callID.toInt()].TRANSFERRED_BY.length() > 0) {
@@ -717,7 +717,7 @@ bool Skype::isTransferredCall(QString callID)
     return false;
 }
 
-QString Skype::callPartnerHandlerName(QString callID)
+QString Skycit::callPartnerHandlerName(QString callID)
 {
   QString partner;
 
@@ -728,7 +728,7 @@ QString Skype::callPartnerHandlerName(QString callID)
   return partner;
 }
 
-int Skype::getCallIdByPartnerName(QString callerName)
+int Skycit::getCallIdByPartnerName(QString callerName)
 {
     int call_id = 0;
 
@@ -747,22 +747,22 @@ int Skype::getCallIdByPartnerName(QString callerName)
     return call_id;
 }
 
-void Skype::clearChatHistory()
+void Skycit::clearChatHistory()
 {
 
 }
-void Skype::clearVoiceMailHistory()
-{
-
-}
-
-void Skype::clearCallHistory()
+void Skycit::clearVoiceMailHistory()
 {
 
 }
 
+void Skycit::clearCallHistory()
+{
 
-bool Skype::sendPackage(QString contactName, int streamNum, QString data)
+}
+
+
+bool Skycit::sendPackage(QString contactName, int streamNum, QString data)
 {
     QString cmd = SkypeCommand::SEND_AP2AP(this->appName, contactName, streamNum, data);
     if (!this->doCommand(cmd)) {
@@ -773,7 +773,7 @@ bool Skype::sendPackage(QString contactName, int streamNum, QString data)
 }
 
 // for client, should use only one stream
-bool Skype::sendPackage(QString contactName, QString data)
+bool Skycit::sendPackage(QString contactName, QString data)
 {
     // qDebug()<<this->activeStream;
     qDebug()<<"current usable streams:"<<this->activeStreams;
@@ -790,13 +790,13 @@ bool Skype::sendPackage(QString contactName, QString data)
     return this->sendPackage(contactName, streamNum, data);
 }
 
-void Skype::onPublished(QString pubName)
+void Skycit::onPublished(QString pubName)
 {
     this->mNamePublished = true;
     this->doCommand(SkypeCommand::PROTOCOL(50));    
 }
 
-void Skype::onConnected(QString skypeName)
+void Skycit::onConnected(QString skypeName)
 {
     Q_UNUSED(skypeName);
     // bool ok = doCommand( SkypeCommand::CREATE_AP2AP(appName) );
@@ -812,7 +812,7 @@ void Skype::onConnected(QString skypeName)
     this->setAutoAway(false);
 }
 
-void Skype::onDisconnected(QString skypeName) 
+void Skycit::onDisconnected(QString skypeName) 
 {
     this->pingTimer->stop();
     this->mConnected = false;

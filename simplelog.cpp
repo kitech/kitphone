@@ -19,7 +19,7 @@
 
 boost::shared_ptr<FileLog> FileLog::mInst = boost::shared_ptr<FileLog>();
 FileLog::FileLog()
-    :QObject()
+//    :QObject()
 {
     this->mStream = new QFile(0);
 

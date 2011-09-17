@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-12-07 11:06:55 +0800
-// Version: $Id: siproom.h 908 2011-06-02 09:37:45Z drswinghead $
+// Version: $Id: siproom.h 926 2011-06-20 09:04:29Z drswinghead $
 // 
 
 
@@ -28,7 +28,7 @@ extern "C" {
 
 /*
   socket msg cmd: binary
-  10(caller_name,callee_phone,sip_serv,skype_call_id,user_ipaddr) call sip phone sk -> sip
+  10(caller_name,callee_phone,sip_serv,skype_call_id,user_ipaddr,switcher) call sip phone sk -> sip
   11(skype_call_id,sip_call_id)  sip call created   sip -> sk
   12(skype_call_id,sip_call_id)  skype user init hangup  sk -> sip
   13(skype_call_id,sip_call_id,last_sip_code)  sip user init hangup    sip -> sk
@@ -57,6 +57,8 @@ extern "C" {
   117(caller_name,forward,skype_call_id,msg)    连接对方话机    R -> C
   118(caller_name,forward,skype_call_id,msg)    对方挂机+原因    R -> C
   119(caller_name,forward,skype_call_id,real_caller_name)  用户名输入错误     R -> C
+  120(caller_name,forward,skype_call_id,"ping")  ping                   C -> R
+  121(caller_name,forward,skype_call_id,"pong")  pong                   R -> C
  */
 
 #define SKXSIP_CMD_BUFFER_LEN  512

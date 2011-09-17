@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-09-08 14:12:07 +0800
-// Version: $Id: skypetunnel.cpp 880 2011-05-16 12:55:07Z drswinghead $
+// Version: $Id: skypetunnel.cpp 998 2011-09-17 11:03:58Z drswinghead $
 // 
 
 #include <QtCore>
@@ -17,7 +17,7 @@
 
 #include "simplelog.h"
 #include "metauri.h"
-#include "skype.h"
+#include "skycit.h"
 
 #include "skypetunnel.h"
 
@@ -38,7 +38,7 @@ SkypeTunnel::~SkypeTunnel()
 
 }
 SkypeAsyncConnector *aconn = nullptr;
-void SkypeTunnel::setSkype(Skype *skype)
+void SkypeTunnel::setSkype(Skycit *skype)
 {
     Q_ASSERT(skype != NULL);
 

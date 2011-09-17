@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:46:42 +0800
-// Version: $Id: kitphone.cpp 903 2011-05-31 10:43:13Z drswinghead $
+// Version: $Id: kitphone.cpp 995 2011-09-16 09:51:17Z drswinghead $
 // 
 
 #include <QtCore>
@@ -12,12 +12,14 @@
 
 #include "boost/smart_ptr.hpp"
 
+#include "ystatusbar.h"
+
 #include "kitphone.h"
 #include "ui_kitphone.h"
 
 #include "aboutdialog.h"
 #include "skypephone.h"
-#include "sipphone.h"
+#include "mosipphone.h"
 
 #include "sipaccount.h"
 
@@ -43,6 +45,10 @@ KitPhone::KitPhone(QWidget *parent)
 
     this->uiw_skype = nullptr;
     this->uiw_sip = nullptr;
+
+
+    this->setWindowIcon(QIcon(":/skins/default/null_team-48.png"));
+    this->custom_status_bar();
 
     this->onSwitchPhoneMode();
 }
@@ -103,7 +109,7 @@ void KitPhone::onSwitchPhoneMode()
 
     // 默认界面模式
     if (action == NULL) {
-        if (1) {
+        if (0) {
             this->uiw_skype = new SkypePhone();
             vlout->addWidget(this->uiw_skype);
             this->uiw_skype->init_status_bar(this->statusBar());
@@ -112,7 +118,7 @@ void KitPhone::onSwitchPhoneMode()
             this->statusBar()->showMessage(tr("Switch to Skype tunnel Phone Mode"));
             this->setWindowTitle(tr("Kitphone - Skype Tunnel Phone"));
         } else {
-            this->uiw_sip = new SipPhone();
+            this->uiw_sip = new MosipPhone(this);
             vlout->addWidget(this->uiw_sip);
             this->resize(this->uiw_sip->width(), this->uiw_sip->height());
             this->statusBar()->showMessage(tr("Switch to Sip Phone mode"));
@@ -127,7 +133,7 @@ void KitPhone::onSwitchPhoneMode()
             this->uiw->actionSkype_Phone_Mode->setChecked(false);
             this->uiw->actionEmpty_Phone_Mode->setChecked(false);
 
-            this->uiw_sip = new SipPhone();
+            this->uiw_sip = new MosipPhone(this);
             vlout->addWidget(this->uiw_sip);
             this->resize(this->uiw_sip->width(), this->uiw_sip->height());
         } else {
@@ -179,4 +185,56 @@ void KitPhone::onSwitchPhoneMode()
     }
 }
 
+// |-status icon tool button-|-status text label-|
+void KitPhone::custom_status_bar()
+{
+    this->esb = new YStatusBar();
+    this->setStatusBar((this->esb));
+
+    this->stb = new QToolButton();
+    this->stb->setIcon(QIcon(":/skins/default/status_offline.png"));
+    this->stb->setAutoRaise(true);
+    this->stb->setPopupMode(QToolButton::InstantPopup);
+    this->stb->setToolTip(tr("Online Status"));
+    this->esb->addWidget(this->stb);
+
+    this->mtb = new QToolButton();
+    this->mtb->setIcon(QIcon(":/skins/default/null_team-32.png"));
+    this->mtb->setIcon(QIcon(":/skype-kitphone.ico"));
+    this->mtb->setIcon(QIcon(":/skins/default/chan_idle.png"));
+    this->mtb->setToolTip(tr("Voice Engine Mode"));
+    this->esb->addPermanentWidget(this->mtb);
+    
+    this->htb = new QToolButton();
+    this->htb->setIcon(QIcon(":/skins/default/quest.png"));
+    this->esb->addPermanentWidget(this->htb);
+
+    // QStatusBar *sb = this->statusBar();
+    // this->sb_status = new QToolButton();
+    // this->sb_status->setText("aaaaaaaa");
+
+
+    // QToolButton *rtb = new QToolButton();
+    // rtb->setText("rrrrrrright");
+    // sb->addPermanentWidget(rtb);
+
+    // // 还要把这句放在所有的QStatusBar调用之后？？？
+    // // ((YStatusBar*)sb)->insertLeftPermanentWidget(0, this->sb_status);
+    // sb->addWidget(this->sb_status);
+
+    // rtb = new QToolButton();
+    // rtb->setText("r222222");
+    // sb->addPermanentWidget(rtb);
+
+    // this->sb_status = new QToolButton();
+    // this->sb_status->setText("aaaa2222");
+    // sb->addWidget(this->sb_status);
+
+    // QLayout *ly = sb->layout();
+    // QHBoxLayout *hly = static_cast<QHBoxLayout*>(ly);
+    // qDebug()<<"status bar layout:"<<ly;
+
+    // hly->insertWidget(0, this->sb_status);
+    // qDebug()<<this->esb<<sb<< (this->esb == (QStatusBar*)sb);
+}
 

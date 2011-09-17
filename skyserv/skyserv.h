@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-07-03 15:35:54 +0800
-// Version: $Id: skyserv.h 908 2011-06-02 09:37:45Z drswinghead $
+// Version: $Id: skyserv.h 927 2011-06-20 09:35:42Z drswinghead $
 // 
 
 #ifndef SKYSERV_H
@@ -164,6 +164,8 @@ public slots:
     void onRouteCallTransferred(int skypeCallID, QString callerName, QString calleeName, QString lastStatus);
     void onRouteCallMissed(int skypeCallID, QString callerName, QString calleeName);
     void onRouteCallRefused(int skypeCallID, QString callerName, QString calleeName);
+    void onRouteCallHangup(QString contactName, QString calleeName, int skypeCallID);
+
     void onNewForwardCallArrived(QString callerName, QString calleeName, int skypeCallID);
     void onSkypeForwardCallAnswered(int skypeCallID, QString callerName, QString calleeName);
     void onSkypeForwardCallHold(int skypeCallID, QString callerName, QString calleeName);
@@ -173,6 +175,8 @@ public slots:
     //                                    QString callee_name, QString participant);
     // void onSkypeForwardCallPstnArrived(int skypeCallID, QString callerName,
     //                                    QString callee_name, QString pstn);
+    // user_name, router_name, gateway_name
+    void onSkypeForwardCallHangup(QString contactName, QString calleeName, int skypeCallID);
     void onSkypeCallHangup(QString contactName, QString calleeName, int skypeCallID);
 
     void processRequest(QString contactName, int stream, SkypePackage *sp);
@@ -227,6 +231,7 @@ private slots:
     bool send_ws_command_common(QString caller_name, QString cmdstr);
 
     // 
+    void on_ws_proxy_handshake_error();
     void on_ws_proxy_connected(QString rpath);
     void on_ws_proxy_message(QByteArray msg);
     void on_ws_proxy_send_message(QString caller_name, QString msg);
@@ -309,6 +314,7 @@ private:
     pthread_t sip_main_thread;
     // bool quit_cleaning; // 退出清理过程，不再处理新的请求，如果有的话。
     std::atomic<bool> quit_cleaning;
+    bool is_router;
 
     WebSocketServer2 *scn_ws_serv2; // skype call notice websocket server
 

@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-12-01 17:12:26 +0800
-# Version: $Id: cppwrapper.pro 780 2011-03-20 15:08:48Z drswinghead $
+# Version: $Id: cppwrapper.pro 965 2011-09-01 05:44:21Z drswinghead $
 # 
 
 TEMPLATE = lib
@@ -44,12 +44,14 @@ SOURCES += $$SKCED/types/skype-int-list.cpp \
 SOURCES += $$SKCED/ipc/skype-clientsession.cpp \  
         $$SKCED/ipc/skype-object.cpp
 
-SOURCES += $$SKCED/api/sidg_skylibevent_dispatch.cpp \
-        $$SKCED/api/sidg_msgs_skylib.cpp  \
-        $$SKCED/api/sidg_skylibaction_call.cpp    \
+SOURCES += $$SKCED/api/sidg_Skypeevent_dispatch.cpp \ 
+        # sidg_skylibevent_dispatch.cpp \
+        #$$SKCED/api/sidg_msgs_skylib.cpp  \
+        $$SKCED/api/sidg_msgs_Skype.cpp  \
+        $$SKCED/api/sidg_Skypeaction_call.cpp    \
         $$SKCED/api/skype-embedded_2.cpp    \
-        $$SKCED/api/sidg_skylibproperty_get_call.cpp      \
-        $$SKCED/api/sidg_skylibrefs.cpp
+        $$SKCED/api/sidg_Skypeproperty_get_call.cpp      \
+        $$SKCED/api/sidg_Skyperefs.cpp
 
 SOURCES += $$SKBD/ipc/cpp/platform/se/SidPlatform.cpp \
         $$SKBD/ipc/cpp/SidSession.cpp \

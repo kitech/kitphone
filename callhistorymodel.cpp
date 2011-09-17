@@ -73,8 +73,11 @@ QModelIndex CallHistoryModel::index(int row, int column,
     boost::shared_ptr<CallHistoryNode> pnode;
 
     if (!parent.isValid()) {
+		if (row < this->mroot->childs.count()) {
         cnode = this->mroot->childs[row];
         idx = this->createIndex(row, column, cnode.get());
+		} else {
+		}
     } else {
         // should no model for this case
     }

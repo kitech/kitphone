@@ -116,7 +116,7 @@ bool Database::reconnectdb()
 }
 
 
-int Database::acquireGateway(QString caller_name, QString callee_phone, QString &gateway,
+int Database::acquireGateway(const QString &caller_name, const QString &callee_phone, QString &gateway,
                              unsigned short &port, QString &ipaddr)
 {
     gateway = QString::null;
@@ -166,6 +166,7 @@ int Database::acquireGateway(QString caller_name, QString callee_phone, QString 
 
     int rand_key = time(NULL) + qrand();
     int upcnt = 0;
+    char *ptr = NULL;
     QString same_net_clause = " 1=1 ";
 
     if (!ipaddr.isEmpty()) {
@@ -182,6 +183,7 @@ int Database::acquireGateway(QString caller_name, QString callee_phone, QString 
     PGresult *pres = PQexec(this->conn, sql.toAscii().data());
     if (PQresultStatus(pres) == PGRES_COMMAND_OK) {
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }
@@ -203,7 +205,7 @@ int Database::acquireGateway(QString caller_name, QString callee_phone, QString 
     return 200;
 }
 
-int Database::releaseGateway(QString caller_name, QString gateway)
+int Database::releaseGateway(const QString &caller_name, const QString &gateway)
 {
     // 200 ok, 404 not found, 500 internal error
     QString esc_caller_name, esc_gateway;
@@ -235,12 +237,14 @@ int Database::releaseGateway(QString caller_name, QString gateway)
     // }
 
     int upcnt = 0;
+    char *ptr = NULL;
     QString sql = QString("UPDATE skype_gateways SET in_use = 0, lock_time=NOW() WHERE skype_id='%1' AND in_use=1").arg(esc_gateway);
     qDebug()<<sql;
 
     PGresult *pres = PQexec(this->conn, sql.toAscii().data());
     if (PQresultStatus(pres) == PGRES_COMMAND_OK) {
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }
@@ -312,7 +316,8 @@ QString Database::getForwardPhone(QString caller_name, QString gateway)
     return callee_phone;
 }
 
-int Database::setCallPair(QString caller_name, QString callee_phone, QString remote_ipaddr, QStringList &routers)
+// int Database::setCallPair(QString caller_name, QString callee_phone, QString remote_ipaddr, QStringList &routers)
+int Database::setCallPair(const QString &caller_name, const QString &callee_phone, const QString &remote_ipaddr, QStringList &routers)
 {
     QString esc_caller_name, esc_callee_phone;
     size_t slen = 0;
@@ -323,8 +328,9 @@ int Database::setCallPair(QString caller_name, QString callee_phone, QString rem
 
     this->reconnectdb();
 
+    QString callee_phone_formated = callee_phone;
     if (callee_phone.left(1) == "*") {
-        callee_phone = QString("99008668056") + callee_phone.right(callee_phone.length()-1);
+        callee_phone_formated = QString("99008668056") + callee_phone.right(callee_phone.length()-1);
     } else if (callee_phone.startsWith("9900866")) {
     } else {
         // wrong phone_number;
@@ -338,11 +344,11 @@ int Database::setCallPair(QString caller_name, QString callee_phone, QString rem
         qDebug()<<"Warning: escape gateway error:"<<caller_name<<errval; 
     }
 
-    slen = PQescapeStringConn(this->conn, str, callee_phone.toAscii().data(), callee_phone.length(), &errval);
+    slen = PQescapeStringConn(this->conn, str, callee_phone_formated.toAscii().data(), callee_phone_formated.length(), &errval);
     if (errval == 0) {
         esc_callee_phone = QString(str);
     } else {
-        qDebug()<<"Warning: escape gateway error:"<<callee_phone<<errval; 
+        qDebug()<<"Warning: escape gateway error:"<<callee_phone_formated<<errval; 
     }
 
     // for postgresql 9.x
@@ -355,7 +361,7 @@ int Database::setCallPair(QString caller_name, QString callee_phone, QString rem
     // }
     
     sql = QString("SELECT merge_replace_skype_call_pairs('%1', '%2', '%3')")
-      .arg(esc_caller_name).arg(esc_callee_phone).arg(remote_ipaddr);
+        .arg(esc_caller_name).arg(esc_callee_phone).arg(remote_ipaddr);
     PGresult *pres = PQexec(this->conn, sql.toAscii().data());
     if (PQresultStatus(pres) == PGRES_COMMAND_OK
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
@@ -367,7 +373,7 @@ int Database::setCallPair(QString caller_name, QString callee_phone, QString rem
     }
     PQclear(pres);
 
-    sql = QString("SELECT skype_id,in_service FROM skype_routers WHERE in_service=1 ORDER BY random() LIMIT 3");
+    sql = QString("SELECT skype_id,in_service FROM skype_routers WHERE in_service=1 ORDER BY random() LIMIT 5");
     pres = PQexec(this->conn, sql.toAscii().data());
     if (PQresultStatus(pres) == PGRES_COMMAND_OK
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
@@ -393,7 +399,7 @@ int Database::setCallPair(QString caller_name, QString callee_phone, QString rem
     return 200;
 }
 
-QString Database::getCallPeer(QString caller_name, QString &caller_ipaddr)
+QString Database::getCallPeer(const QString &caller_name, QString &caller_ipaddr)
 {
     QString callee_phone = QString::null;
     QString update_time;
@@ -444,6 +450,10 @@ QString Database::getCallPeer(QString caller_name, QString &caller_ipaddr)
         qDebug()<<sql<<callee_phone<<update_time;
     } else {
         qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"not found:"<<caller_name;
+        sql = sql.replace("60.0", "600.0");
+        pres = PQexec(this->conn, sql.toAscii().data());
+        upcnt = PQntuples(pres);
+        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Retry get by enlarge area:"<<caller_name<<upcnt;
     }
     PQclear(pres);
     
@@ -451,7 +461,8 @@ QString Database::getCallPeer(QString caller_name, QString &caller_ipaddr)
 }
 
 /////////////
-bool Database::removeCallPair(QString caller_name)
+// TODO, 在计算查询时间长度时应该算上用户的通话时长，否则会有许多清除不掉的记录。
+bool Database::removeCallPair(const QString &caller_name)
 {
     this->reconnectdb();
 
@@ -488,6 +499,7 @@ bool Database::removeCallPair(QString caller_name)
     
     // here, the delta time should be large, because user answered time is included
     int upcnt = 0;
+    char *ptr = NULL;
     QString sql;
     if (real_remove == true) {
         sql = QString("DELETE FROM skype_callpairs WHERE skype_id='%1' AND EXTRACT(EPOCH from NOW()-lock_time) < 86400.0").arg(esc_caller_name);
@@ -501,6 +513,7 @@ bool Database::removeCallPair(QString caller_name)
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
         upcnt = PQntuples(pres);
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }
@@ -516,7 +529,7 @@ bool Database::removeCallPair(QString caller_name)
     return false;
 }
 
-bool Database::setForwardPort(QString gateway, unsigned short port, QString ipaddr)
+bool Database::setForwardPort(const QString &gateway, unsigned short port, const QString &ipaddr)
 {
     this->reconnectdb();
 
@@ -550,6 +563,7 @@ bool Database::setForwardPort(QString gateway, unsigned short port, QString ipad
     
     // here, the delta time should be large, because user answered time is included
     int upcnt = 0;
+    char *ptr = NULL;
     QString sql;
     sql = QString("UPDATE skype_gateways SET ws_port=%1, ws_ipaddr='%2', lock_time=NOW() WHERE skype_id='%3'")
         .arg(port).arg(ipaddr).arg(esc_gateway);
@@ -560,6 +574,7 @@ bool Database::setForwardPort(QString gateway, unsigned short port, QString ipad
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
         upcnt = PQntuples(pres); 
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }
@@ -575,7 +590,7 @@ bool Database::setForwardPort(QString gateway, unsigned short port, QString ipad
     return false;
 }
 
-unsigned short Database::getForwardPort(QString caller_name, QString &ipaddr)
+unsigned short Database::getForwardPort(const QString &caller_name, QString &ipaddr)
 {
     
     return 0;
@@ -616,6 +631,7 @@ bool Database::setLineState(QString gateway, int state)
     
     // here, the delta time should be large, because user answered time is included
     int upcnt = 0;
+    char *ptr = NULL;
     QString sql;
     sql = QString("UPDATE skype_gateways SET in_use=%1, lock_time=NOW() WHERE skype_id='%2'")
         .arg(state).arg(esc_gateway);
@@ -626,6 +642,7 @@ bool Database::setLineState(QString gateway, int state)
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
         upcnt = PQntuples(pres); 
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }
@@ -679,6 +696,7 @@ bool Database::setBatchLineState(QStringList & gateways, int state)
     
     // here, the delta time should be large, because user answered time is included
     int upcnt = 0;
+    char *ptr = NULL;
     QString sql;
     sql = QString("UPDATE skype_gateways SET in_use=%1, lock_time=NOW() WHERE skype_id in (%2)")
         .arg(state).arg(gw_names);
@@ -689,6 +707,7 @@ bool Database::setBatchLineState(QStringList & gateways, int state)
         || PQresultStatus(pres) == PGRES_TUPLES_OK) {
         upcnt = PQntuples(pres); 
         upcnt = atoi(PQcmdTuples(pres));
+        upcnt = strtol(PQcmdTuples(pres), &ptr, 10);
     } else {
         qDebug()<<"PQexec error: "<<PQresultStatus(pres)<<QString(PQerrorMessage(this->conn));
     }

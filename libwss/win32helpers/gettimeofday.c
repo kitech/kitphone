@@ -5,6 +5,13 @@
 #else
   #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
 #endif
+
+#ifdef _WIN32
+struct timeval {
+    long tv_sec;
+    long tv_usec;
+};
+#endif
  
 struct timezone 
 {

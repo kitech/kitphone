@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-09-08 14:11:53 +0800
-// Version: $Id: skypetunnel.h 851 2011-04-25 12:05:48Z drswinghead $
+// Version: $Id: skypetunnel.h 998 2011-09-17 11:03:58Z drswinghead $
 // 
 
 #ifndef _SKYPETUNNEL_H_
@@ -16,7 +16,7 @@
 #include <QNetworkReply>
 
 class SkypePackage;
-class Skype;
+class Skycit;
 
 class SkypeAsyncConnector : public QThread
 {
@@ -30,7 +30,7 @@ public:
 private slots:
     
 public:
-    Skype *mSkype;
+    Skycit *mSkype;
 };
 
 class SkypeTunnel : public QObject
@@ -40,7 +40,7 @@ public:
     SkypeTunnel(QObject *parent = 0);
     virtual ~SkypeTunnel();
 
-    void setSkype(Skype *skype);
+    void setSkype(Skycit *skype);
     void setStreamPeer(QString streamPeerName);
     void setPhoneNumber(QString phoneNumber);
 
@@ -69,7 +69,7 @@ private slots:
     void onPresendReadyRead();
 
 private:
-    Skype *mSkype;
+    Skycit *mSkype;
     QString mStreamPeerName;
     QTimer *mStreamReconnectTimer;
     int mStreamReconnectRetry;

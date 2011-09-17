@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:28:31 +0800
-// Version: $Id: sipaccountswindow.cpp 876 2011-05-11 14:25:21Z drswinghead $
+// Version: $Id: sipaccountswindow.cpp 956 2011-08-24 08:53:52Z drswinghead $
 // 
 
 #include "boost/signals2.hpp"
@@ -44,13 +44,13 @@ SipAccountsWindow::SipAccountsWindow(boost::shared_ptr<AsyncDatabase> adb, QWidg
                      this, SLOT(onMakeDefaultAccount()));
     
     // this->reload();
-    this->uiw->tableWidget->setColumnWidth(0, 60);
-    this->uiw->tableWidget->setColumnWidth(1, 60);
-    this->uiw->tableWidget->setColumnWidth(2, 130);
-    this->uiw->tableWidget->setColumnWidth(3, 200);
-    this->uiw->tableWidget->setColumnWidth(4, 200);
-    this->uiw->tableWidget->setColumnWidth(5, 200);
-    this->uiw->tableWidget->setColumnWidth(6, 100);
+    // this->uiw->tableWidget->setColumnWidth(0, 60);
+    // this->uiw->tableWidget->setColumnWidth(1, 60);
+    // this->uiw->tableWidget->setColumnWidth(2, 130);
+    // this->uiw->tableWidget->setColumnWidth(3, 200);
+    // this->uiw->tableWidget->setColumnWidth(4, 200);
+    // this->uiw->tableWidget->setColumnWidth(5, 200);
+    // this->uiw->tableWidget->setColumnWidth(6, 100);
 
     QTimer::singleShot(20, this, SLOT(onGetAllAccounts()));
 }
@@ -84,7 +84,7 @@ void SipAccountsWindow::onNewAccount()
         req->mCbObject = this;
         req->mCbSlot = SLOT(onNewAccountDone(boost::shared_ptr<SqlRequest>));
         req->mSql = QString("INSERT INTO kp_accounts (account_name, account_password, display_name, serv_addr, account_status, account_ctime, account_mtime) VALUES ('%1', '%2', '%3', '%4' , '%5', '%6', '%6')")
-            .arg(acc.userName).arg(acc.password).arg(acc.userName)
+            .arg(acc.userName).arg(acc.password).arg(acc.displayName)
             .arg(acc.domain).arg(0)
             .arg(nowtime.toString());
         req->mReqno = this->m_adb->execute(req->mSql);
@@ -155,7 +155,7 @@ void SipAccountsWindow::onModifyAccount()
         req->mCbObject = this;
         req->mCbSlot = SLOT(onModifyAccountDone(boost::shared_ptr<SqlRequest>));
         req->mSql = QString("UPDATE kp_accounts SET account_name='%1', account_password='%2', display_name='%3', serv_addr='%4', account_status='%5', account_mtime='%6' WHERE aid=%7")
-            .arg(acc.userName).arg(acc.password).arg(acc.userName)
+            .arg(acc.userName).arg(acc.password).arg(acc.displayName)
             .arg(acc.domain).arg(0)
             .arg(nowtime.toString()).arg(acc.uid);
         req->mReqno = this->m_adb->execute(req->mSql);
@@ -178,55 +178,22 @@ void SipAccountsWindow::onMakeDefaultAccount()
 {
 }
 
-// depcreated
-// void SipAccountsWindow::reload()
-// {
-//     QTableWidgetItem *item;
-//     QVector<SipAccount> accs;
-//     SipAccount acc;
-//     QCheckBox *cbox;
-
-//     // this->uiw->tableWidget->clear();
-//     for (int i = this->uiw->tableWidget->rowCount() - 1; i >= 0 ; --i) {
-//         this->uiw->tableWidget->removeRow(i);    
-//     }
-//     accs = SipAccount().listAccounts();
-//     // qDebug()<<accs.count();
-//     for (int i = 0 ; i < accs.count() ; i++) {
-//         acc = accs.at(i);
-//         this->uiw->tableWidget->insertRow(i);
-//         cbox = new QCheckBox();
-//         this->uiw->tableWidget->setCellWidget(i, 0, cbox);
-//         cbox->setChecked(false);
-//         QObject::connect(cbox, SIGNAL(toggled(bool)),
-//                          this, SLOT(onSetLogin(bool)));
-
-//         this->uiw->tableWidget->setItem(i, 1, new QTableWidgetItem());
-//         this->uiw->tableWidget->item(i, 1)->setText(QString::number(i+1));
-//         item = this->uiw->tableWidget->item(i, 2);
-//         item = new QTableWidgetItem();
-//         item->setText(acc.userName);
-//         this->uiw->tableWidget->setItem(i, 2, item);
-//         item = this->uiw->tableWidget->item(i, 3);
-//         item = new QTableWidgetItem();
-//         item->setText(acc.domain);
-//         this->uiw->tableWidget->setItem(i, 3, item);
-//     }
-// }
 
 void SipAccountsWindow::onSetLogin(bool checked)
 {
     qDebug()<<__FILE__<<__LINE__<<checked;
     QWidget *cbox = static_cast<QWidget*>(sender());
     QWidget *tbox;
-    QString user_name;
+    QString user_name, display_name, serv_addr;
 
     for (int i = 0 ; i < this->uiw->tableWidget->rowCount(); i ++) {
         tbox = this->uiw->tableWidget->cellWidget(i, 0);
         if (cbox == tbox) {
             // 
+            display_name = this->uiw->tableWidget->item(i, 1)->text();
             user_name = this->uiw->tableWidget->item(i, 2)->text();
-            emit this->accountWantRegister(user_name, checked);
+            serv_addr = this->uiw->tableWidget->item(i, 3)->text();
+            emit this->accountWantRegister(display_name, user_name, serv_addr, checked);
             break;
         }
     }
@@ -237,12 +204,15 @@ void SipAccountsWindow::onSetLogin(bool checked)
 SipAccount SipAccountsWindow::accountFromRow(int row)
 {
     SipAccount acc;
+    QCheckBox *cbox = NULL;
 
-    acc.uid = this->uiw->tableWidget->item(row, 1)->text().toInt();
+    cbox = static_cast<QCheckBox*>(this->uiw->tableWidget->cellWidget(row, 0));
+    acc.uid = cbox->text().toInt();
     acc.userName = this->uiw->tableWidget->item(row, 2)->text();
-    acc.displayName = acc.userName;
+    acc.displayName = this->uiw->tableWidget->item(row, 1)->text();
     acc.domain = this->uiw->tableWidget->item(row, 3)->text();
-    acc.password = this->uiw->tableWidget->item(row, 6)->text();
+    acc.mtime = this->uiw->tableWidget->item(row, 4)->text();
+    acc.password = this->uiw->tableWidget->item(row, 5)->text();
 
     return acc;
 }
@@ -298,32 +268,35 @@ bool SipAccountsWindow::onAccountListArrived(const QList<QSqlRecord> & results)
         cbox = new QCheckBox();
         this->uiw->tableWidget->setCellWidget(row_count, 0, cbox);
         cbox->setChecked(false);
+        cbox->setText(QString::number(acc.uid));
         QObject::connect(cbox, SIGNAL(toggled(bool)),
                          this, SLOT(onSetLogin(bool)));
 
-        this->uiw->tableWidget->setItem(row_count, 1, new QTableWidgetItem());
-        // this->uiw->tableWidget->item(row_count, 1)->setText(QString::number(row_count+1));
-        this->uiw->tableWidget->item(row_count, 1)->setText(QString::number(acc.uid));
-        item = this->uiw->tableWidget->item(row_count, 2);
+        // this->uiw->tableWidget->setItem(row_count, 1, new QTableWidgetItem());
+        // this->uiw->tableWidget->item(row_count, 1)->setText(QString::number(acc.uid));
+
+        item = this->uiw->tableWidget->item(row_count, 1);
+        item = new QTableWidgetItem();
+        item->setText(acc.displayName);
+        this->uiw->tableWidget->setItem(row_count, 1, item);
+        item = this->uiw->tableWidget->item(row_count, 1);
+
         item = new QTableWidgetItem();
         item->setText(acc.userName);
         this->uiw->tableWidget->setItem(row_count, 2, item);
-        item = this->uiw->tableWidget->item(row_count, 3);
+        item = this->uiw->tableWidget->item(row_count, 2);
+
         item = new QTableWidgetItem();
         item->setText(acc.domain);
         this->uiw->tableWidget->setItem(row_count, 3, item);
 
         item = new QTableWidgetItem();
-        item->setText(acc.ctime);
+        item->setText(acc.mtime);
         this->uiw->tableWidget->setItem(row_count, 4, item);
 
         item = new QTableWidgetItem();
-        item->setText(acc.mtime);
-        this->uiw->tableWidget->setItem(row_count, 5, item);
-
-        item = new QTableWidgetItem();
         item->setText(acc.password);
-        this->uiw->tableWidget->setItem(row_count, 6, item);
+        this->uiw->tableWidget->setItem(row_count, 5, item);
 
         if (this->m_list_inited == true) {
             emit this->accountAdded(acc);
@@ -383,17 +356,14 @@ bool SipAccountsWindow::onRemoveAccountDone(boost::shared_ptr<SqlRequest> req)
 
 bool SipAccountsWindow::onModifyAccountDone(boost::shared_ptr<SqlRequest> req)
 {
-    QWidget *tbox;
+    QCheckBox *cbox;
     QString user_name;
     QTableWidgetItem *item;
     SipAccount acc;
 
     for (int i = 0 ; i < this->uiw->tableWidget->rowCount(); i ++) {
-        // tbox = this->uiw->tableWidget->cellWidget(i, 0);
-        // if (cbox == tbox) {
-        //   
-        item = this->uiw->tableWidget->item(i, 1);
-        if (req->mCbId == item->text().toInt()) {
+        cbox = static_cast<QCheckBox*>(this->uiw->tableWidget->cellWidget(i, 0));
+        if (req->mCbId == cbox->text().toInt()) {
             acc = this->accountFromRow(i);
             this->uiw->tableWidget->removeRow(i);
             emit this->accountRemoved(acc);

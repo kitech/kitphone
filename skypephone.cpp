@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-10-20 17:20:22 +0800
-// Version: $Id: skypephone.cpp 908 2011-06-02 09:37:45Z drswinghead $
+// Version: $Id: skypephone.cpp 998 2011-09-17 11:03:58Z drswinghead $
 // 
 
 #include <QtCore>
@@ -17,7 +17,7 @@
 #include "skypephone.h"
 
 #include "metauri.h"
-#include "skype.h"
+#include "skycit.h"
 #include "skypetunnel.h"
 #include "skypetracer.h"
 
@@ -39,8 +39,8 @@
   现阶段，还不能完全使用新的方式，还需要以页面拨打方式为主。
  */
 SkypePhone::SkypePhone(QWidget *parent)
-    :QWidget(parent),
-     uiw(new Ui::SkypePhone())
+    :QWidget(parent)
+    , uiw(new Ui::SkypePhone())
 {
     this->uiw->setupUi(this);
 
@@ -282,7 +282,7 @@ void SkypePhone::onInitPstnClient()
         delete this->mSkype;
         this->mSkype = NULL;
     }
-    this->mSkype = new Skype("karia2");
+    this->mSkype = new Skycit("karia2");
     this->mSkype->setRunAsClient();
     // this->mSkype->connectToSkype();
     QObject::connect(this->mSkype, SIGNAL(skypeError(int, QString, QString)),
@@ -1117,6 +1117,7 @@ void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, 
     bool qret;
     QMetaMethod qmethod;
     char raw_method_name[32] = {0};
+    int slot_idx = -1;
 
     if (this->mRequests.contains(reqno)) {
         req = this->mRequests[reqno];
@@ -1126,7 +1127,9 @@ void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, 
         req->mResults = results;
 
         // 实现方法太多，还要随机使用一种方法，找麻烦
-        if (qrand() % 2 == 1) {
+	// 第二种方式在windows7会出现崩溃
+        // if (qrand() % 2 == 1) {
+	if (1) {
             cb_functor = req->mCbFunctor;
             bret = cb_functor(req);
         } else {
@@ -1144,12 +1147,14 @@ void SkypePhone::onSqlExecuteDone(const QList<QSqlRecord> & results, int reqno, 
                 raw_method_name[j++] = cb_slot[i];
             }
             Q_ASSERT(strlen(raw_method_name) > 0);
-            Q_ASSERT(cb_obj->metaObject()->indexOfSlot(raw_method_name) != -1);
+	    slot_idx = cb_obj->metaObject()->indexOfSlot(raw_method_name);
+	    qDebug()<<"qinvokde2:"<<slot_idx<<raw_method_name;
+            // Q_ASSERT(cb_obj->metaObject()->indexOfSlot(raw_method_name) != -1);
             bret = QMetaObject::invokeMethod(cb_obj, raw_method_name,
                                              Q_RETURN_ARG(bool, qret),
                                              Q_ARG(boost::shared_ptr<SqlRequest>, req));
-            // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<SqlRequest>))));
-            // bret = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
+            // qmethod = cb_obj->metaObject()->method(cb_obj->metaObject()->indexOfSlot(SLOT(onAddContactDone(boost::shared_ptr<bret>))));
+            // SqlRequest = qmethod.invoke(cb_obj, Q_RETURN_ARG(bool, qret),
             //                        Q_ARG(boost::shared_ptr<SqlRequest>, req));
             // qDebug()<<cb_obj->metaObject()->indexOfSlot(cb_slot);
         }
@@ -1311,3 +1316,4 @@ void SkypePhone::log_output(int type, const QString &log)
     }
     qLogx()<<type<<u16_log;
 }
+

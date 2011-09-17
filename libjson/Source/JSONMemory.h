@@ -47,19 +47,19 @@
     template <typename T> static inline T * json_malloc(size_t count) json_malloc_attr;
     template <typename T> static inline T * json_malloc(size_t count) json_nothrow {
 	   #ifdef JSON_DEBUG  //in debug mode, see if the malloc was successful
-		  void * result = malloc(count * sizeof(T));
-		  JSON_ASSERT(result != 0, JSON_TEXT("out of memory"));
+		  void * result = std::malloc(count * sizeof(T));
+		  JSON_ASSERT(result != 0, JSON_TEXT("Out of memory"));
 		  #ifdef JSON_NULL_MEMORY
-			 memset(result, '\0', count  * sizeof(T));
+			 std::memset(result, '\0', count  * sizeof(T));
 		  #endif
 		  return (T *)result;
 	   #else
-		  return (T *)malloc(count * sizeof(T));
+		  return (T *)std::malloc(count * sizeof(T));
 	   #endif
     }
 
     template <typename T> static inline void libjson_free(T * JSON_FREE_PASSTYPE ptr) json_nothrow {
-	   free(ptr);
+	   std::free(ptr);
 	   #if defined(JSON_DEBUG) || defined(JSON_SAFE)  //in debug or safe mode, set the pointer to 0 so that it can't be used again
 		  ptr = 0;
 	   #endif
@@ -68,14 +68,11 @@
     template <typename T> static inline T * json_realloc(T * ptr, size_t count) json_malloc_attr;
     template <typename T> static inline T * json_realloc(T * ptr, size_t count) json_nothrow {
 	   #ifdef JSON_DEBUG  //in debug mode, check the results of realloc to be sure it was successful
-		  void * result = realloc(ptr, count * sizeof(T));
-		  JSON_ASSERT(result != 0, JSON_TEXT("out of memory"));
-		  #ifdef JSON_NULL_MEMORY
-			 memset(result, '\0', count  * sizeof(T));
-		  #endif
+		  void * result = std::realloc(ptr, count * sizeof(T));
+		  JSON_ASSERT(result != 0, JSON_TEXT("Out of memory"));
 		  return (T *)result;
 	   #else
-		  return (T *)realloc(ptr, count * sizeof(T));
+		  return (T *)std::realloc(ptr, count * sizeof(T));
 	   #endif
     }
 #endif
@@ -89,12 +86,12 @@
 	   void purge(void) json_nothrow;
 	   inline void clear(void) json_nothrow { purge(); mymap.clear(); }
 	   inline void * insert(void * ptr) json_nothrow { mymap[ptr] = ptr; return ptr; }
-	   inline void remove(void * ptr) json_nothrow { 
-		  std::map<void *, void *>::iterator i = mymap.find(ptr);
+	   inline void remove(void * ptr) json_nothrow {
+		  JSON_MAP(void *, void *)::iterator i = mymap.find(ptr);
 		  JSON_ASSERT(i != mymap.end(), JSON_TEXT("Removing a non-managed item"));
 		  mymap.erase(i);
 	   }
-	   std::map<void *, void *> mymap;
+	   JSON_MAP(void *, void *) mymap;
     };
 
     struct auto_expand_node {
@@ -103,11 +100,11 @@
 	   void purge(void) json_nothrow ;
 	   inline void clear(void) json_nothrow { purge(); mymap.clear(); }
 	   inline JSONNode * insert(JSONNode * ptr) json_nothrow { mymap[ptr] = ptr; return ptr; }
-	   inline void remove(void * ptr) json_nothrow { 
-		  std::map<void *, JSONNode *>::iterator i = mymap.find(ptr);
+	   inline void remove(void * ptr) json_nothrow {
+		  JSON_MAP(void *, JSONNode *)::iterator i = mymap.find(ptr);
 		  if(json_likely(i != mymap.end())) mymap.erase(i);
 	   }
-	   std::map<void *, JSONNode *> mymap;
+	   JSON_MAP(void *, JSONNode *) mymap;
     };
 
     #ifdef JSON_STREAM
@@ -118,11 +115,11 @@
 		  void purge(void) json_nothrow ;
 		  inline void clear(void) json_nothrow { purge(); mymap.clear(); }
 		  inline JSONStream * insert(JSONStream * ptr) json_nothrow { mymap[ptr] = ptr; return ptr; }
-		  inline void remove(void * ptr) json_nothrow { 
-			 std::map<void *, JSONStream *>::iterator i = mymap.find(ptr);
+		  inline void remove(void * ptr) json_nothrow {
+			 JSON_MAP(void *, JSONStream *)::iterator i = mymap.find(ptr);
 			 if(json_likely(i != mymap.end())) mymap.erase(i);
 		  }
-		  std::map<void *, JSONStream *> mymap;
+		  JSON_MAP(void *, JSONStream *) mymap;
 	   };
     #endif
 #endif
@@ -133,11 +130,12 @@ class json_auto {
     public:
 	   json_auto(void) json_nothrow : ptr(0){}
 	   json_auto(size_t count) json_nothrow : ptr(json_malloc<T>(count)){}
+	   json_auto(T * arg) json_nothrow : ptr(arg){}
 	   ~json_auto(void) json_nothrow {
 		  libjson_free<T>(ptr);
 	   }
 	   inline void set(T * p) json_nothrow{
-		  ptr = p; 
+		  ptr = p;
 	   }
 	   T * ptr;
     private:

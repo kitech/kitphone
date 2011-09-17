@@ -64,7 +64,7 @@ boost::shared_ptr<NetworkChecker> NetworkChecker::instance()
 
 void NetworkChecker::run()
 {
-    emit this->whatToDoNext();
+    //emit this->whatToDoNext();
     this->exec();
 }
 

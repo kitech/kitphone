@@ -52,7 +52,7 @@ SOURCES += $$SKBD/ipc/cpp/ssl/cyassl/src/cyassl_io.c \
         $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/asn.c \
         $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/rsa.c \
         $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/arc4.c \
-        $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/misc.c \
+#        $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/misc.c \
         $$SKBD/ipc/cpp/ssl/cyassl/ctaocrypt/src/integer.c
 
 

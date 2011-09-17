@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL:
 // Created: 2010-07-03 15:35:48 +0800
-// Version: $Id: skyserv.cpp 912 2011-06-04 03:00:21Z drswinghead $
+// Version: $Id: skyserv.cpp 928 2011-06-20 10:05:22Z drswinghead $
 //
 
 #include <sys/socket.h>
@@ -64,6 +64,7 @@ SkyServ::SkyServ(QObject *parent)
 
     this->init_unix_signal_handlers();
     this->quit_cleaning = false;
+    this->is_router = false;
 
     this->start_time = QDateTime::currentDateTime();
     this->first_reconnect_times = 0;
@@ -461,11 +462,23 @@ void SkyServ::onSkypeConnected(QString skypeName)
 
 void SkyServ::onSkypeRealConnected(QString skypeName)
 {
-  qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<skypeName<<this->mSkype->handlerName();
+    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<skypeName<<this->mSkype->handlerName();
 
-  this->first_connected = true;
+    this->first_connected = true;
+  
+    QStringList router_names;
+    // this->mSkype->setSpecifiedRouters(Configs().getSkypeRouters());
+    auto routers = Configs().getSkypeRouters();
+    std::for_each(routers.begin(), routers.end(),
+                  [&] (QPair<QString,QString> &elm) {
+                      router_names << elm.first;
+                  });
 
-  this->init_ws_serv(skypeName);
+    if (router_names.contains(skypeName)) {
+        this->is_router = true;
+    }
+
+    this->init_ws_serv(skypeName);
 }
 
 void SkyServ::onSkypeDisconnected(QString skypeName)
@@ -476,8 +489,8 @@ void SkyServ::onSkypeDisconnected(QString skypeName)
 
 bool SkyServ::init_ws_serv(QString handle_name)
 {
-    QStringList router_names;
-    auto routers = Configs().getSkypeRouters();
+    // QStringList router_names;
+    // auto routers = Configs().getSkypeRouters();
     bool bret = false;
 
     if (this->scn_ws_serv2 != NULL) {
@@ -487,12 +500,13 @@ bool SkyServ::init_ws_serv(QString handle_name)
         return true;
     }
 
-    std::for_each(routers.begin(), routers.end(),
-                  [&] (QPair<QString,QString> &elm) {
-                      router_names << elm.first;
-                  });
+    // std::for_each(routers.begin(), routers.end(),
+    //               [&] (QPair<QString,QString> &elm) {
+    //                   router_names << elm.first;
+    //               });
 
-    if (router_names.contains(handle_name)) {
+    // if (router_names.contains(handle_name)) {
+    if (this->is_router) {
         unsigned short router_port = Configs().getRouterPort();
         Q_ASSERT(router_port > 0);
         // this->scn_ws_serv2 = new WebSocketServer();
@@ -614,7 +628,8 @@ void SkyServ::onNewRouteCallArrived(QString callerName, QString calleeName, QStr
                 qLogx()<<"Nice, guess call meta info:"<<cmi->caller_name<<caller_ipaddr
                        <<", but you are:"<<callerName;
                 
-                ret = this->send_ws_command_119(cmi->caller_name, QString(), skypeCallID, callerName, QString("name not match"));
+                ret = this->send_ws_command_119(cmi->caller_name, QString(), skypeCallID, callerName, 
+                                                QString("heihei, name not match"));
             } else if (guess_count == 0) {
                 qLogx()<<"No guess result, bad";
             } else {
@@ -650,10 +665,13 @@ void SkyServ::onNewRouteCallArrived(QString callerName, QString calleeName, QStr
 
         // this->send_ws_command_100(callerName, gateway, QString("202.108.12.212"), ws_port);
         QString ws_uri = QString("ws://%1:%2/%3/%4/").arg(ws_ipaddr).arg(ws_port)
-            .arg(callerName).arg(callee_phone);
+            // .arg(callerName).arg(callee_phone);
+            .arg(callerName).arg(cmi->client_type);
         qLogx()<<"Connect to real websocket server:"<<ws_uri;
         boost::shared_ptr<WebSocketClient> wsc(new WebSocketClient(ws_uri));
         // WebSocketClient *wsc = new WebSocketClient(ws_uri);
+        QObject::connect(wsc.get(), SIGNAL(handShakeError()), 
+                         this, SLOT(on_ws_proxy_handshake_error()));
         QObject::connect(wsc.get(), SIGNAL(onConnected(QString)), 
                          this, SLOT(on_ws_proxy_connected(QString)));
         QObject::connect(wsc.get(), SIGNAL(onWSMessage(QByteArray)), 
@@ -694,6 +712,22 @@ void SkyServ::onRouteCallTransferred(int skypeCallID, QString callerName, QStrin
     // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
     // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skypeCallID).value();
     call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    if (cmi == NULL) {
+        qLogx()<<"Can not find call info for:"<<callerName<<skypeCallID;
+        int guess_count = 0;
+        cmi = this->find_call_meta_info_by_guess(callerName, guess_count);
+        if (guess_count == 1) {
+            qLogx()<<"Haha, guess ok:"<<cmi<<cmi->caller_name<<cmi->conn_seq;
+        } else if (guess_count == 0) {
+            qLogx()<<"No guess result, bad";
+        } else {
+            qLogx()<<"Ahaha, guess so much possible:"<<guess_count;
+        }
+        // 这个是否需要调用挂断呢，应该转过去之后会自动挂断。我记得可能不挂断
+        this->mSkype->setCallHangup(QString::number(skypeCallID));
+        return;
+    }
+
     Q_ASSERT(cmi != NULL);
 
     QString gateway = cmi->switcher_name;
@@ -708,7 +742,6 @@ void SkyServ::onRouteCallTransferred(int skypeCallID, QString callerName, QStrin
 
         ret = this->db->releaseGateway(calleeName, gateway);
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Release gateway result:"<<ret;
-
     }
     
     // 永远记住，直到通话终止，包括与switcher的通话在内。这个不需要了。
@@ -735,7 +768,11 @@ void SkyServ::onRouteCallMissed(int skypeCallID, QString callerName, QString cal
         } else {
             qLogx()<<"Ahaha, guess so much possible:"<<guess_count;
         }
-        this->mSkype->setCallHangup(QString::number(skypeCallID));
+
+        // 这儿还有什么要清理的呢，因为呼叫已经结束，再调用setCallHangup也多此一举了
+        // this->mSkype->setCallHangup(QString::number(skypeCallID));
+        // this->onSkypeCallHangup(callerName, calleeName, skypeCallID);
+        ret = this->db->removeCallPair(callerName);
         return;
     }
     Q_ASSERT(cmi != NULL);  // 这个断言失败次数比较高，在什么情况下导致这个断言失败？
@@ -746,11 +783,12 @@ void SkyServ::onRouteCallMissed(int skypeCallID, QString callerName, QString cal
     cmi->mtime = QDateTime::currentDateTime();
 
     QString gateway = cmi->switcher_name;
-    ret = this->db->releaseGateway(calleeName, gateway);
+    ret = this->db->releaseGateway(callerName, gateway);
+    ret = this->db->removeCallPair(callerName);
 
     // this->activeGateways.remove(skypeCallID);
-
-    this->mSkype->setCallHangup(QString::number(skypeCallID));
+    // this->mSkype->setCallHangup(QString::number(skypeCallID));
+    this->onRouteCallHangup(callerName, gateway, skypeCallID);
 
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Release gateway result:"<<ret;
 }
@@ -758,8 +796,8 @@ void SkyServ::onRouteCallMissed(int skypeCallID, QString callerName, QString cal
 void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString calleeName)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<callerName<<calleeName<<skypeCallID;
-    auto routers = Configs().getSkypeRouters();
-    QStringList router_names;
+    // auto routers = Configs().getSkypeRouters();
+    // QStringList router_names;
     int ret;
 
     // Q_ASSERT(this->nSkypeCallMap.leftContains(skypeCallID));
@@ -776,6 +814,14 @@ void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString ca
         } else {
             qLogx()<<"Ahaha, guess so much possible:"<<guess_count;
         }
+        // 这个分支还是很可能出现的，
+        // skyserv_999.log:67380: [ "2011-06-14 23:03:15.164" ] skyserv.cpp 785 onRouteCallRefused "T22184" Can not find call info for: "h455475301" 66 271 
+        // 这儿还有什么要清理的呢，因为呼叫已经结束，再调用setCallHangup也多此一举了
+        // this->mSkype->setCallHangup(QString::number(skypeCallID));
+        // this->onSkypeCallHangup(callerName, calleeName, skypeCallID);
+        // this->onRouteCallHangup(callerName, calleeName, skypeCallID);
+        // ret = this->db->releaseGateway(calleeName, callerName); // 无法执行线路解锁，有可能信息已经丢失
+        ret = this->db->removeCallPair(callerName);
         return;
     }
     Q_ASSERT(cmi != NULL);
@@ -784,16 +830,18 @@ void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString ca
     cmi->mtime = QDateTime::currentDateTime();
 
     // because lines busy and hangup 
-    std::for_each(routers.begin(), routers.end(),
-                  [&](QPair<QString,QString> &elm) {
-                      router_names << elm.first;
-                  });
+    // std::for_each(routers.begin(), routers.end(),
+    //               [&](QPair<QString,QString> &elm) {
+    //                   router_names << elm.first;
+    //               });
     // if (this->mSkype->handlerName() == "liuguangzhao01") {
-    if (router_names.contains(this->mSkype->handlerName())) {
+    // if (router_names.contains(this->mSkype->handlerName())) {
+    if (this->is_router) {
         // ctrl switcher, do nothing
         this->send_ws_command_108(callerName, calleeName, skypeCallID, 123, QString("abcd"));
         // this->wsMap.removeLeft(callerName);
         // this->wsProxy.removeLeft(callerName);
+        ret = this->db->releaseGateway(callerName, cmi->switcher_name);
         ret = this->db->removeCallPair(callerName);
         if (ret) {}
 
@@ -802,7 +850,139 @@ void SkyServ::onRouteCallRefused(int skypeCallID, QString callerName, QString ca
         // this->nWebSocketProxyMap.removeRight(cmi);
         // this->remove_call_meta_info(callerName);
     } else {
+        Q_ASSERT(1==2);
     }
+}
+
+// like liuguangzhao,pmeixxxxx,12345 
+void SkyServ::onRouteCallHangup(QString contactName, QString calleeName, int skypeCallID)
+{
+    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<contactName<<calleeName<<skypeCallID;
+    int ret = 0, ret2 = 0;
+    int sip_call_curr_id;
+    int sip_call_id;
+    int skype_call_id = skypeCallID;
+    int cmdlen;
+    char *wbuf = NULL;
+
+    QStringList router_names;
+    auto routers = Configs().getSkypeRouters();
+
+    std::for_each(routers.begin(), routers.end(),
+                  [&](QPair<QString,QString> &elm) {
+                      router_names << elm.first;
+                  });
+
+    // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
+    // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
+    call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
+    if (cmi == NULL) {
+        qLogx()<<"Can not find call info for:"<<contactName<<skypeCallID;
+        int guess_count = 0;
+        cmi = this->find_call_meta_info_by_guess(contactName, guess_count);
+        if (guess_count == 1) {
+            qLogx()<<"Haha, guess ok:"<<cmi<<cmi->caller_name<<cmi->conn_seq;
+        } else if (guess_count == 0) {
+            qLogx()<<"No guess result, bad";
+        } else {
+            qLogx()<<"Ahaha, guess so much possible:"<<guess_count;
+        }
+        // 如果这里对线路解锁，可否？在此取不到使用的gateway，无法执行解锁
+        // release gateway resouce
+        // ret = this->db->releaseGateway(calleeName, contactName);
+        ret2 = this->db->removeCallPair(contactName);
+        return;
+    }
+    Q_ASSERT(cmi != NULL); // 这个地方为什么为没有找到这个值呢.也可能是用户名输入错误的问题吗。
+
+    if (1) {
+        // ctrl router, do nothing
+        this->send_ws_command_108(calleeName, contactName, skypeCallID, 123, QString("abcd"));
+
+        // this->nWebSocketNameMap.removeLeft(contactName);
+        // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
+        // this->remove_call_meta_info(contactName);
+    }
+    if (0) {
+
+        // if (this->mSkypeSipCallMap.leftContains(skype_call_id)) {
+        //     sip_call_curr_id = this->mSkypeSipCallMap.findLeft(skype_call_id).value();
+        //     if (sip_call_curr_id == SSCM_WAIT_SIP_CALL_ID) {
+        //         this->mSkypeSipCallMap.insert(skype_call_id, SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID);
+        //     } else if (sip_call_curr_id == SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID) {
+        //         // not possible
+        //         Q_ASSERT(1 == 2);
+        //     } else if (sip_call_curr_id == SSCM_HANGUP_FROM_SIP) {
+        //         // do nothing
+        //         this->mSkypeSipCallMap.removeLeft(skypeCallID);
+        //     } else if (sip_call_curr_id >= 0) {
+        //         // send hangup cmd to sip proc
+        //         sip_call_id = sip_call_curr_id;
+        //         cmdlen = 0;
+        //         wbuf = new_rpc_command(12, &cmdlen, "dd", skype_call_id, sip_call_id);
+        //         this->skype_sip_rpc_peer->write(wbuf, 2*sizeof(int) + cmdlen);
+        //         free(wbuf);
+        //         this->mSkypeSipCallMap.removeLeft(skypeCallID);
+        //     } else {
+        //         // dont known what happended
+        //     }
+        // } else {
+        //     // maybe hangup from sip
+        // }
+
+        if (cmi->skype_call_id >= 0) {
+            qLogx()<<cmi->skype_call_id<<cmi->sip_call_id;
+            sip_call_curr_id = cmi->sip_call_id;
+            if (sip_call_curr_id == SSCM_WAIT_SIP_CALL_ID) {
+                cmi->sip_call_id = SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID;
+            } else if (sip_call_curr_id == SSCM_SKYPE_HANGUP_WHEN_WAIT_SIP_CALL_ID) {
+                // not possible
+                Q_ASSERT(1 == 2);
+            } else if (sip_call_curr_id == SSCM_HANGUP_FROM_SIP) {
+                //do nothing
+                cmi->sip_call_id = -1;
+            } else if (sip_call_curr_id >= 0) {
+                // send hangup cmd to sip proc                                                           
+                sip_call_id = sip_call_curr_id;
+                cmdlen = 0;
+                wbuf = new_rpc_command(12, &cmdlen, "dd", skype_call_id, sip_call_id);
+                this->skype_sip_rpc_peer->write(wbuf, 2*sizeof(int) + cmdlen);
+                free(wbuf);
+            } else {
+                // dont known what happended
+            }
+        } else {
+            // maybe hangup from sip peer
+        }
+
+        // release gateway resouce
+        ret = this->db->releaseGateway(calleeName, contactName);
+        ret2 = this->db->removeCallPair(calleeName);
+        this->send_ws_command_108(calleeName, contactName, skypeCallID, 123, QString("abcdefg"));
+
+        {
+            cmi->skype_call_id = -1;
+            cmi->call_state = CallState::CS_CALL_FINISHED;
+            cmi->mtime = cmi->etime = QDateTime::currentDateTime();
+            
+            // this->nSkypeCallMap.removeLeft(skypeCallID);
+            // this->nWebSocketNameMap.removeLeft(contactName);
+            // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
+        }
+        // this->remove_call_meta_info(contactName);
+        
+        qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"Release gateway result:"<<ret<<ret2;
+    }
+
+    // from wsclose to here
+    // if (cmi->m_ref_count.deref() == false) {
+    if (cmi->conn_seq == -1 && cmi->skype_call_id == -1 && cmi->sip_call_id == -1) {
+        qLogx()<<"mci non ref now, remove.";
+        // this->remove_call_meta_info(contactName);
+        this->remove_call_meta_info(cmi);
+    }
+
+    this->clear_skype_history();
 }
 
 void SkyServ::onNewForwardCallArrived(QString callerName, QString calleeName, int skypeCallID)
@@ -838,7 +1018,7 @@ void SkyServ::onNewForwardCallArrived(QString callerName, QString calleeName, in
     // }
 
     if (this->quit_cleaning) {
-        qDebug()<<"server is quiting, retry later.";
+        qLogx()<<"server is quiting, retry later.";
         this->mSkype->setCallHangup(QString::number(skypeCallID));
         return;
     }
@@ -846,11 +1026,11 @@ void SkyServ::onNewForwardCallArrived(QString callerName, QString calleeName, in
     // 查找 call pair
     callee_phone = this->db->getCallPeer(callerName, caller_ipaddr);
     if (callee_phone.isEmpty() || callee_phone.length() == 0) {
-        qDebug()<<"Error: call pair not found.";
-        this->mSkype->setCallHangup(QString::number(skypeCallID));
+        qLogx()<<"Error: call pair not found.";
         this->send_ws_command_106(callerName, calleeName, skypeCallID, 
                                   QString("Error: your supplied account and call acount is not match.")
                                   );
+        this->mSkype->setCallHangup(QString::number(skypeCallID));
         return;
     }
 
@@ -883,7 +1063,7 @@ void SkyServ::onSkypeForwardCallAnswered(int skypeCallID, QString callerName, QS
 
     callee_phone = this->db->getCallPeer(callerName, caller_ipaddr);
     if (callee_phone.isEmpty() || callee_phone.length() == 0) {
-        qDebug()<<"Error: call pair not found.";
+        qLogx()<<"Error: call pair not found.";
         this->mSkype->setCallHangup(QString::number(skypeCallID));
         return;
     }
@@ -909,6 +1089,7 @@ void SkyServ::onSkypeForwardCallAnswered(int skypeCallID, QString callerName, QS
     args<<callerName<<callee_phone<<serv_addr
         <<QString::number(skypeCallID)
         <<caller_ipaddr
+        <<this->mSkype->handlerName()
         ;
     QString arg_list = args.join(",");
 
@@ -1045,7 +1226,7 @@ void SkyServ::onSkypeForwardCallDtmfArrived(int skypeCallID, QString callerName,
 //     }
 // }
 
-void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int skypeCallID)
+void SkyServ::onSkypeForwardCallHangup(QString contactName, QString calleeName, int skypeCallID)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<contactName<<calleeName<<skypeCallID;
     int ret = 0, ret2 = 0;
@@ -1055,22 +1236,39 @@ void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int sky
     int cmdlen;
     char *wbuf = NULL;
 
-    QStringList router_names;
-    auto routers = Configs().getSkypeRouters();
+    // QStringList router_names;
+    // auto routers = Configs().getSkypeRouters();
 
-    std::for_each(routers.begin(), routers.end(),
-                  [&](QPair<QString,QString> &elm) {
-                      router_names << elm.first;
-                  });
+    // std::for_each(routers.begin(), routers.end(),
+    //               [&](QPair<QString,QString> &elm) {
+    //                   router_names << elm.first;
+    //               });
 
     // Q_ASSERT(this->nSkypeCallMap.leftContains(skype_call_id));
     // boost::shared_ptr<call_meta_info> cmi = this->nSkypeCallMap.findLeft(skype_call_id).value();
     call_meta_info *cmi = this->find_call_meta_info_by_skype_call_id(skypeCallID);
-    Q_ASSERT(cmi != NULL);
-
+    if (cmi == NULL) {
+        qLogx()<<"Can not find call info for:"<<contactName<<skypeCallID;
+        int guess_count = 0;
+        cmi = this->find_call_meta_info_by_guess(contactName, guess_count);
+        if (guess_count == 1) {
+            qLogx()<<"Haha, guess ok:"<<cmi<<cmi->caller_name<<cmi->conn_seq;
+        } else if (guess_count == 0) {
+            qLogx()<<"No guess result, bad";
+        } else {
+            qLogx()<<"Ahaha, guess so much possible:"<<guess_count;
+        }
+        // 如果这里对线路解锁，可否？
+        // release gateway resouce
+        ret = this->db->releaseGateway(calleeName, contactName);
+        ret2 = this->db->removeCallPair(calleeName);
+        return;
+    }
+    Q_ASSERT(cmi != NULL); // 这个地方为什么为没有找到这个值呢.也可能是用户名输入错误的问题吗。
 
     // if (this->mSkype->handlerName() == "liuguangzhao01") {
-    if (router_names.contains(this->mSkype->handlerName())) {
+    // if (router_names.contains(this->mSkype->handlerName())) {
+    if (this->is_router) {
         // ctrl router, do nothing
         this->send_ws_command_108(calleeName, contactName, skypeCallID, 123, QString("abcd"));
 
@@ -1139,7 +1337,7 @@ void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int sky
             cmi->call_state = CallState::CS_CALL_FINISHED;
             cmi->mtime = cmi->etime = QDateTime::currentDateTime();
             
-            //this->nSkypeCallMap.removeLeft(skypeCallID);
+            // this->nSkypeCallMap.removeLeft(skypeCallID);
             // this->nWebSocketNameMap.removeLeft(contactName);
             // this->nWebSocketSeqMap.removeLeft(cmi->conn_seq);
         }
@@ -1157,6 +1355,17 @@ void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int sky
     }
 
     this->clear_skype_history();
+}
+
+void SkyServ::onSkypeCallHangup(QString contactName, QString calleeName, int skypeCallID)
+{
+    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<contactName<<calleeName<<skypeCallID;
+
+    if (this->is_router) {
+        this->onRouteCallHangup(contactName, calleeName, skypeCallID);
+    } else {
+        this->onSkypeForwardCallHangup(contactName, calleeName, skypeCallID);
+    }    
 }
 
 // depcreated
@@ -1398,7 +1607,7 @@ void SkyServ::onProcessIncomingRpcCommand(int cmdlen, int cmdno, char *cmdbuf)
     int sip_call_state;
     int sip_media_state;
     unsigned short n_port;
-    char *wbuf;
+    char *wbuf = NULL;
     QString caller_name, callee_name;
     bool ok = false;
     // boost::shared_ptr<call_meta_info> cmi;
@@ -1524,7 +1733,7 @@ void SkyServ::onIncomingRpcConnection()
 
     // for test, but it works fine
     int cmdlen = 0;
-    char *wbuf = new_rpc_command(10, &cmdlen, "s", "yat-sen,99008665108013552776960,202.108.29.234:4060,5678");
+    char *wbuf = new_rpc_command(10, &cmdlen, "s", "yat-sen,99008665108013552776960,202.108.29.234:4060,5678,pmeiswitcher");
     free(wbuf);
 
     // int cmdno = 10;
@@ -1604,7 +1813,8 @@ void SkyServ::onNewWSConnection(QString path, qint64 cseq)
         return;
     }
     QString handle_name = elems.at(0).trimmed();
-    QString phone = elems.at(1).trimmed();
+    QString phone = elems.at(1).trimmed();    // depcreated
+    QString client_type = elems.at(1).trimmed();
 
     if (handle_name.isEmpty()) {
         qLogx()<<"client error: no peer name.";
@@ -1623,6 +1833,7 @@ void SkyServ::onNewWSConnection(QString path, qint64 cseq)
         // boost::shared_ptr<call_meta_info> cmi = boost::make_shared<call_meta_info>();
         call_meta_info *cmi = new call_meta_info();
         cmi->caller_name = handle_name;
+        cmi->client_type = client_type;
         // cmi->callee_name = calleeName;
         // cmi->skype_call_id = skypeCallID;
         // cmi->callee_phone = calleePhone;
@@ -1659,7 +1870,10 @@ void SkyServ::onWSConnectionClosed(qint64 cseq)
         call_meta_info *cmi = this->find_call_meta_info_by_conn_seq(cseq);
         if (cmi == NULL) {
             // 这个时候应该还能搜索到，为什么会搜索不到呢？是什么地方的原因。
-            qLogx()<<"can not find cseq:"<<cseq<<this->ncmis.count()<<this->mSkype->handlerName();
+            // 1. 用户输入的ws地址没有/path/时，或者用户恶意行为时，可能会找不到这个call_meta_info
+            qLogx()<<"can not find call info by cseq:"<<cseq<<this->ncmis.count()
+                   <<this->mSkype->handlerName();
+            return;
             Q_ASSERT(cmi != NULL);
         }
 
@@ -1671,6 +1885,7 @@ void SkyServ::onWSConnectionClosed(qint64 cseq)
         // this->nWebSocketSeqMap.removeLeft(cseq);
 
         // 不能轻易删除，否则可能其他地方找不到这个值。把这个删除移动到skypehangup试试
+        // 这个地方存在不解锁的可能。
         // if (cmi->m_ref_count.deref() == false) {
         if (cmi->conn_seq == -1 && cmi->skype_call_id == -1 && cmi->sip_call_id == -1) {
             qLogx()<<"mci non ref now, remove.";
@@ -1683,35 +1898,36 @@ void SkyServ::onWSConnectionClosed(qint64 cseq)
 
 void SkyServ::onRouterWSMessage(QByteArray msg, qint64 cseq)
 {
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<msg;
+    qLogx()<<msg;
     QList<QByteArray> fields = msg.split('$');
     QString caller_name;
     QString callee_phone;
     QStringList router_names;
-    auto routers = Configs().getSkypeRouters();
+    // auto routers = Configs().getSkypeRouters();
 
     if (fields.count() <= 2) {
-        qDebug()<<"Invalid ws command:"<<msg;
+        qLogx()<<"Invalid ws command:"<<msg;
         return;
     }
 
-    std::for_each(routers.begin(), routers.end(),
-                  [&](QPair<QString,QString> &elm) {
-                      router_names << elm.first;
-                  });
+    // std::for_each(routers.begin(), routers.end(),
+    //               [&](QPair<QString,QString> &elm) {
+    // router_names << elm.first;
+    // });
 
     switch (fields.at(0).trimmed().toInt()) {
     case 101:  // note pair and request main router
         if (fields.count() < 3 || fields.count() > 6) {
-            qDebug()<<"Invalid ws command:"<<msg;
+            qLogx()<<"Invalid ws command:"<<msg;
             return;
         }
         caller_name = fields.at(1).trimmed();
         callee_phone = fields.at(2).trimmed();
         // routers = Configs().getSkypeRouters();
-        if (router_names.contains(this->mSkype->handlerName())) {
+        // if (router_names.contains(this->mSkype->handlerName())) {
+        if (this->is_router) {
             // i'm router server
-            // routers.clear();
+            // router_names.clear();
             QString resp;
             // QString ipaddr = sock->peerAddress().toString();
             QString ipaddr = this->scn_ws_serv2->conn_get_peer_address(cseq);
@@ -1738,7 +1954,7 @@ void SkyServ::onRouterWSMessage(QByteArray msg, qint64 cseq)
             resp = QString("102$%1$%2").arg(caller_name).arg(resp);
             this->send_ws_command_102(caller_name, resp);
         } else {
-            qDebug()<<"I am not a router, i don't want this command.";
+            qLogx()<<"I am not a router, i don't want this command."<<msg;
         }
 
         break;
@@ -1747,27 +1963,28 @@ void SkyServ::onRouterWSMessage(QByteArray msg, qint64 cseq)
     case 107:  // hangup request from WSC, for non-ie explorer
         // proxy to real ws server
         if (fields.count() < 3 || fields.count() > 6) {
-            qDebug()<<"Invalid ws command:"<<msg;
+            qLogx()<<"Invalid ws command:"<<msg;
             return;
         }
         caller_name = fields.at(1).trimmed();
         callee_phone = fields.at(2).trimmed();
         // routers = Configs().getSkypeRouters(); // no use
-        if (router_names.contains(this->mSkype->handlerName())) {
+        // if (router_names.contains(this->mSkype->handlerName())) {
+        if (this->is_router) {
             this->on_ws_proxy_send_message(caller_name, msg);
         } else {
-            
-        }        
+            qLogx()<<"I am not a router, i don't want this command."<<msg;
+        }
         break;
     default:
-      qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Unknown or unsupported cmd:"<<msg;
+        qLogx()<<"Unknown or unsupported cmd:"<<msg;
       break;
     };
 }
 
 void SkyServ::onForwardWSMessage(QByteArray msg, qint64 cseq)
 {
-    qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<msg;
+    qLogx()<<msg;
     QList<QByteArray> fields = msg.split('$');
     QString caller_name;
     QString callee_phone;
@@ -1777,7 +1994,7 @@ void SkyServ::onForwardWSMessage(QByteArray msg, qint64 cseq)
     Q_UNUSED(cseq);
 
     if (fields.count() <= 2) {
-        qDebug()<<"Invalid wsc command:"<<msg;
+        qLogx()<<"Invalid wsc command:"<<msg;
         return;
     }
 
@@ -1796,13 +2013,13 @@ void SkyServ::onForwardWSMessage(QByteArray msg, qint64 cseq)
         skype_call_id = this->mSkype->getCallIdByPartnerName(fields.at(1).trimmed());
         if (skype_call_id > 0) {
         } else {
-            qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Cannot find call id for:"<<fields.at(1);
+            qLogx()<<"Cannot find call id for:"<<fields.at(1);
             skype_call_id = fields.at(3).trimmed().toInt();
         }
         this->mSkype->setCallHangup(QString::number(skype_call_id));
         break;
     default:
-      qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"Unknown or unsupported cmd:"<<msg;
+        qLogx()<<"Unknown or unsupported cmd:"<<msg;
       break;
     };
 }
@@ -2162,6 +2379,30 @@ bool SkyServ::send_ws_command_common(QString caller_name, QString cmdstr)
     return true;
 }
 
+void SkyServ::on_ws_proxy_handshake_error()
+{
+    qLogx()<<"";
+    // TODO 连接不到switcher服务器，怎么办？
+    // 挂断
+    WebSocketClient *wsc = (WebSocketClient*)(sender());
+    boost::shared_ptr<WebSocketClient> belm = wsc->shared_from_this();
+    int ret, ret2;
+    
+    call_meta_info *cmi = this->find_call_meta_info_by_ws_client(wsc);
+    if (cmi == NULL) {
+        qLogx()<<"no cmi found";
+        // Q_ASSERT(cmi != NULL);
+    } else {
+        ret = this->db->releaseGateway(cmi->caller_name, cmi->switcher_name);
+        ret2 = this->db->removeCallPair(cmi->caller_name);
+
+        if (cmi->skype_call_id != -1) {
+            this->mSkype->setCallHangup(QString::number(cmi->skype_call_id));
+        } else {
+            qLogx()<<"Invalid call id -1, can not hangup";
+        }
+    }
+}
 
 void SkyServ::on_ws_proxy_connected(QString rpath)
 {
@@ -2229,6 +2470,7 @@ void SkyServ::on_ws_proxy_send_message(QString caller_name, QString msg)
 {
     qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<caller_name<<msg;
 
+    QString real_caller_name;  // 取自skype 通话，所以才不会错。
     boost::shared_ptr<WebSocketClient> wsc;
     // boost::shared_ptr<call_meta_info> cmi;
     call_meta_info *cmi = this->find_call_meta_info_by_caller_name(caller_name, true);
@@ -2239,14 +2481,31 @@ void SkyServ::on_ws_proxy_send_message(QString caller_name, QString msg)
         wsc = cmi->ws_proxy;
         if (!wsc) {
             // 为什么会有这种情况，这是在什么时候关闭的呢，还是开始的时候就没有创建成功？
-            qLogx()<<"PWS disappeared already."<<caller_name;
-            Q_ASSERT(wsc);
+            // 找到一种情况会出这个问题，比较用户输入一个错误的用户名，会出现这个问题。这时根本没有创建这个连接，所以为空。
+            // 得到peer的name，然后与这里传递过来的caller_name比较，这种方法不保险，可能skype的通话已经结束了。
+            // 
+            qLogx()<<"PWSC disappeared already OR PWSC not created."<<caller_name;
+            // Q_ASSERT(wsc);
+
+            // 在这检测这个连接是否还有效，如果无效了，检测是否是挂断命令，这时挂断这个连接
+            if (cmi->skype_call_id == -1 && cmi->sip_call_id == -1) {
+                if (msg.startsWith("107$")) {
+                    // 应该把这个连接关闭了。
+                    qLogx()<<"Invalid C <--> R connection, drop it.";
+                    this->send_ws_command_108(caller_name, this->mSkype->handlerName(), 0 - cmi->conn_seq,
+                                              456, QString("efgh"));
+                }
+            }
+        } else {
+            // send to proxy's server
+            if (wsc->isClosed()) {
+                qLogx()<<"PWSC Havent connected to server, WHY???"; 
+            }
+            bool bret = wsc->sendMessage(msg.toAscii());
+            if (!bret) {
+                qLogx()<<"PWSC send message faild:"<<msg;
+            }
         }
-
-        // send to proxy's server
-        int iret = wsc->sendMessage(msg.toAscii());
-        if (iret) {}
-
     } else {
         qLogx()<<"can't find call info for:"<<caller_name;
     }
@@ -2510,7 +2769,7 @@ call_meta_info *SkyServ::find_call_meta_info_by_guess(const QString &caller_name
             continue;
         }
 
-        ldsrc = cmi->caller_name.toStdString();
+        ldsrc = tcmi->caller_name.toStdString();
         lddest = caller_name.toStdString();
 
         if (tcmi->caller_name != caller_name

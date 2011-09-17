@@ -15,9 +15,10 @@
 
 #include "boost/smart_ptr.hpp"
 
-class FileLog : public QObject
+// 好象这个log功能还有问题，非qt的多线程有时会崩溃。
+class FileLog // : public QObject
 {
-    Q_OBJECT;
+//    Q_OBJECT;
 public:
     virtual ~FileLog();
     static boost::shared_ptr<FileLog> instance();
@@ -54,6 +55,24 @@ public:
 #include <syscall.h>
 #define qLogx() XQDebug(FileLog::instance()->stream())<<"["<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")<<"]"<<__FILE__<<__LINE__<<__FUNCTION__<<QString("T%1").arg(syscall(__NR_gettid))
 #endif
+
+
+// 代码段执行计时
+static int __rtc_seq = 0;
+static QHash<int,QDateTime> __rtc_hash;
+inline int TIMER_BEGIN() {
+    QDateTime t = QDateTime::currentDateTime();
+    int nseq = ++__rtc_seq;
+    __rtc_hash.insert(nseq, t);
+    return nseq;
+}
+
+inline void TIMER_END(int seq) {
+    QDateTime e = QDateTime::currentDateTime();
+    QDateTime t = __rtc_hash.value(seq);
+
+    qLogx()<<"UT: from ["<<t<<"] to ["<<e<<", eclapse:"<<(e.msecsTo(t));
+}
 
 #endif /* _LOG_H_ */
 

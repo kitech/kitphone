@@ -243,6 +243,7 @@ void WebSocketClient::on_backend_handshake_ready_read()
     }
 }
 
+// TODO 有可能一次读取到多个ws消息，需要分开处理。
 void WebSocketClient::on_backend_ready_read()
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
@@ -252,7 +253,7 @@ void WebSocketClient::on_backend_ready_read()
 
     char pong_frm[32] = {0};
     char srcbuf[5120] = {0};
-    // char msgbuf[5120] = {0};
+    char msgbuf[5120] = {0};
     // int ret;
     
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<this->m_sock<<"read ws message"
@@ -268,8 +269,24 @@ void WebSocketClient::on_backend_ready_read()
     } else if ((unsigned char)(srcbuf[0]) == 0x00 
         && (unsigned char)(srcbuf[ba.length() - 1]) == 0xff) {
         ba = QByteArray(srcbuf + 1, ba.length() - 2);
+
+        if (0) {
+            memcpy(msgbuf, srcbuf + 1, ba.length() - 2);
+            for (int i = 0; i < ba.length(); i++ ) {
+                if ((msgbuf[i] >= 'a' && msgbuf[i] <= 'z')
+                    || (msgbuf[i] >= '0' && msgbuf[i] <= '9')
+                    || msgbuf[i] == '*' || msgbuf[i] == '$'
+                    || isprint(msgbuf[i])){
+                    fprintf(stderr, "%c", msgbuf[i]);
+                } else {
+                    fprintf(stderr, ".");
+                }
+            }
+            fprintf(stderr, "\n");
+        }
+
         if (ba.length() > 0) {
-            qDebug()<<"ws client/proxy got and broard msg:"<<ba;
+            qDebug()<<"ws client/proxy got and broard msg:"<<ba.length()<<msgbuf;
             // emit this->newWSMessage(ba, sock);
             emit this->onWSMessage(ba);
         }

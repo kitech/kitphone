@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-12-07 11:06:59 +0800
-// Version: $Id: siproom.cpp 908 2011-06-02 09:37:45Z drswinghead $
+// Version: $Id: siproom.cpp 926 2011-06-20 09:04:29Z drswinghead $
 // 
 
 #include <stdarg.h>
@@ -481,7 +481,7 @@ static int sip_app_init()
     return 0;
 }
 
-// caller_name, phone_number, serv_addr, skype_call_id, caller_ipaddr
+// caller_name, phone_number, serv_addr, skype_call_id, caller_ipaddr, gateway
 int sip_call_phone(char *arg_str)
 {
     qDebug()<<"oncall slot returned2";
@@ -491,6 +491,7 @@ int sip_call_phone(char *arg_str)
     pj_status_t status;
     char ubuf[256] = {0};
     QStringList args = QString(arg_str).split(",");
+    QString gateway;
 
     pj_thread_desc initdec;
     pj_thread_t *thread = 0;
@@ -544,9 +545,9 @@ int sip_call_phone(char *arg_str)
             memset(ubuf, 0, sizeof(ubuf));
             // snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@%s>",
             //          args.at(0).toAscii().data(), args.at(0).toAscii().data(), SIP_FROM_DOMAIN);
-            snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@sips.qtchina.net-%s-at-%s:5060>",
+            snprintf(ubuf, sizeof(ubuf) - 1, "%s <sip:%s@sips.qtchina.net-%s-at-%s-over-%s:5060>",
                      args.at(0).toAscii().data(), args.at(0).toAscii().data(), args.at(0).toAscii().data(),
-                     args.at(4).toAscii().data());
+                     args.at(4).toAscii().data(), args.at(5).toAscii().data());
             cfg.id = pj_str(ubuf);
             // cfg.id = pj_str(QString("%1 <sip:%1@%2>").arg(caller_name).arg(SIP_DOMAIN).toAscii().data());
             // cfg.reg_uri = pj_str("sip:" SIP_DOMAIN); // if no reg_uri, it will no auth register to server, and call ok

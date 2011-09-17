@@ -100,6 +100,7 @@ QModelIndex ContactModel::index(int row, int column, const QModelIndex &parent) 
     ContactInfoNode *cnode = NULL;
 
     if (!parent.isValid()) {
+		if (row < this->mContacts.count()) {
         // group node
         pnode = this->mContacts.at(row);
         idx = this->createIndex(row, column, pnode);
@@ -107,6 +108,8 @@ QModelIndex ContactModel::index(int row, int column, const QModelIndex &parent) 
         //         <<child_item->fileName()<<child_item
         //         <<"0";
         Q_ASSERT(!(idx.row() == -1 && idx.column() == 0));
+		} else {
+		}
         return idx;
     } else {
         pnode = static_cast<ContactInfoNode*>(parent.internalPointer());

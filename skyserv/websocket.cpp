@@ -570,12 +570,24 @@ WebSocketClient::WebSocketClient(QString uri)
     QObject::connect(this->m_sock.get(), SIGNAL(connected()), this, SLOT(on_connected_ws_server()));
     QObject::connect(this->m_sock.get(), SIGNAL(disconnected()), this, SLOT(on_disconnected_ws_server()));
     QObject::connect(this->m_sock.get(), SIGNAL(readyRead()), this, SLOT(on_backend_handshake_ready_read()));
+    QObject::connect(this->m_sock.get(), SIGNAL(error(QAbstractSocket::SocketError)),
+                     this, SLOT(on_backend_error(QAbstractSocket::SocketError)));
+
+    this->m_hs_retry = 3;
+    this->m_ping_seq = 1;
+    this->m_ws_ping_timer = new QTimer();
+    this->m_ws_ping_timer->setInterval(8);
+    QObject::connect(this->m_ws_ping_timer, SIGNAL(timeout()), this, SLOT(on_ping_timeout()));
 }
 
 WebSocketClient::~WebSocketClient()
 {
-    // qlog("freeing......\n");
-    qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"freeing ...";
+    // qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"freeing ...";
+    qLogx()<<"Freeing ...";
+
+    this->m_ws_ping_timer->stop();
+    delete this->m_ws_ping_timer;
+
     this->disconnectFromServer();
 }
 
@@ -586,7 +598,7 @@ WebSocketClient::~WebSocketClient()
 bool WebSocketClient::connectToServer(QString rpath)
 {
     QUrl mu(this->m_uri);
-    qDebug()<<mu;
+    qLogx()<<mu;
 
     unsigned short port = mu.port(80);
     QString host = mu.host();
@@ -611,27 +623,56 @@ bool WebSocketClient::disconnectFromServer()
 
 bool WebSocketClient::sendMessage(QByteArray msg)
 {
-
+    char wbuf[msg.length() + 8];
     ssize_t wlen = 0;
-    bool ok;
+    bool ok = false;
+    int retry_times = 3;
 
     Q_ASSERT(this->m_sock != NULL);
 
-    ok = this->m_sock->putChar(0x00);
-    if (!ok) {
-        qLogx()<<"Send ws msg faild:"<<this->m_sock->errorString();
-        Q_ASSERT(ok);
-        return false;
+    // 合并成一条，一次发送出去。
+    if (1) {
+        memset(wbuf, 0, sizeof(msg));
+        memcpy(wbuf + 1, msg.data(), msg.length());
+        wbuf[msg.length()+1] = 0xff;
+
+        QByteArray tba(wbuf, msg.length() + 2);
+
+    resend_ws_msg:
+        wlen = this->m_sock->write(tba);
+        if (wlen == -1) {
+            if (--retry_times == 0) {
+                qLogx()<<"WSCError: Send ws msg faild:"<<this->m_sock->errorString()
+                       <<this->m_sock->state()<<this->m_sock->isValid();
+                // 为什么在这是Unconnected状态呢？
+                // Q_ASSERT(wlen != -1);
+                return false;
+            } else {
+                // 这调用sleep不会导致死锁吧。
+                ::usleep(3000000/10);
+                goto resend_ws_msg;
+            }
+        }
     }
-    // wlen = this->m_sock->write((const char *)buf, len);
-    wlen = this->m_sock->write(msg);
-    ok = this->m_sock->putChar(0xff);
-    if (!ok) {
-        qLogx()<<"Send ws msg faild:"<<this->m_sock->errorString();
-        Q_ASSERT(ok);
-        return false;
+
+    if (0) {
+        ok = this->m_sock->putChar(0x00);
+        if (!ok) {
+            qLogx()<<"WSCError: Send ws msg faild:"<<this->m_sock->errorString()
+                   <<this->m_sock->state()<<this->m_sock->isValid();
+            Q_ASSERT(ok);
+            return false;
+        }
+        // wlen = this->m_sock->write((const char *)buf, len);
+        wlen = this->m_sock->write(msg);
+        ok = this->m_sock->putChar(0xff);
+        if (!ok) {
+            qLogx()<<"WSCError: Send ws msg faild:"<<this->m_sock->errorString()
+                   <<this->m_sock->state()<<this->m_sock->isValid();
+            Q_ASSERT(ok);
+            return false;
+        }
     }
-    
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<msg;
     // return wlen;
 
@@ -641,6 +682,11 @@ bool WebSocketClient::sendMessage(QByteArray msg)
 bool WebSocketClient::isClosed()
 {
     return this->m_sock.get() == 0 || this->m_sock->state() == QAbstractSocket::UnconnectedState;
+}
+
+void WebSocketClient::on_backend_error(QAbstractSocket::SocketError socketError)
+{
+    qLogx()<<socketError<<this->m_sock->errorString();
 }
 
 void WebSocketClient::on_connected_ws_server()
@@ -660,6 +706,7 @@ void WebSocketClient::on_connected_ws_server()
         "Sec-WebSocket-Protocol: wso\r\n" +       // new ws version,20110409
         "Sec-WebSocket-Key1: {4}\r\n" +
         "Sec-WebSocket-Key2: {5}\r\n" +
+        "Sec-WebSocket-Version: 00\r\n" +
         "{6}" +
         "\r\n";
 
@@ -703,6 +750,34 @@ void WebSocketClient::on_disconnected_ws_server()
 
 }
 
+void WebSocketClient::on_ping_timeout()
+{
+    // qLogx()<<"";
+    int wlen = 0;
+    unsigned char buf[32] = {0};
+
+    // 00 00 00 00 00 00 00 00 11 FF
+    // 00 00 00 00 00 00 00 00 02 00 FF
+    // 89 88 4A AF 18 CA 4A AF 18 CA 4A AF 18 C3
+    // buf[0] = 0x00;
+    // strcpy((char*)buf+1, "ping");
+    // *(buf+5) = 0xff;
+    this->m_ping_seq ++;
+    memcpy(&buf[8], &this->m_ping_seq, sizeof(int));
+    buf[9+sizeof(int)-1] = 0xff;
+
+    wlen = 9+sizeof(int);
+    QByteArray ba = QByteArray((const char*)buf, wlen);
+    // this->sendMessage(ba);
+
+    bool ok = this->m_sock->write((const char*)buf, wlen);
+    // 都不管用，服务器端还是会关闭连接
+    if (!ok) {
+        qLogx()<<"WSCError: Send ping faild:"<<this->m_sock->errorString()
+               <<this->m_sock->state()<<this->m_sock->isValid();
+    }
+}
+
 void WebSocketClient::on_backend_handshake_ready_read()
 {
     qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
@@ -732,6 +807,13 @@ void WebSocketClient::on_backend_handshake_ready_read()
         // qDebug()<<"digest doesn't match:'"
         //         << reply_digest << "'!='" << this->expected_digest << "'";
         this->m_sock->close();
+
+        if (this->m_hs_retry-- > 0) {
+            qLogx()<<"WSC retry handshake:"<<this->m_hs_retry;
+            this->connectToServer(this->m_rpath);
+        } else {
+            emit this->handShakeError();
+        }
     }
 }
 
@@ -1124,7 +1206,7 @@ ssize_t WebSocketServer2::wssend(qint64 cseq, const void *buf, size_t len)
     } else {
         Q_ASSERT(sizeof(wbuf) > (len + LWS_SEND_BUFFER_PRE_PADDING + LWS_SEND_BUFFER_POST_PADDING));
         memcpy(wbuf + LWS_SEND_BUFFER_PRE_PADDING, buf, len);
-        wlen = libwebsocket_write(wsi, (unsigned char*)buf, len, LWS_WRITE_TEXT);
+        wlen = libwebsocket_write(wsi, (unsigned char*)wbuf, len, LWS_WRITE_TEXT);
         if (wlen == 0) {
             // write success
         } else {
@@ -1132,6 +1214,7 @@ ssize_t WebSocketServer2::wssend(qint64 cseq, const void *buf, size_t len)
         }
         QString ba = QByteArray((const char*)buf, len);
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__<<"wlen:"<<wlen<<ba.length()<<ba<<(const char*)buf;
+        libwebsocket_callback_on_writable(this->serv_ctx, wsi);
     }
     return wlen;
 }
@@ -1240,16 +1323,34 @@ int WebSocketServer2::lws_ws_message_ready(libwebsocket *wsi, char *msg, size_t 
 
     cseq = this->outer_conns.findLeft(wsi).value();
 
-    qDebug()<<"ws serv got and broard msg:"<<nmsg<<cseq;
+    // only for websocket-v00
+    char ping_frm[32] = {0};
+    unsigned char c;
 
-    
-    emit this->newWSMessage(nmsg, cseq);
-    // emit this->newWSMessage(nmsg, (QTcpSocket*)wsi);
+    if (0) {
+        for (int i = 0; i < len; ++i) {
+            c = msg[i];
+            fprintf(stderr, "%02X ", c);
+        }
+        fprintf(stderr, "\n");
+    }
+
+    if (memcmp(msg, ping_frm, 7) == 0
+        && len == 11) {
+        // here head 00 and tail FF already been dropped
+        // 00 00 00 00 00 00 00 00 68 00 00 00 FF
+        qLogx()<<"Recive clint ping frame. B"<<len;
+    } else {
+        qDebug()<<"lws serv got and broard msg:"<<cseq<<len<<nmsg;
+        emit this->newWSMessage(nmsg, cseq);
+        // emit this->newWSMessage(nmsg, (QTcpSocket*)wsi);
+    }
     
     return 0;
 }
 
 static int close_testing;
+static int close_testing_wso;
 
 /*
  * This demo server shows how to use libwebsockets for one or more
@@ -1462,7 +1563,6 @@ callback_dumb_increment(struct libwebsocket_context * context,
 
 
 /* lws-mirror_protocol */
-
 #define MAX_MESSAGE_QUEUE 64
 
 struct per_session_data__lws_mirror {
@@ -1602,7 +1702,7 @@ callback_wso(struct libwebsocket_context * context,
         break;
 
 	case LWS_CALLBACK_SERVER_WRITEABLE:
-		if (close_testing)
+		if (close_testing_wso)
 			break;
 		if (pwso->ringbuffer_tail != ringbuffer_head_wso) {
 
@@ -1636,7 +1736,7 @@ callback_wso(struct libwebsocket_context * context,
 		if (ringbuffer_wso[ringbuffer_head_wso].payload)
 			free(ringbuffer_wso[ringbuffer_head_wso].payload);
 
-		ringbuffer_wso[ringbuffer_head].payload =
+		ringbuffer_wso[ringbuffer_head_wso].payload =
 				malloc(LWS_SEND_BUFFER_PRE_PADDING + len +
 						  LWS_SEND_BUFFER_POST_PADDING);
 		ringbuffer_wso[ringbuffer_head_wso].len = len;
@@ -1651,8 +1751,10 @@ callback_wso(struct libwebsocket_context * context,
 				  MAX_MESSAGE_QUEUE) > (MAX_MESSAGE_QUEUE - 10))
 			libwebsocket_rx_flow_control(wsi, 0);
 
-		libwebsocket_callback_on_writable_all_protocol(
-					       libwebsockets_get_protocol(wsi));
+        // 这一语句导致接收到的数据被马上又发送回去，像echo服务器一样了。
+        // 不需要这样的功能，纯属无意导致的bug。
+		// libwebsocket_callback_on_writable_all_protocol(
+		// 			       libwebsockets_get_protocol(wsi));
 
         break;
 
@@ -1959,9 +2061,27 @@ int WebSocketClient2::lws_ws_message_ready(libwebsocket *wsi, char *msg, size_t 
 
     // cseq = this->outer_conns.findLeft(wsi).value();
 
-    qDebug()<<"ws serv got and broard msg:"<<nmsg<<cseq;
+    // only for websocket-v00
+    char ping_frm[32] = {0};
+    unsigned char c;
 
-    emit this->onWSMessage(nmsg);
+    if (0) {
+        for (int i = 0; i < len; ++i) {
+            c = msg[i];
+            fprintf(stderr, "%02X ", c);
+        }
+        fprintf(stderr, "\n");
+    }
+
+    if (memcmp(msg, ping_frm, 7) == 0
+        && len == 11) {
+        // here head 00 and tail FF already been dropped
+        // 00 00 00 00 00 00 00 00 68 00 00 00 FF
+        qLogx()<<"Recive clint ping frame. B"<<len;
+    } else {
+        qDebug()<<"ws serv got and broard msg: B"<<len<<cseq<<nmsg;
+        emit this->onWSMessage(nmsg);
+    }
     // emit this->newWSMessage(nmsg, cseq);
     // emit this->newWSMessage(nmsg, (QTcpSocket*)wsi);
     

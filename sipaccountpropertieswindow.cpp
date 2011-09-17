@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:35:35 +0800
-// Version: $Id: sipaccountpropertieswindow.cpp 876 2011-05-11 14:25:21Z drswinghead $
+// Version: $Id: sipaccountpropertieswindow.cpp 956 2011-08-24 08:53:52Z drswinghead $
 // 
 
 #include "simplelog.h"
@@ -66,6 +66,7 @@ SipAccount SipAccountPropertiesWindow::getAccount()
 
     acc = this->macc;
 
+    acc.displayName = this->uiw->lineEdit_4->text();
     acc.userName = this->uiw->lineEdit->text();
     acc.password = this->uiw->lineEdit_2->text();
     acc.domain = this->uiw->lineEdit_3->text();
@@ -85,6 +86,7 @@ bool SipAccountPropertiesWindow::setAccount()
     acc = this->macc;
 
     if (!acc.userName.isEmpty()) {
+        this->uiw->lineEdit_4->setText(acc.displayName);
         this->uiw->lineEdit->setText(acc.userName);
         this->uiw->lineEdit_2->setText(acc.password);
         this->uiw->lineEdit_3->setText(acc.domain);

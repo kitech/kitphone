@@ -3,10 +3,10 @@
 #include <QList>
 #include <QMutex>
 
-#include "pjsip.h"
+#include <pjsip.h>
 #include <pjsua-lib/pjsua.h>
 #include <pjsua-lib/pjsua_internal.h>
-#include "pjsua.h"
+#include <pjsua.h>
 #include <pjmedia/wave.h>
 #include <pjmedia/wav_port.h>
 
@@ -46,9 +46,10 @@ void PjCallback::on_call_state_wrapper(pjsua_call_id call_id, pjsip_event *e)
     if (pci->state == PJSIP_INV_STATE_DISCONNECTED) {
         qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<call_id<<"GOT DISCONNECTED state";
 	
-        pjsua_acc_id acc_id;
-        acc_id = pjsua_acc_get_default();
-        pjsua_acc_del(acc_id);
+        // dont auto delete when INV faild
+        // pjsua_acc_id acc_id;
+        // acc_id = pjsua_acc_get_default();
+        // pjsua_acc_del(acc_id);
     }
 	/* call the non-static member */
 	if (globalPjCallback) {
@@ -618,6 +619,7 @@ void PjsipCallFront::run()
             pjsua_perror(__FILE__, "Error creating udp transport", status);
             // error_exit("Error creating transport", status);
         }
+        status = pjsua_transport_set_enable(*m_udp_tp_id, PJ_TRUE);
 
         // TCP transport
         pjsua_transport_config_default(&cfg);
@@ -627,6 +629,8 @@ void PjsipCallFront::run()
             pjsua_perror(__FILE__, "Error creating tcp transport", status);
             // error_exit("Error creating transport", status);
         }
+        status = pjsua_transport_set_enable(*m_tcp_tp_id, PJ_TRUE);
+        status = pjsua_transport_set_enable(*m_udp_tp_id, PJ_TRUE);
     }
     
     status = pjsua_start();

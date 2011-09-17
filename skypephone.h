@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2011-04-18 21:23:19 +0800
-// Version: $Id: skypephone.h 906 2011-06-01 15:17:50Z drswinghead $
+// Version: $Id: skypephone.h 998 2011-09-17 11:03:58Z drswinghead $
 // 
 
 #ifndef _SKYPEPHONE_H_
@@ -17,7 +17,7 @@
 
 #include "boost/shared_ptr.hpp"
 
-class Skype;
+class Skycit;
 class SkypeTunnel;
 class SkypeTracer;
 
@@ -119,7 +119,7 @@ private:
     void initHistoryViewContextMenu();
 
 private: // pstn
-    Skype *mSkype;
+    Skycit *mSkype;
     SkypeTunnel *mtun;
     SkypeTracer *mSkypeTracer;
 

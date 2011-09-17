@@ -4,7 +4,7 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:25:31 +0800
-// Version: $Id: sipaccountswindow.h 876 2011-05-11 14:25:21Z drswinghead $
+// Version: $Id: sipaccountswindow.h 956 2011-08-24 08:53:52Z drswinghead $
 // 
 #ifndef _SIPACCOUNTSWINDOW_H_
 #define _SIPACCOUNTSWINDOW_H_
@@ -64,7 +64,7 @@ private:
     SipAccount accountFromRow(int row);    
 
 signals:
-    void accountWantRegister(QString userName, bool reg);
+    void accountWantRegister(QString display_name, QString user_name, QString serv_addr, bool reg);
     // void accountWantRemove(QString userName);
     void accountAdded(SipAccount &acc);
     // void accountModified(SipAccount &acc); // 删掉，添加两步

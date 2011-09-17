@@ -4,17 +4,19 @@
 // Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 // URL: 
 // Created: 2010-11-20 17:46:16 +0800
-// Version: $Id: kitphone.h 896 2011-05-28 03:03:24Z drswinghead $
+// Version: $Id: kitphone.h 995 2011-09-16 09:51:17Z drswinghead $
 // 
 #ifndef _KITPHONE_H_
 #define _KITPHONE_H_
 
 #include <QtCore>
+#include <QtGui>
 #include <QtNetwork>
 #include <QMainWindow>
 
+class QStatusBar;
 class SkypePhone;
-class SipPhone;
+class MosipPhone;
 
 namespace Ui {
     class KitPhone;
@@ -35,12 +37,20 @@ public slots:
 protected:
     virtual void 	paintEvent ( QPaintEvent * event );
     virtual void 	showEvent ( QShowEvent * event );
-                                                  
+    
+private:
+    void custom_status_bar();
+
 private:
     Ui::KitPhone *uiw;
 
     SkypePhone *uiw_skype;
-    SipPhone *uiw_sip;
+    MosipPhone *uiw_sip;
+
+    QStatusBar *esb;
+    QToolButton *stb; // status toolbutton
+    QToolButton *mtb; // mode switch button
+    QToolButton *htb; // help toolbutton
 };
 
 #endif /* _KITPHONE_H_ */

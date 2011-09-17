@@ -25,8 +25,11 @@ public:
     explicit SqlRequest() {
         this->mReqno = -1;
         this->mRet = false;
+        this->mErrCnt = 0;
         this->mCbObject = nullptr;
         this->mCbSlot = nullptr;
+
+        this->mCbData = nullptr;
     }
     virtual ~SqlRequest() {
         qDebug()<<__FILE__<<__LINE__<<__FUNCTION__;
@@ -34,8 +37,10 @@ public:
     
     int mReqno;
     QString mSql;
+    QStringList mSqls;
 
     bool mRet;
+    int mErrCnt;
     QString mErrorString;
     QVariant mExtraValue; // 一向用于last insert id
     QList<QSqlRecord> mResults;
@@ -48,6 +53,7 @@ public:
     const char *mCbSlot;
 
     int mCbId;
+    void *mCbData;
 };
 
 ///////////////////////////
@@ -60,6 +66,11 @@ public:
 
     bool isConnected() { return this->m_connected; }
     int execute(const QString &query); // 返回一个执行号码
+    int execute(const QStringList &querys); // 返回一个执行号码
+    int syncExecute(const QString &query, QList<QSqlRecord> &records);
+
+    // utils
+    QString escapseString(const QString &str);
 
 public slots:
     void onConnected();
@@ -76,6 +87,7 @@ protected:
 
 signals:
     void executefwd(const QString &query, int reqno);
+    void executefwd(const QStringList &querys, int reqno);
 
 private:
     DatabaseWorker *m_worker;

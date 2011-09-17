@@ -33,17 +33,17 @@ public:
     /*
       ipaddr:如果不为空，则优先查找同一网段的可用语音网关，查找方法：ipv4的前三段相同即可。
      */
-    int acquireGateway(QString caller_name, QString callee_phone, QString &gateway,
+    int acquireGateway(const QString &caller_name, const QString &callee_phone, QString &gateway,
                        unsigned short &port, QString &ipaddr);
-    int releaseGateway(QString caller_name, QString gateway);
+    int releaseGateway(const QString &caller_name, const QString &gateway);
     QString getForwardPhone(QString caller_name, QString gateway);
 
-    int setCallPair(QString caller_name, QString callee_phone, QString remote_ipaddr, QStringList &routers);
-    QString getCallPeer(QString caller_name, QString &caller_ipaddr);
-    bool removeCallPair(QString caller_name);
+    int setCallPair(const QString &caller_name, const QString &callee_phone, const QString &remote_ipaddr, QStringList &routers);
+    QString getCallPeer(const QString &caller_name, QString &caller_ipaddr);
+    bool removeCallPair(const QString &caller_name);
 
-    bool setForwardPort(QString gateway, unsigned short port, QString ipaddr);
-    unsigned short getForwardPort(QString caller_name, QString &ipaddr);
+    bool setForwardPort(const QString &gateway, unsigned short port, const QString &ipaddr);
+    unsigned short getForwardPort(const QString &caller_name, QString &ipaddr);
 
     bool setLineState(QString gateway, int state);
     bool setBatchLineState(QStringList &gateways, int state);

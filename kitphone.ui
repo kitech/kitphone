@@ -17,7 +17,11 @@
    <string>Kitphone SIP/Skype Soft  phone</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout"/>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="topMargin">
+     <number>1</number>
+    </property>
+   </layout>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -26,14 +30,15 @@
      <x>0</x>
      <y>0</y>
      <width>391</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
     <property name="title">
      <string>文件(&amp;F)</string>
     </property>
-    <addaction name="action"/>
+    <addaction name="actionAccounts"/>
+    <addaction name="actionPreferences"/>
     <addaction name="separator"/>
     <addaction name="action_Exit"/>
    </widget>
@@ -43,14 +48,6 @@
     </property>
     <addaction name="action_About"/>
    </widget>
-   <widget class="QMenu" name="menuView">
-    <property name="title">
-     <string>视图(&amp;V)</string>
-    </property>
-    <addaction name="actionSip_Phone_Mode"/>
-    <addaction name="actionSkype_Phone_Mode"/>
-    <addaction name="actionEmpty_Phone_Mode"/>
-   </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
      <string>工具(&amp;T)</string>
@@ -58,7 +55,6 @@
     <addaction name="action_2"/>
    </widget>
    <addaction name="menu"/>
-   <addaction name="menuView"/>
    <addaction name="menu_2"/>
    <addaction name="menu_Help"/>
   </widget>
@@ -120,10 +116,20 @@
     <string>网络检测</string>
    </property>
   </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+  </action>
+  <action name="actionAccounts">
+   <property name="text">
+    <string>Accounts</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="kp.qrc"/>
+  <include location="kitphone.qrc"/>
  </resources>
  <connections/>
 </ui>

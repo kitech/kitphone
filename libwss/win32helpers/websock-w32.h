@@ -18,7 +18,7 @@
 
 #define random rand
 #define usleep _sleep
-#define poll WSAPoll
+// #define poll WSAPoll
 
 /* override configure because we are not using Makefiles */
 

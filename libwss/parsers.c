@@ -1577,8 +1577,10 @@ int libwebsocket_write(struct libwebsocket *wsi, unsigned char *buf,
 
 	/* websocket protocol, either binary or text */
 
-	if (wsi->state != WSI_STATE_ESTABLISHED)
+	if (wsi->state != WSI_STATE_ESTABLISHED) {
+        fprintf(stderr, "aaaaaaaaaaaaa\n", wsi->state);
 		return -1;
+    }
 
 	switch (wsi->ietf_spec_revision) {
 	/* chrome likes this as of 30 Oct */

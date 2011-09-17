@@ -4,7 +4,7 @@
 # Copyright (C) 2007-2010 liuguangzhao@users.sf.net
 # URL: 
 # Created: 2010-07-03 14:03:38 +0800
-# Version: $Id: skyserv.pro 912 2011-06-04 03:00:21Z drswinghead $
+# Version: $Id: skyserv.pro 930 2011-06-23 08:20:39Z drswinghead $
 # 
 
 QT       += core gui network
@@ -19,7 +19,7 @@ OBJECTS_DIR = tmp
 # only test qmake pkgconfig support feature
 PKGCONFIG += x11
 
-VERSION = 0.7.92
+VERSION = 0.7.98
 
 #########################
 #QMAKE_CFLAGS += -std=c1x  # newlisp compile faild
@@ -48,7 +48,7 @@ HEADERS  += skyserv.h skyservapplication.h \
          ../metauri.h \
          websocket.h  \
          ../utils.h  ../simplelog.h \
-        limit_detect.h \
+         limit_detect.h \
          lisp_bridge.h
 
 #libskynet 

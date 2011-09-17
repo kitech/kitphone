@@ -36,6 +36,7 @@ int openssl_websocket_private_data_index;
  * In-place str to lower case
  */
 
+
 static void
 strtolower(char *s)
 {
@@ -1056,7 +1057,7 @@ lws_client_interpret_server_handshake(struct libwebsocket_context *context,
 	char ext_name[128];
 	struct libwebsocket_extension *ext;
 	void *v;
-	int len;
+	int len = 0;
 	int n;
 	static const char magic_websocket_04_masking_guid[] =
 					 "61AC5F19-FBBA-4540-B96F-6561F1AB40A8";
@@ -1452,7 +1453,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 							  struct pollfd *pollfd)
 {
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 + MAX_BROADCAST_PAYLOAD +
-						  LWS_SEND_BUFFER_POST_PADDING + 200];
+						  LWS_SEND_BUFFER_POST_PADDING];
 	struct libwebsocket *wsi;
 	struct libwebsocket *new_wsi;
 	int n;
@@ -2024,31 +2025,6 @@ bail3:
 			/* service incoming data */
 
 			if (eff_buf.token_len) {
-                // some compatible hack
-                // no Sec-WebSocket-Protocol field, in some older browser
-                // flash websocket 支持这个
-                // 总结一下还有哪些浏览器不支持这个field的，如果都没有问题，则去掉这个引起问题的部分。
-                char *ins_hdr = "Sec-WebSocket-Protocol: wso\r\n";
-                if ((wsi->state == WSI_STATE_HTTP || wsi->state == WSI_STATE_HTTP_HEADERS)
-                    && eff_buf.token_len > 10) {
-                    char *pp = strstr(eff_buf.token, "Sec-WebSocket-Protocol");
-                    if (pp == NULL) {
-                        char *p1 = strstr(eff_buf.token, "Sec-WebSocket-Key1");
-                        if (p1 != NULL) {
-                            fprintf(stderr, "Older client, patching hdr: %s, from %p to %p, len=%d\n",
-                                    ins_hdr, p1 + strlen(ins_hdr), p1, eff_buf.token_len-(p1-eff_buf.token));
-                            // TODO 这个memmove调用偶尔引起程序崩溃,还有哪个值无效引起的。
-                            memmove(p1 + strlen(ins_hdr), p1, eff_buf.token_len - (p1 - eff_buf.token));
-                            memcpy(p1, ins_hdr, strlen(ins_hdr));
-                            eff_buf.token_len += strlen(ins_hdr);
-                        } else {
-                            fprintf(stderr, "Dont known how patch it, very old websocket client.\n");
-                        }
-                    } else {
-                        fprintf(stderr, "wsi already has Protocol field, idx=%d, from %s.\n", pp - eff_buf.token, pp);
-                    }
-                }
-                fprintf(stderr, "wsi state: %d=?%d, %d\n", wsi->state, WSI_STATE_HTTP, eff_buf.token_len);
 				n = libwebsocket_read(context, wsi,
 				     (unsigned char *)eff_buf.token, eff_buf.token_len);
 				if (n < 0)
@@ -2157,6 +2133,99 @@ libwebsocket_context_destroy(struct libwebsocket_context *context)
  *	nothing is pending, or as soon as it services whatever was pending.
  */
 
+#if defined(WIN32)
+#include <windows.h>
+#include <ws2tcpip.h>
+
+int libwebsocket_service_using_select(struct libwebsocket_context * context, int timeout_ms)
+{
+    struct pollfd *fds = NULL;
+    int cnt;
+    int n;
+    int i;
+    int cfd;
+    int max_fd;
+
+    fd_set fdreads;
+    fd_set fdwrites;
+    fd_set fderrors;
+    struct timeval tv;
+
+
+    fds = context->fds;
+    cnt = context->fds_count;
+
+    FD_ZERO(&fdreads);
+    FD_ZERO(&fdwrites);
+    FD_ZERO(&fderrors);
+
+    max_fd = 0;
+    for (i = 0; i < cnt; ++i) {
+        FD_SET(fds[i].fd, &fdreads);
+        FD_SET(fds[i].fd, &fdwrites);
+        FD_SET(fds[i].fd, &fderrors);
+	if (fds[i].fd > max_fd) {
+	  max_fd = fds[i].fd;
+	}
+    }
+
+    memset(&tv, 0, sizeof(struct timeval));
+    if (timeout_ms > 1000) {
+      tv.tv_sec = timeout_ms / 1000;
+    } else {
+      tv.tv_usec = timeout_ms * 1000;
+    }
+    fprintf(stderr, "before poll over select...\n");
+    // n = select(max_fd+1, &fdreads, &fdwrites, &fderrors, &tv);
+    n = select(max_fd+1, &fdreads, NULL, &fderrors, &tv);
+    fprintf(stderr, "after poll over select: %d, %d\n", n, SOCKET_ERROR);
+    if (n < 0) {
+      fprintf(stderr, "poll error: %d\n", n);
+        return 1;
+    }
+
+    if (n == 0) {
+      fprintf(stderr, "poll timeout:%d\n", n);
+        return 0;
+    }
+
+    if (n == SOCKET_ERROR) {
+      fprintf(stderr, "poll timeout:%d\n", n);
+      return 1;
+    }
+    
+    if (n > 0) {
+        for (i = 0; i < cnt; ++i) {
+	  fds[i].revents = 0;
+	  if (FD_ISSET(fds[i].fd, &fdreads)) {
+	     fds[i].revents = POLLIN;
+	     fprintf(stderr, "ws pollin fd: %d \n", context->fds[i].fd);
+	  } else
+	  if (FD_ISSET(fds[i].fd, &fdwrites)) {
+	     // fds[i].revents |= POLLOUT;
+	     fprintf(stderr, "ws pollout fd: %d \n", context->fds[i].fd);
+	  } else 
+	  if (FD_ISSET(fds[i].fd, &fderrors)) {
+	    fprintf(stderr, "ws pollerr fd: %d \n", context->fds[i].fd);
+	    fds[i].revents |= POLLERR;
+	  } else {
+	    fprintf(stderr, "what state of ws fd: %d \n", context->fds[i].fd);
+	  }
+
+	  if (FD_ISSET(fds[i].fd, &fdreads)  // || FD_ISSET(fds[i].fd, &fdwrites)
+		       || FD_ISSET(fds[i].fd, &fderrors)) {
+	    fprintf(stderr, "give ws process fd: %d \n", context->fds[i].fd);
+	    libwebsocket_service_fd(context, &context->fds[i]);
+	    fprintf(stderr, "give ws process fd: %d , returned\n", context->fds[i].fd);
+	  }
+        }
+    }
+
+    fprintf(stderr, "retrun poll over select.\n");
+    return 0;
+}
+
+#endif
 
 int
 libwebsocket_service(struct libwebsocket_context *context, int timeout_ms)
@@ -2168,8 +2237,12 @@ libwebsocket_service(struct libwebsocket_context *context, int timeout_ms)
 	if (context == NULL)
 		return 1;
 
-	/* wait for something to need service */
+#if defined(WIN32)
+	return libwebsocket_service_using_select(context, timeout_ms);
+#endif
 
+
+	/* wait for something to need service */
 	n = poll(context->fds, context->fds_count, timeout_ms);
 	if (n == 0) /* poll timeout */
 		return 0;
@@ -2773,7 +2846,7 @@ libwebsocket_create_context(int port, const char *interf,
 
 	/* set up our external listening socket we serve on */
 
-	if (port+100) {
+	if (port) {
 
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sockfd < 0) {

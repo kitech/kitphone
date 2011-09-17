@@ -32,7 +32,8 @@
 web skype可登陆多个skype实例。
 sess_id由客户端生成规则，
 ws://host/sess_id/skype_id/
-** login:
+这不就是JSON格式吗。
+** login: 
         req: {skype_id:xxxx,password:xxxxxx}
         res: {errno:1,errstr:xxx,ipaddr:xxx,port:xxx}
 ** logout:

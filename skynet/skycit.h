@@ -1,5 +1,5 @@
-#ifndef _SKYPE_H
-#define _SKYPE_H
+#ifndef _SKYCIT_H
+#define _SKYCIT_H
 
 /***************************************************************
  * skype.h
@@ -29,7 +29,7 @@
 
 // TODO to async mode
 // TODO drop blocking mode, has some problem on win32
-class Skype : public QObject { 
+class Skycit : public QObject { 
     Q_OBJECT;
 private:
     SkypeCommon sk;
@@ -68,8 +68,8 @@ protected:
     int waitForResponse ( QString commandID );
 
 public:
-    explicit Skype(QString AppName);
-    virtual ~Skype();
+    explicit Skycit(QString AppName);
+    virtual ~Skycit();
     bool connectToSkype();
     bool disconnectFromSkype();
     QString handlerName() { return this->skypeName;}
@@ -181,4 +181,4 @@ private:
 
 
 
-#endif /* _SKYPE_H */
+#endif /* _SKYCIT_H */

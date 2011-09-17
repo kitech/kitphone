@@ -124,13 +124,19 @@
 #
 
 # JSON source files to build
-objects        = internalJSONNode.o JSON_Base64.o JSONChildren.o \
-                 JSONDebug.o JSONIterators.o JSONMemory.o JSONNode_Mutex.o \
-                 JSONNode.o JSONWorker.o JSONWriter.o libjson.o
+objects        = internalJSONNode.o JSONAllocator.o JSON_Base64.o JSONChildren.o \
+                 JSONDebug.o JSONIterators.o JSONMemory.o JSONNode.o \
+                 JSONNode_Mutex.o JSONPreparse.o JSONStream.o JSONValidator.o \
+                 JSONWorker.o JSONWriter.o libjson.o 
+OS=$(shell uname)
 
 # Defaults
-cxxflags_default = -c -O3 -ffast-math -fexpensive-optimizations -DNDEBUG
-cxxflags_small   = -c -Os -ffast-math -DJSON_LESS_MEMORY -DNDEBUG
+ifeq ($(OS), Darwin)
+	cxxflags_default = -c -fast -ffast-math -fexpensive-optimizations  -DNDEBUG
+else
+	cxxflags_default = -c -O3 -ffast-math -fexpensive-optimizations  -DNDEBUG
+endif
+cxxflags_small   = -c -Os -ffast-math -DJSON_LESS_MEMORY  -DNDEBUG
 cxxflags_debug   = -c -g -DJSON_SAFE -DJSON_DEBUG
 cxxflags_shared  = -f$(PIC)
 libname          = libjson
@@ -139,7 +145,7 @@ libname_debug    = $(libname)_dbg
 suffix_shared    = so
 suffix_static    = a
 major_version    = 7
-minor_version    = 0.1
+minor_version    = 3.4
 objdir           = Objects
 
 
@@ -202,7 +208,7 @@ all: $(lib_target)
 
 banner:
 	@echo "============================================================"
-	@echo "libjson version: "$(major_version).$(minor_version) "target: "$(target)
+	@echo "libjson version: "$(major_version).$(minor_version) "target: "$(target) "OS: "$(OS)
 	@echo "============================================================"
 
 installdirs: banner
@@ -213,7 +219,11 @@ ifeq ($(SHARED),1)
 $(lib_target): banner installdirs $(addprefix $(objdir)/, $(objects))
 	@echo "Link "
 	cd $(objdir) ; \
-	$(CXX) -shared -Wl,-soname,$(libname_shared_major_version) -o $@ $(objects) ; \
+	if test "$(OS)" = "Darwin" ; then \
+		$(CXX) -shared -Wl,-dylib_install_name -Wl,$(libname_shared_major_version) -o $@ $(objects) ; \
+	else \
+		$(CXX) -shared -Wl,-soname,$(libname_shared_major_version) -o $@ $(objects) ; \
+	fi ; \
 	mv -f $@ ../
 	@echo "Link: Done"
 else
@@ -236,7 +246,9 @@ install: banner install_headers $(lib_target)
 	cd $(inst_path) ; \
 	ln -sf $(lib_target) $(libname_shared_major_version) ; \
 	ln -sf $(libname_shared_major_version) $(libname_shared)
-	ldconfig
+	ifneq ($(OS),Darwin)
+		ldconfig
+	endif
 	@echo "Install shared library: Done."
 else
 install: banner install_headers $(lib_target)
@@ -252,7 +264,9 @@ install_headers: banner
 	mkdir -p $(include_path)/$(libname_hdr)/$(srcdir)
 	cp -f ./$(srcdir)/*.h $(include_path)/$(libname_hdr)/$(srcdir)
 	cp -r ./$(srcdir)/JSONDefs $(include_path)/$(libname_hdr)/$(srcdir)
-	@echo "Install"
+	chmod -R a+r $(include_path)/$(libname_hdr)
+	find  $(include_path)/$(libname_hdr) -type d -exec chmod a+x {} \;
+	@echo "Install header files: Done."
 
 clean: banner
 	@echo "Clean library and object folder"

@@ -52,6 +52,28 @@ int AsyncDatabase::execute(const QString& query)
     return reqno;
 }
 
+int AsyncDatabase::execute(const QStringList& querys)
+{
+    // int reqno = this->m_reqno++;
+    int reqno = this->m_reqno.fetchAndAddOrdered(1);
+    emit executefwd(querys, reqno); // forwards to the worker
+    return reqno;
+}
+
+int AsyncDatabase::syncExecute(const QString &query, QList<QSqlRecord> &records)
+{
+    int iret;
+
+    iret = this->m_worker->syncExecute(query, records);
+
+    return 0;
+}
+
+QString AsyncDatabase::escapseString(const QString &str)
+{
+    return this->m_worker->escapseString(str);
+}
+
 void AsyncDatabase::run()
 {
     emit ready(false);
@@ -59,10 +81,13 @@ void AsyncDatabase::run()
 
     // Create worker object within the context of the new thread
     m_worker = new DatabaseWorker();
-    QObject::connect(this, SIGNAL(executefwd(const QString&, int)),
-            m_worker, SLOT(slotExecute(const QString&,int)));
     QObject::connect(m_worker, SIGNAL(connected()),
                      this, SLOT(onConnected()));
+
+    QObject::connect(this, SIGNAL(executefwd(const QString&, int)),
+            m_worker, SLOT(slotExecute(const QString&,int)));
+    QObject::connect(this, SIGNAL(executefwd(const QStringList&, int)),
+            m_worker, SLOT(slotExecute(const QStringList&,int)));
     
     m_worker->connectDatabase();
 

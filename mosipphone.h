@@ -128,6 +128,7 @@ public slots:
     bool loadPreferences(Preferences *prefs);
     bool onSavePreferencesDone(boost::shared_ptr<SqlRequest> req);
     bool onLoadPreferencesDone(boost::shared_ptr<SqlRequest> req);
+    bool onPostLoadPreferencesDone();
 
     void log_output(int type, const QString &log);
 

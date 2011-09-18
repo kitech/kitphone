@@ -73,7 +73,7 @@ public:
         ME_SKYKIT,
         ME_MAX
     };
-    int me_type;
+    int nme_type;
     bool skype_mode;
 };
 

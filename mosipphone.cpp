@@ -306,6 +306,11 @@ void MosipPhone::onShowPreferences()
     }
 }
 
+bool MosipPhone::onPostLoadPreferencesDone()
+{
+    
+}
+
 /*
  */
 void MosipPhone::onRegisterAccount(QString display_name, QString user_name, const QString serv_addr, bool reg)

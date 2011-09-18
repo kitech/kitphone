@@ -308,7 +308,7 @@ void MosipPhone::onShowPreferences()
 
 bool MosipPhone::onPostLoadPreferencesDone()
 {
-    
+    return true;
 }
 
 /*

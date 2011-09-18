@@ -65,15 +65,15 @@ public:
     std::vector<std::string> media_codecs;
     std::string use_codec;
     
-    enum MediaEngine {
-        ME_MIN = 0,
-        ME_PJSIP,
-        ME_VOPP,
-        ME_SKYCIT,
-        ME_SKYKIT,
-        ME_MAX
+    enum NetworkVoiceEngine {
+        NVE_MIN = 0,
+        NVE_PJSIP,
+        NVE_VOPP,
+        NVE_SKYCIT,
+        NVE_SKYKIT,
+        NVE_MAX
     };
-    int nme_type;
+    int nve_type;
     bool skype_mode;
 };
 

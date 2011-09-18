@@ -348,6 +348,42 @@ CmdCodecList &CmdCodecList::from_json(CmdCodecList &cmd, std::string jstr)
     return cmd;
 }
 
+/////// resolv name
+std::string CmdResolvName::to_json()
+{
+    std::string jstr;
+
+    Json::Features::all();
+    Json::Value root;
+    // Json::StyledWriter jwriter;
+    Json::FastWriter jwriter;
+
+    root["cmd_id"] = cmd_id;
+    root["cmd_seq"] = cmd_seq;
+    root["name"] = name;
+
+    jstr = jwriter.write(root);
+
+    return jstr;
+}
+
+CmdResolvName &CmdResolvName::from_json(CmdResolvName &cmd, std::string jstr)
+{
+    Json::Features::all();
+    Json::Value root;
+    // Json::StyledWriter jwriter;
+    Json::Reader jreader;
+
+    Json::Value cvs;
+
+    if (jreader.parse(jstr, root)) {
+        cmd.cmd_seq = root["cmd_seq"].asInt();
+        cmd.name = root["name"].asString();
+    }
+
+    return cmd;
+}
+
 ///////////////////
 int PackageSplitter::pkg_seq = 12345678;
 PackageSplitter::PackageSplitter(const std::string &pstr)

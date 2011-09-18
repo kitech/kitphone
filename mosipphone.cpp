@@ -121,6 +121,9 @@ void MosipPhone::main_ui_draw_complete()
 
     // another engine
     this->msce = SkycitEngine::instance();
+    QObject::connect(this->msce, SIGNAL(skycit_engine_started()), this, SLOT(onon_skycit_engine_started()));
+    QObject::connect(this->msce, SIGNAL(skycit_engine_error(int)), this, SLOT(onon_skycit_engine_error(int)));
+
     this->msce->start();
 
     this->mdyn_oe = new QGraphicsOpacityEffect();
@@ -308,6 +311,37 @@ void MosipPhone::onShowPreferences()
 
 bool MosipPhone::onPostLoadPreferencesDone()
 {
+    assert(Global::pref != NULL);
+    bool bret = false;
+    CmdRegister cmd;
+    // cmd.display_name = display_name.toStdString();
+    // cmd.user_name = user_name.toStdString();
+    // cmd.password = recs.at(0).value("account_password").toString().toStdString();
+    // cmd.sip_server = serv_addr.toStdString();
+    // cmd.unregister = !reg;
+    std::string jcstr;
+    
+    Global::pref->nve_type = Preferences::NVE_SKYCIT;
+    switch (Global::pref->nve_type) {
+    case Preferences::NVE_PJSIP:
+        break;
+    case Preferences::NVE_SKYCIT:
+        // resolv current login skycit id
+        cmd.unregister = false;
+        jcstr = InterMessage().jpack_message(cmd);
+
+        if (this->wsc2 != NULL && this->wsc2->isConnected()) {
+            bret = this->wsc2->sendMessage(jcstr);
+            qLogx()<<bret;
+        } else {
+            qLogx()<<"wsc not connected now.enqueue request.";
+            this->cmds_queue_before_connected.append(jcstr);
+        }        
+        break;
+    default:
+        qLogx()<<"Unimpled or unsupported ve:"<<Global::pref->nve_type;
+        break;
+    }
     return true;
 }
 
@@ -1509,6 +1543,23 @@ void MosipPhone::onon_mosip_engine_error(int eno)
 }
 
 void MosipPhone::onon_mosip_engine_started()
+{
+    qLogx()<<"";
+    this->wsc2 = new WebSocketClient2("WSS://127.0.0.1:18080/hahaha/");
+    QObject::connect(this->wsc2, SIGNAL(onConnected(QString)), this, SLOT(onon_ws_client_connected(QString)));
+    QObject::connect(this->wsc2, SIGNAL(onError()), this, SLOT(onon_ws_client_error()));
+    QObject::connect(this->wsc2, SIGNAL(onDisconnected()), this, SLOT(onon_ws_client_disconnected()));
+    QObject::connect(this->wsc2, SIGNAL(onWSMessage(QByteArray)), this, SLOT(onon_ws_client_message(QByteArray)));
+
+    this->wsc2->connectToServer();
+}
+
+void MosipPhone::onon_skycit_engine_error(int eno)
+{
+    qLogx()<<eno;
+}
+
+void MosipPhone::onon_skycit_engine_started()
 {
     qLogx()<<"";
     this->wsc2 = new WebSocketClient2("WSS://127.0.0.1:18080/hahaha/");

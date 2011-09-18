@@ -159,6 +159,7 @@ bool WebSocketClient2::on_wsctx_inited()
         if (libwebsocket_client_is_connected(this->m_wsi)) {
             break;
         } else {
+            break;
             this->m_wsi = NULL;
             qLogx()<<"Invalid client wsi state, retry.. "<<conn_retry;
             if (conn_retry == 0) {
@@ -282,6 +283,12 @@ bool WebSocketClient2::sendMessage(std::string msg)
 
     return true;
     
+}
+
+bool WebSocketClient2::isConnected()
+{
+    
+    return (this->m_wsi != NULL && libwebsocket_client_is_connected(this->m_wsi));
 }
 
 bool WebSocketClient2::isClosed()

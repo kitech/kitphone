@@ -71,7 +71,9 @@ protected slots:
     void onSkypeCallHangup(QString callerName, QString calleeName, int callID);
 
 signals:
-    void runin_it();
+    // void runin_it();
+    void skycit_engine_started();
+    void skycit_engine_error(int eno);
 
 protected:
     Skycit *sct;

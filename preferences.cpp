@@ -35,7 +35,7 @@ void Preferences::reset()
     this->use_ice = false;
     this->stun_server = "";
 
-    this->nme_type = ME_PJSIP;
+    this->nve_type = NVE_PJSIP;
     this->skype_mode = false;
 }
 
@@ -93,7 +93,7 @@ bool MosipPhone::savePreferences(Preferences *prefs)
 
     sqls << QString(tpl).arg("use_codec").arg(QString::fromStdString(prefs->use_codec));
 
-    sqls << QString(tpl).arg("nme_type").arg(prefs->nme_type);
+    sqls << QString(tpl).arg("nve_type").arg(prefs->nve_type);
     sqls << QString(tpl).arg("skype_mode").arg(prefs->skype_mode);
  
     qLogx()<<sqls;
@@ -170,8 +170,8 @@ bool MosipPhone::onLoadPreferencesDone(boost::shared_ptr<SqlRequest> req)
         if (rec.value("key").toString() == "use_codec") {
             prefs->use_codec = rec.value("value").toString().toStdString();
         } else 
-            if (rec.value("key").toString() == "nme_type") {
-                prefs->nme_type = rec.value("value").toInt();
+            if (rec.value("key").toString() == "nve_type") {
+                prefs->nve_type = rec.value("value").toInt();
             } else 
         if (rec.value("key").toString() == "skype_mode") {
             prefs->skype_mode = rec.value("value").toBool();

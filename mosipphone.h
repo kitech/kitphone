@@ -85,6 +85,8 @@ public slots:
     
     void onon_mosip_engine_error(int eno);
     void onon_mosip_engine_started();
+    void onon_skycit_engine_started();
+    void onon_skycit_engine_error(int eno);
 
     void onon_ws_client_connected(QString rpath);
     void onon_ws_client_disconnected();

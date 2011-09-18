@@ -42,6 +42,7 @@ public:
     bool sendMessage(QByteArray msg);
     bool sendMessage(std::string msg);
 
+    bool isConnected();
     bool isClosed();
 
 protected:

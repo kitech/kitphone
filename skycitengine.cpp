@@ -27,6 +27,25 @@ SkycitEngine::SkycitEngine(QObject *parent)
     // confirm all this's slot run in this run thread
     this->moveToThread(this);
     QObject::connect(this, SIGNAL(started()), this, SLOT(onSCEThreadStarted()));
+
+    this->sct = new Skycit("karia2");
+    QObject::connect(this->sct, SIGNAL(skypeError(int, QString, QString)),
+                     this, SLOT(onSkypeError(int, QString, QString)));
+    QObject::connect(this->sct, SIGNAL(skypeNotFound()),
+                     this, SLOT(onSkypeNotFound()));
+    
+    QObject::connect(this->sct, SIGNAL(connected(QString)), this, SLOT(onSkypeConnected(QString)));
+    QObject::connect(this->sct, SIGNAL(realConnected(QString)),
+                     this, SLOT(onSkypeRealConnected(QString)));
+
+    QObject::connect(this->sct, SIGNAL(UserStatus(QString,int)),
+                     this, SLOT(onSkypeUserStatus(QString,int)));
+
+    QObject::connect(this->sct, SIGNAL(newCallArrived(QString,QString,int)),
+                     this, SLOT(onSkypeCallArrived(QString,QString,int)));
+    QObject::connect(this->sct, SIGNAL(callHangup(QString,QString,int)),
+                     this, SLOT(onSkypeCallHangup(QString,QString,int)));
+
 }
 
 SkycitEngine *SkycitEngine::instance()
@@ -104,6 +123,7 @@ void SkycitEngine::onWS_websocket_started()
 {
     qLogx()<<QThread::currentThread()<<this<<(QThread::currentThread() == this);
     // this->sip_engine_error(eno);
+    emit this->skycit_engine_started();
 }
 
 // TODO support multi client connect, from desktop app or web app
@@ -135,6 +155,7 @@ void SkycitEngine::onWS_websocket_message(const QString &msg, int cseq)
     qLogx()<<""<<msg<<cseq;
     qLogx()<<QThread::currentThread()<<this<<(QThread::currentThread() == this);
 
+    this->process_ctrl_message(msg.toStdString(), cseq);
 
     // char tbuf[512] = {0};
     // snprintf(tbuf, sizeof(tbuf), "Returned by server via %d ,%s", cseq, msg.toAscii().data());  
@@ -167,7 +188,7 @@ bool SkycitEngine::process_ctrl_message(const std::string &msg, int cseq)
 
     cmd_id = InterMessage().jpack_cmdid(msg);
 
-    // switch (cmd_id) {
+    switch (cmd_id) {
     // case IPC_NO_MAKE_CALL:
     //     InterMessage().junpack_message(mc, msg);
     //     this->su1.mc_str = msg;
@@ -178,17 +199,18 @@ bool SkycitEngine::process_ctrl_message(const std::string &msg, int cseq)
     //         this->su1.call_id = call_id;
     //     }
     //     break;
-    // case IPC_NO_REGISTER:
+     case IPC_NO_REGISTER:
+         this->sct->connectToSkype();
     //     InterMessage().junpack_message(reger, msg);
     //     this->su1.reg_str = msg;
     //     this->su1.cmd_reg = reger;
     //     bret = this->register_account(reger.display_name, reger.user_name, reger.sip_server,
     //                                   !reger.unregister, reger.password, msg);
-    //     break;
-    // default:
-    //     qLogx()<<"Unsupported cmd:"<<cmd_id;
-    //     break;
-    // }
+         break;
+    default:
+        qLogx()<<"Unsupported cmd:"<<cmd_id;
+        break;
+    }
 
     return true;
 }
@@ -240,6 +262,11 @@ void SkycitEngine::onSkypeRealConnected(QString user_name)
     // }
 
     // this->log_output(LT_USER, "连接Skype API成功，用户名：" + user_name);
+    CmdResolvName cmd;
+    cmd.name = user_name.toStdString();
+
+    std::string jstr = InterMessage().jpack_message(cmd);
+    
 }
 
 void SkycitEngine::onSkypeUserStatus(QString str_status, int int_status)

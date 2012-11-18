@@ -1,0 +1,13 @@
+diff --git a/alsa-kernel/drivers/dummy.c b/alsa-kernel/drivers/dummy.c
+index 7f41990..e4b0adb 100644
+--- a/alsa-kernel/drivers/dummy.c
++++ b/alsa-kernel/drivers/dummy.c
+@@ -63,7 +63,7 @@ static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;	/* ID for this card */
+ static int enable[SNDRV_CARDS] = {1, [1 ... (SNDRV_CARDS - 1)] = 0};
+ static char *model[SNDRV_CARDS] = {[0 ... (SNDRV_CARDS - 1)] = NULL};
+ static int pcm_devs[SNDRV_CARDS] = {[0 ... (SNDRV_CARDS - 1)] = 1};
+-static int pcm_substreams[SNDRV_CARDS] = {[0 ... (SNDRV_CARDS - 1)] = 8};
++static int pcm_substreams[SNDRV_CARDS] = {[0 ... (SNDRV_CARDS - 1)] = 128};
+ //static int midi_devs[SNDRV_CARDS] = {[0 ... (SNDRV_CARDS - 1)] = 2};
+ #ifdef CONFIG_HIGH_RES_TIMERS
+ static int hrtimer = 1;

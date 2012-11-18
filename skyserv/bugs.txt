@@ -1,0 +1,48 @@
+* skyserv: ../src/pjsua-lib/pjsua_acc.c：290：pjsua_acc_add: 断言“pjsua_var.acc_cnt < (sizeof(pjsua_var.acc)/sizeof(pjsua_var.acc[0]))”失败。
+已放弃
+
+* 关于acquire gateway一步,使用skype app的话,如果不一直连着,则可能拨打时重连用时比较长.而如果一直连接着服务器,服务器可能不支持这么多,需要查查.另外就是直接使用http来处理这功能. ---也许已经好了,已经改了,再试试看.
+
+* 没有连接app的时候,会出现崩溃, skynet/skype.cpp 256 SKYPE: => "#12 PING" 
+skynet/skype.cpp 74 SKYPE: <= "#12 PONG" 
+"SkypePackage,14,113,99008668056015172609114" 
+KBiHash()
+段错误
+重现方法,启动客户端,不连接app,直接点击call pstn按钮.
+
+TODOS:
+* skype重新连接, ok
+* 客户端ap2ap重新连接, ok
+* 服务器端处理多ap2ap stream, 不需要特殊处理.         -----x
+* ap2ap断线后无法重连.          --------x
+* 服务器端及时的语音转接.
+* 数据库重新连接.                 -------ok
+* 当有一路通话正在执行时,呼入另一个通话,导致前一路通话无法正确挂断. ok, 等待测试.
+* 查测服务器连续转换几路电话后是否有内存问题, 
+** pjsua_acc_add之后没有相应的pjsua_acc_del. --处理,如果服务器已经存在该账号,则不再新加入账号. ----ok
+** create transport for every call, but not delete it. As tcpc0x8591084  TCP transport destroyed normally
+* 服务器缓存一些数据,像用户账号,     --okkkkk
+* 测试服务器的语音流sample rates, 从4000->48000
+* 服务器转换语音流的服务端口使用随机端口,而不是固定端口.  ---ok
+* 会话表根据当前gateway状态自动恢复功能.
+* 需要一个记录日志的模块.
+* 当前设计每一通话需要一个数据库连接,如果成千上万通话,则数据库处理这些连接很有问题.
+* skype端先hold,再resume时,skyserv会发起另一个新的sip呼叫      --ok, 现在对hold进行了正确的处理.
+* 支持分机号电话dtmf                        --ok
+* 支持按键类电话.
+* 丢包算法, 丢包率在5-8%才能有比较好的音质. 延迟要不超过400ms,网速计算法. jitter buffer理论及实现.  -x
+* 发送到服务器的数据加密.
+* windows版本经常连接不上,和blocking模式有关,也就是windows版本不能使用blocking模式.  ---okkk
+* 今天发现一怪事, call transfer 直到 通话完成才返回 transfer_status finished? 本来应该传过去. 在适当的时候,手工hangup这个已经出现inprogress的call即可.
+* 目前得不到early media的提示,像nomoney提示等.          -- ok 
+* 其中一路skype退出,掉线后,路由skype有一个死循环,不断重复转发到这个已经退出的skype号
+* 处理一些异常情况，通知用户错误信息。
+* 端客户连续两次点击拨号，则服务器端一路通话被不正常锁定，并且解不了锁。  ---- ok
+* 服务器端有死锁问题，出现还是比较多，应该是有问题，考虑使用pj_thread_register自定义Qt线程看看效果。 --xx
+* 另一种死锁的情况，拨号后马上挂断，容易出现另一种形式的死锁。             --xx
+* 一种线路不正常被占用的情况，当某一路的skyserv已经死锁，router无法transfer to gatewary, 而router 正在处于CALL 134 TRANSFER_STATUS RINGING状态，这时用户端挂机，则这线路又会被“假占用锁定”.        --ok
+* 改进，对这些所有的状态在解析后使用整数来表示，减小使用时一直使用字符串检测带的效率浪费。
+* 重负载下的死锁问题非常严重，要考虑是否变动一下整体架构，否则很难解决这个问题啊。  --ok
+* 不要在sip线程中使用qt事件循环、signal/slot，只可使用一些实用类，像string,hash等。  --ok
+* 发现一个skype强大的地方，当一个通话正在进行，拔掉网线，skype会检测到线路问题，如果在10几秒内接上网线，skype会再次接通。但对skype2sip服务器端的影响需要明确一下。
+* 如果get_frame网络还没有数据，可以使用全是0的静音frame并返回，这样应该不会1秒种上百次不断的调用get_frame了???

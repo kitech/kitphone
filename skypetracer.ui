@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SkypeTracer</class>
+ <widget class="QDialog" name="SkypeTracer">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>767</width>
+    <height>545</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Skype Protocol Tracer</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QWidget" name="layoutWidget">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QTextBrowser" name="textBrowser"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QComboBox" name="comboBox">
+           <property name="editable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_8">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>PushButton</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QToolButton" name="toolButton_2">
+           <property name="text">
+            <string>..A..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_3">
+           <property name="text">
+            <string>..B..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_4">
+           <property name="text">
+            <string>..C..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_5">
+           <property name="text">
+            <string>..D..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_6">
+           <property name="text">
+            <string>..E..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_7">
+           <property name="text">
+            <string>..F..</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_7">
+           <property name="text">
+            <string>z</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QListWidget" name="listWidget">
+      <item>
+       <property name="text">
+        <string>ALTER APPLICATION &lt;appname&gt; CONNECT &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER APPLICATION &lt;appname&gt; DATAGRAM &lt;username&gt;:&lt;id&gt; &lt;text&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER APPLICATION &lt;appname&gt; DISCONNECT &lt;username&gt;:&lt;id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER APPLICATION &lt;appname&gt; READ &lt;username&gt;:&lt;id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER APPLICATION &lt;appname&gt; WRITE &lt;username&gt;:&lt;id&gt; &lt;text&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CALL &lt;id&gt; &lt;status&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CALL &lt;id&gt; SET_INPUT PORT=&quot;&lt;port&gt;&quot;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CALL &lt;id&gt; SET_OUTPUT PORT=&quot;&lt;port&gt;&quot;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CHAT &lt;chat_id&gt; ADDMEMBERS &lt;target&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CHAT &lt;chat_id&gt; LEAVE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER CHAT &lt;chat_id&gt; SETTOPIC &lt;topic&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER GROUP &lt;id&gt; ADDUSER &lt;userhandle|PSTN&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER GROUP &lt;id&gt; REMOVEUSER &lt;userhandle|PSTN&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ALTER VOICEMAIL &lt;id&gt; &lt;action&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>APPLICATION &lt;appname&gt; &lt;property&gt; &lt;value&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>BTN_PRESSED &lt;btn&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>BTN_RELEASED &lt;btn&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CALL &lt;id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CHAT CREATE &lt;target&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CHATMESSAGE &lt;chat_id&gt; &lt;message&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CLEAR CALLHISTORY</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CLEAR CHATHISTORY</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CLEAR VOICEMAILHISTORY</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CONTACTS FOCUSED</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CONTACTS FOCUSED &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CREATE APPLICATION &lt;appname&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CREATE GROUP &lt;Group|id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>DELETE APPLICATION &lt;appname&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>DELETE GROUP &lt;id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET AGC</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET AUDIO_IN</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET AUDIO_OUT</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CALL &lt;id&gt; &lt;property&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CHAT &lt;chat_id&gt; &lt;property&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CHAT &lt;chat_id&gt; CHATMESSAGES</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CHAT &lt;chat_id&gt; RECENTCHATMESSAGES</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CONNSTATUS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET CURRENTUSERHANDLE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET GROUP &lt;id&gt; property</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET MESSAGE &lt;id&gt; &lt;peroperty&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET MUTE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET PRIVILEGE &lt;user_privilege&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET PROFILE &lt;profile_property&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET PROFILE &lt;profile&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET RINGER</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET SKYPEVERSION</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET USER &lt;username&gt; &lt;property&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET USERSTATUS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>GET VIDEO_IN</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>HOOK &lt;ON|OFF&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>MESSAGE &lt;id&gt; &lt;property&gt; &lt;value&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>MINIMIZE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>MUTE &lt;ON|OFF&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN ADDAFRIEND &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN AUTHORIZATION &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN BLOCKEDUSERS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN CALLHISTORY</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN CHAT &lt;chat_id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN CONTACTS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN DIALPAD</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN FILETRANSFER &lt;username&gt; IN &lt;folder&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN GETTINGSTARTED</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN IM &lt;username&gt; &lt;message&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN IMPORTCONTACTS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN OPTIONS &lt;page&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN PROFILE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN SEARCH</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN SENDCONTACTS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN USERINFO &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN VIDEOTEST</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>OPEN VOICEMAIL &lt;id&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>PING</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>PROTOCOL &lt;version&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH ACTIVECALLS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH BOOKMARKEDCHATS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH CALLS &lt;target&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH CHATMESSAGES &lt;username&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH CHATS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH FRIENDS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH GROUPS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH MESSAGES &lt;target&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH MISSEDCALLS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH MISSEDCHATMESSAGES</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH RECENTCHATS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH USERS &lt;target&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH USERSWAITINGMYAUTHORIZATION</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SEARCH VOICEMAILS</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET AUDIO_IN &lt;device_name&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET AUDIO_OUT &lt;device_name&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET CALL &lt;id&gt; property</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET CHATMESSAGE &lt;id&gt; SEEN</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET MESSAGE &lt;id&gt; SEEN</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET MUTE &lt;ON|OFF&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET PROFILE &lt;profile_property&gt; &lt;value&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET PROFILE &lt;profile&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET PROFILE MOOD_TEXT &lt;text&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET RINGER &lt;device_name&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET USER &lt;username&gt; &lt;property&gt; &lt;value&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET USERSTATUS &lt;value&gt;</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>SET SILENT MODE &lt;ON|OFF&gt;</string>
+       </property>
+      </item>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
